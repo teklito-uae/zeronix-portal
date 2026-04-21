@@ -13,20 +13,20 @@
 ## Phase 1 — Project Setup (Week 1–2)
 
 ### Backend
-- [ ] Laravel 11 install, configure `.env` (DB, mail, Pusher, Sanctum)
-- [ ] All migrations (users, customers, suppliers, brands, categories, supplier_brands, products, supplier_products, enquiries, enquiry_items, quotes, quote_items, invoices, invoice_items, chat_conversations, chat_messages, supplier_broadcasts)
-- [ ] Seeders: admin user, sample brands/categories
-- [ ] Sanctum setup: admin guard + customer guard (separate)
-- [ ] Auth routes: admin login/logout, customer register/login/logout
-- [ ] CORS config (frontend domain only)
-- [ ] Rate limiting on public endpoints
+- [x] Laravel 11 install, configure `.env` (DB, mail, Pusher, Sanctum)
+- [x] All migrations (users, customers, suppliers, brands, categories, supplier_brands, products, supplier_products, enquiries, enquiry_items, quotes, quote_items, invoices, invoice_items, chat_conversations, chat_messages, supplier_broadcasts)
+- [x] Seeders: admin user, sample brands/categories
+- [x] Sanctum setup: admin guard + customer guard (separate)
+- [x] Auth routes: admin login/logout, customer register/login/logout
+- [x] CORS config (frontend domain only)
+- [x] Rate limiting on public endpoints
 
 ### Frontend
-- [ ] Vite + React + TypeScript scaffold inside `frontend/`
-- [ ] TailwindCSS + Shadcn UI init (`npx shadcn@latest init`)
-- [ ] Install TanStack Query, TanStack Table, Axios, Zustand, React Router
-- [ ] `lib/axios.ts` — base URL + auth token interceptor
-- [ ] `lib/queryClient.ts` — TanStack Query client config
+- [x] Vite + React + TypeScript scaffold inside `frontend/`
+- [x] TailwindCSS + Shadcn UI init (`npx shadcn@latest init`)
+- [x] Install TanStack Query, TanStack Table, Axios, Zustand, React Router
+- [x] `lib/axios.ts` — base URL + auth token interceptor
+- [x] `lib/queryClient.ts` — TanStack Query client config
 - [ ] Base layouts: `AdminLayout.tsx`, `CustomerLayout.tsx`, `Sidebar.tsx`, `Topbar.tsx`
 - [ ] Shared components: `DataTable.tsx`, `PageHeader.tsx`, `StatCard.tsx`, `ConfirmDialog.tsx`, `EmptyState.tsx`
 - [ ] Zustand stores: sidebar state, chat widget state
