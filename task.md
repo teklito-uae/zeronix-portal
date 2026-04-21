@@ -19,10 +19,10 @@
 - [x] Base layouts: `AdminLayout.tsx`, `CustomerLayout.tsx`, `Sidebar.tsx`, `Topbar.tsx`
 - [x] Shared components: `DataTable.tsx`, `PageHeader.tsx`, `StatCard.tsx`, `ConfirmDialog.tsx`, `EmptyState.tsx`
 - [x] Zustand stores: sidebar state, chat widget state
-- [ ] Admin auth pages: Login
-- [ ] Customer auth pages: Login, Register
-- [ ] React Router setup with protected routes (admin + customer guards)
-- [ ] `types/` folder — all TS interfaces mirroring DB models
+- [x] Admin auth pages: Login
+- [x] Customer auth pages: Login, Register
+- [x] React Router setup with protected routes (admin + customer guards)
+- [x] `types/` folder — all TS interfaces mirroring DB models
 
 ## Phase 2 — Core Admin
 - [ ] Dashboard

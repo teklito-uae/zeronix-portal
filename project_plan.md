@@ -27,13 +27,13 @@
 - [x] Install TanStack Query, TanStack Table, Axios, Zustand, React Router
 - [x] `lib/axios.ts` — base URL + auth token interceptor
 - [x] `lib/queryClient.ts` — TanStack Query client config
-- [ ] Base layouts: `AdminLayout.tsx`, `CustomerLayout.tsx`, `Sidebar.tsx`, `Topbar.tsx`
-- [ ] Shared components: `DataTable.tsx`, `PageHeader.tsx`, `StatCard.tsx`, `ConfirmDialog.tsx`, `EmptyState.tsx`
-- [ ] Zustand stores: sidebar state, chat widget state
-- [ ] Admin auth pages: Login
-- [ ] Customer auth pages: Login, Register
-- [ ] React Router setup with protected routes (admin + customer guards)
-- [ ] `types/` folder — all TS interfaces mirroring DB models
+- [x] Base layouts: `AdminLayout.tsx`, `CustomerLayout.tsx`, `Sidebar.tsx`, `Topbar.tsx`
+- [x] Shared components: `DataTable.tsx`, `PageHeader.tsx`, `StatCard.tsx`, `ConfirmDialog.tsx`, `EmptyState.tsx`
+- [x] Zustand stores: sidebar state, chat widget state
+- [x] Admin auth pages: Login
+- [x] Customer auth pages: Login, Register
+- [x] React Router setup with protected routes (admin + customer guards)
+- [x] `types/` folder — all TS interfaces mirroring DB models
 
 ---
 
