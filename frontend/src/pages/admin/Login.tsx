@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
-import api from '@/lib/axios';
+
 
 export const AdminLogin = () => {
   const setAdmin = useAuthStore((state) => state.setAdmin);
