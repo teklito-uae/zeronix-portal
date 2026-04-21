@@ -11,11 +11,11 @@
 - [x] Rate limiting on public endpoints
 
 ### Frontend
-- [ ] Vite + React + TypeScript scaffold inside `frontend/`
-- [ ] TailwindCSS + Shadcn UI init
-- [ ] Install TanStack Query, TanStack Table, Axios, Zustand, React Router
-- [ ] `lib/axios.ts` — base URL + auth token interceptor
-- [ ] `lib/queryClient.ts` — TanStack Query client config
+- [x] Vite + React + TypeScript scaffold inside `frontend/`
+- [x] TailwindCSS + Shadcn UI init
+- [x] Install TanStack Query, TanStack Table, Axios, Zustand, React Router
+- [x] `lib/axios.ts` — base URL + auth token interceptor
+- [x] `lib/queryClient.ts` — TanStack Query client config
 - [ ] Base layouts: `AdminLayout.tsx`, `CustomerLayout.tsx`, `Sidebar.tsx`, `Topbar.tsx`
 - [ ] Shared components: `DataTable.tsx`, `PageHeader.tsx`, `StatCard.tsx`, `ConfirmDialog.tsx`, `EmptyState.tsx`
 - [ ] Zustand stores: sidebar state, chat widget state
