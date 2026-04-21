@@ -25,7 +25,7 @@
 - [x] `types/` folder — all TS interfaces mirroring DB models
 
 ## Phase 2 — Core Admin
-- [ ] Dashboard
+- [x] Dashboard
 - [ ] Customers
 - [ ] Suppliers
 - [ ] Brands & Categories

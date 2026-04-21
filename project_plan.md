@@ -39,7 +39,7 @@
 
 ## Phase 2 — Core Admin (Week 3–4)
 
-- [ ] **Dashboard** — 4 stat cards + 2 charts (bar: enquiries by status, line: quote value 6mo) + recent enquiries mini table + recent chat activity
+- [x] **Dashboard** — 4 stat cards + 2 charts (bar: enquiries by status, line: quote value 6mo) + recent enquiries mini table + recent chat activity
 - [ ] **Customers** — TanStack Table list, add/edit Dialog, Customer Profile page (4 tabs: overview, enquiries, quotes/invoices, chat history)
 - [ ] **Suppliers** — Card grid list, add/edit form, Supplier Profile page (4 tabs: profile, brands/categories, products with pricing, broadcast log)
 - [ ] **Brands & Categories** — CRUD (used in forms, not separate nav page needed)

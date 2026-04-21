@@ -5,6 +5,7 @@ import { AdminRoute, CustomerRoute } from './components/auth/ProtectedRoute';
 import { AdminLogin } from './pages/admin/Login';
 import { CustomerLogin } from './pages/customer/Login';
 import { CustomerRegister } from './pages/customer/Register';
+import { Dashboard } from './pages/admin/Dashboard';
 
 function App() {
   return (
@@ -18,7 +19,7 @@ function App() {
       {/* Admin Protected Routes */}
       <Route path="/admin" element={<AdminRoute />}>
         <Route element={<AdminLayout />}>
-          <Route path="dashboard" element={<div className="p-4">Admin Dashboard Area</div>} />
+          <Route path="dashboard" element={<Dashboard />} />
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
         </Route>
       </Route>
