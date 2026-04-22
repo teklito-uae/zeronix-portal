@@ -85,7 +85,7 @@ jobs:
           folder: deploy
           branch: production
           clean: true
-          single-commit: true
+          single-commit: false
 
       - name: Trigger Hostinger Deployment
         run: |
