@@ -40,7 +40,7 @@ export const CustomerEnquiries = () => {
                       REQ-{String(enq.id).padStart(4, '0')}
                     </span>
                     <p className="text-xs text-admin-text-secondary mt-1">
-                      {new Date(enq.created_at).toLocaleDateString()}
+                      {enq.created_at ? new Date(enq.created_at).toLocaleDateString() : '—'}
                     </p>
                   </div>
                   <StatusBadge status={enq.status} />

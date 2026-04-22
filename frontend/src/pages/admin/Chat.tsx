@@ -142,7 +142,7 @@ export const Chat = () => {
             {/* Messages */}
             <ScrollArea className="flex-1 p-6 bg-[url('/chat-bg.png')] bg-repeat opacity-95">
               <div className="space-y-4">
-                {currentMessages.map((msg, i) => (
+                {currentMessages.map((msg) => (
                   <div
                     key={msg.id}
                     className={cn(

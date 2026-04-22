@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { PageHeader } from '@/components/shared/PageHeader';
 import { DataTable } from '@/components/shared/DataTable';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Button } from '@/components/ui/button';
@@ -22,7 +21,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { mockEnquiries, mockProducts } from '@/lib/mockData';
-import type { Enquiry, EnquiryStatus, EnquiryPriority, EnquirySource } from '@/types';
+import type { Enquiry } from '@/types';
 import { Filter, X, Building2, Mail, Phone, Calendar, FileText, Package } from 'lucide-react';
 
 export const Enquiries = () => {

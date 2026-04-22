@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { mockChatMessages } from '@/lib/mockData';
 import type { ChatMessage } from '@/types';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';

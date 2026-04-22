@@ -56,7 +56,7 @@ export const CustomerDashboard = () => {
                 <div key={enq.id} className="flex items-center justify-between p-3 rounded-lg border border-admin-border bg-admin-bg hover:border-zeronix-blue/50 transition-colors cursor-pointer" onClick={() => navigate(`/portal/${company}/enquiries`)}>
                   <div>
                     <p className="font-medium text-admin-text-primary text-sm">REQ-{String(enq.id).padStart(4, '0')}</p>
-                    <p className="text-xs text-admin-text-secondary mt-1">{new Date(enq.created_at).toLocaleDateString()}</p>
+                    <p className="text-xs text-admin-text-secondary mt-1">{enq.created_at ? new Date(enq.created_at).toLocaleDateString() : '—'}</p>
                   </div>
                   <div className="text-right">
                     <span className={`text-xs font-semibold px-2 py-1 rounded-full ${

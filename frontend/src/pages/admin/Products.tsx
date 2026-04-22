@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
-import { PageHeader } from '@/components/shared/PageHeader';
 import { DataTable } from '@/components/shared/DataTable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,7 +24,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { mockProducts, mockBrands, mockCategories } from '@/lib/mockData';
 import type { Product } from '@/types';
-import { Plus, Package, Trash2, MoreHorizontal, Pencil } from 'lucide-react';
+import { Plus, Trash2, MoreHorizontal, Pencil } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,

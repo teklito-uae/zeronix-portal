@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/useAuthStore';
 import { AdminLayout } from './components/layout/AdminLayout';
 import { AdminRoute, CustomerRoute } from './components/auth/ProtectedRoute';
@@ -29,7 +29,6 @@ import { CustomerProfile } from './pages/customer/CustomerProfile';
 
 const PortalRedirect = () => {
   const customer = useAuthStore((state) => state.customer);
-  // Default to 'company' if no company name is provided, then slugify it
   const companySlug = (customer?.company || 'company').toLowerCase().replace(/\s+/g, '-');
   return <Navigate to={`/portal/${companySlug}/dashboard`} replace />;
 };
@@ -37,13 +36,11 @@ const PortalRedirect = () => {
 function App() {
   return (
     <Routes>
-      {/* Public / Auth Routes */}
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/login" element={<CustomerLogin />} />
       <Route path="/register" element={<CustomerRegister />} />
 
-      {/* Admin Protected Routes */}
       <Route path="/admin" element={<AdminRoute />}>
         <Route element={<AdminLayout />}>
           <Route path="dashboard" element={<Dashboard />} />
@@ -63,7 +60,6 @@ function App() {
         </Route>
       </Route>
 
-      {/* Customer Protected Routes */}
       <Route path="/portal" element={<CustomerRoute />}>
         <Route index element={<PortalRedirect />} />
         <Route path=":company" element={<AdminLayout />}>

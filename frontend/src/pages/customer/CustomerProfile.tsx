@@ -1,6 +1,5 @@
 import { useAuthStore } from '@/store/useAuthStore';
-import { StatCard } from '@/components/shared/StatCard';
-import { User, Mail, Building, Phone, Calendar } from 'lucide-react';
+import { User, Mail, Building } from 'lucide-react';
 import { SEO } from '@/components/shared/SEO';
 
 export const CustomerProfile = () => {

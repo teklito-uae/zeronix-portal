@@ -6,7 +6,6 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { FileText, CheckCircle, XCircle } from 'lucide-react';
-import { PageHeader } from '@/components/shared/PageHeader';
 
 export const CustomerQuotes = () => {
   const customerId = 3; // Mock
