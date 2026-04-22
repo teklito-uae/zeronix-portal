@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSidebarStore } from '@/store/useSidebarStore';
+import { Logo } from '@/components/shared/Logo';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -107,17 +108,7 @@ export const Sidebar = () => {
       >
         {/* Logo */}
         <div className="h-16 flex items-center border-b border-admin-border px-6 flex-shrink-0 overflow-hidden">
-          <div className={cn(
-            "flex items-center font-bold transition-all duration-200",
-            isOpen ? "text-2xl tracking-tight" : "text-3xl w-full justify-center tracking-tighter"
-          )}>
-            <span className="text-emerald-500">Z</span>
-            {isOpen && (
-              <span className="text-blue-950 dark:text-white ml-1 font-black uppercase tracking-[0.05em] text-xl">
-                eronix
-              </span>
-            )}
-          </div>
+          <Logo size={isOpen ? 'md' : 'lg'} showText={isOpen} />
         </div>
 
         {/* Navigation */}

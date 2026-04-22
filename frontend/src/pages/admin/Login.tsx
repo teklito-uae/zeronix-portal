@@ -1,40 +1,87 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
-
+import { Logo } from '@/components/shared/Logo';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
 
 export const AdminLogin = () => {
   const setAdmin = useAuthStore((state) => state.setAdmin);
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Dummy bypass for now, to be integrated with API
-    try {
-      // await api.get('/sanctum/csrf-cookie');
-      // const res = await api.post('/api/admin/login', { email, password });
-      setAdmin({ id: 1, name: 'Admin', email: 'admin@zeronix.com' });
+    setLoading(true);
+    // Simulate API delay for a professional feel
+    setTimeout(() => {
+      setAdmin({ id: 1, name: 'Admin User', email: 'admin@zeronix.com' });
       navigate('/admin/dashboard');
-    } catch (error) {
-      console.error(error);
-    }
+      setLoading(false);
+    }, 1200);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-admin-bg">
-      <div className="bg-admin-surface p-8 rounded-brand shadow-lg max-w-md w-full border border-admin-border">
-        <h2 className="text-2xl font-bold mb-6 text-center text-zeronix-blue">Zeronix Admin Login</h2>
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-sm mb-1 text-admin-text-secondary">Email</label>
-            <input type="email" required className="w-full border border-admin-border rounded-brand px-3 py-2 bg-admin-bg text-admin-text-primary" />
-          </div>
-          <div>
-            <label className="block text-sm mb-1 text-admin-text-secondary">Password</label>
-            <input type="password" required className="w-full border border-admin-border rounded-brand px-3 py-2 bg-admin-bg text-admin-text-primary" />
-          </div>
-          <button type="submit" className="w-full bg-zeronix-blue text-white py-2 rounded-brand hover:opacity-90">Login</button>
-        </form>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 p-4 selection:bg-emerald-500/30">
+      <div className="mb-10 animate-in fade-in zoom-in duration-1000">
+        <Logo size="lg" />
+      </div>
+      
+      <Card className="w-full max-w-md bg-slate-900 border-slate-800 shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-700">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold text-center text-white">Admin Access</CardTitle>
+          <CardDescription className="text-center text-slate-400">
+            Secure login for Zeronix administrators
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-slate-300">Email Address</Label>
+              <Input 
+                id="email" 
+                type="email" 
+                placeholder="admin@zeronix.com" 
+                required 
+                className="bg-slate-950 border-slate-800 text-white placeholder:text-slate-600 focus-visible:ring-emerald-500 h-11"
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" title="Password" className="text-slate-300">Password</Label>
+              </div>
+              <Input 
+                id="password" 
+                type="password" 
+                required 
+                className="bg-slate-950 border-slate-800 text-white placeholder:text-slate-600 focus-visible:ring-emerald-500 h-11"
+              />
+            </div>
+            <Button 
+              type="submit" 
+              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-12 text-base transition-all active:scale-[0.98]"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                'Sign In to Dashboard'
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+      
+      <div className="mt-8 flex items-center gap-6 text-slate-500 text-xs font-medium uppercase tracking-widest">
+        <span>Enterprise Secure</span>
+        <div className="w-1 h-1 bg-slate-700 rounded-full" />
+        <span>v2.0.4</span>
       </div>
     </div>
   );

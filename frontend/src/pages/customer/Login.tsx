@@ -1,35 +1,96 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useNavigate, Link } from 'react-router-dom';
+import { Logo } from '@/components/shared/Logo';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, ArrowRight } from 'lucide-react';
 
 export const CustomerLogin = () => {
   const setCustomer = useAuthStore((state) => state.setCustomer);
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setCustomer({ id: 1, name: 'Test Customer', email: 'customer@example.com' });
-    navigate('/portal');
+    setLoading(true);
+    // Simulate API delay
+    setTimeout(() => {
+      setCustomer({ id: 1, name: 'Mohammed Ali', email: 'customer@example.com' });
+      navigate('/portal');
+      setLoading(false);
+    }, 1200);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-cust-bg">
-      <div className="bg-white p-8 rounded-brand shadow-lg max-w-md w-full border border-cust-border">
-        <h2 className="text-2xl font-bold mb-6 text-center text-zeronix-blue">Customer Login</h2>
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-sm mb-1 text-cust-text-secondary">Email</label>
-            <input type="email" required className="w-full border border-cust-border rounded-brand px-3 py-2" />
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 p-4 selection:bg-emerald-500/30">
+      <div className="mb-10 animate-in fade-in zoom-in duration-1000">
+        <Logo size="lg" />
+      </div>
+      
+      <Card className="w-full max-w-md bg-slate-900 border-slate-800 shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-700">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold text-center text-white">Customer Portal</CardTitle>
+          <CardDescription className="text-center text-slate-400">
+            Sign in to manage your enquiries and orders
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-slate-300">Email Address</Label>
+              <Input 
+                id="email" 
+                type="email" 
+                placeholder="customer@example.com" 
+                required 
+                className="bg-slate-950 border-slate-800 text-white placeholder:text-slate-600 focus-visible:ring-emerald-500 h-11"
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" title="Password" className="text-slate-300">Password</Label>
+                <Link to="#" className="text-xs text-emerald-500 hover:text-emerald-400">Forgot password?</Link>
+              </div>
+              <Input 
+                id="password" 
+                type="password" 
+                required 
+                className="bg-slate-950 border-slate-800 text-white placeholder:text-slate-600 focus-visible:ring-emerald-500 h-11"
+              />
+            </div>
+            <Button 
+              type="submit" 
+              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-12 text-base transition-all active:scale-[0.98]"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Logging in...
+                </>
+              ) : (
+                <>
+                  Access Portal <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </form>
+          
+          <div className="mt-6 pt-6 border-t border-slate-800 text-center">
+            <p className="text-sm text-slate-400">
+              New to Zeronix? <Link to="/register" className="text-emerald-500 hover:text-emerald-400 font-semibold">Create an account</Link>
+            </p>
           </div>
-          <div>
-            <label className="block text-sm mb-1 text-cust-text-secondary">Password</label>
-            <input type="password" required className="w-full border border-cust-border rounded-brand px-3 py-2" />
-          </div>
-          <button type="submit" className="w-full bg-zeronix-green text-white py-2 rounded-brand font-bold hover:opacity-90">Login</button>
-        </form>
-        <p className="mt-4 text-center text-sm text-cust-text-secondary">
-          Don't have an account? <Link to="/register" className="text-zeronix-blue hover:underline">Register here</Link>
-        </p>
+        </CardContent>
+      </Card>
+      
+      <div className="mt-8 flex items-center gap-4 text-slate-600 text-xs font-medium">
+        <span>Privacy Policy</span>
+        <span>•</span>
+        <span>Terms of Service</span>
       </div>
     </div>
   );
