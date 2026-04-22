@@ -1,7 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSidebarStore } from '@/store/useSidebarStore';
 import { cn } from '@/lib/utils';
-import logo from '@/assets/logo.webp';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -107,16 +106,18 @@ export const Sidebar = () => {
         )}
       >
         {/* Logo */}
-        <div className="h-16 flex items-center justify-center border-b border-admin-border px-4 flex-shrink-0">
-          {isOpen ? (
-            <div className="flex items-center w-full">
-              <img src={logo} alt="Zeronix" className="h-8 w-auto dark:brightness-0 dark:invert" />
-            </div>
-          ) : (
-            <div className="flex items-center justify-center w-8 overflow-hidden">
-              <img src={logo} alt="Z" className="h-8 w-auto max-w-none object-left object-cover dark:brightness-0 dark:invert" />
-            </div>
-          )}
+        <div className="h-16 flex items-center border-b border-admin-border px-6 flex-shrink-0 overflow-hidden">
+          <div className={cn(
+            "flex items-center font-bold transition-all duration-200",
+            isOpen ? "text-2xl tracking-tight" : "text-3xl w-full justify-center tracking-tighter"
+          )}>
+            <span className="text-emerald-500">Z</span>
+            {isOpen && (
+              <span className="text-blue-950 dark:text-white ml-1 font-black uppercase tracking-[0.05em] text-xl">
+                eronix
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Navigation */}
