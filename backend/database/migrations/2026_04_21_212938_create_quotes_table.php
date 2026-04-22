@@ -13,12 +13,16 @@ return new class extends Migration
     {
         Schema::create('quotes', function (Blueprint $table) {
             $table->id();
+            $table->string('quote_number')->unique();
             $table->foreignId('enquiry_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('customer_id')->constrained()->cascadeOnDelete();
-            $table->decimal('subtotal', 10, 2)->default(0);
-            $table->decimal('vat', 10, 2)->default(0);
-            $table->decimal('total', 10, 2)->default(0);
+            $table->date('date');
+            $table->date('valid_until')->nullable();
+            $table->decimal('subtotal', 12, 2)->default(0);
+            $table->decimal('vat_amount', 12, 2)->default(0);
+            $table->decimal('total', 12, 2)->default(0);
             $table->string('status')->default('draft');
+            $table->string('reference_id')->nullable();
             $table->timestamps();
         });
     }
