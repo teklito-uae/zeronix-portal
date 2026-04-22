@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { DataTable } from '@/components/shared/DataTable';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { DownloadButton } from '@/components/shared/DownloadButton';
 import { mockInvoices } from '@/lib/mockData';
 import type { Invoice } from '@/types';
 import { Receipt, Building2 } from 'lucide-react';
@@ -67,6 +68,15 @@ export const Invoices = () => {
         <span className="text-admin-text-muted text-xs">
           {row.original.created_at ? new Date(row.original.created_at).toLocaleDateString() : '—'}
         </span>
+      ),
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }) => (
+        <div className="flex justify-end">
+          <DownloadButton type="invoice" id={row.original.id} variant="ghost" size="sm" />
+        </div>
       ),
     },
   ];

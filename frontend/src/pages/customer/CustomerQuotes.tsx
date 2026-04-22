@@ -5,7 +5,8 @@ import { DataTable } from '@/components/shared/DataTable';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/shared/StatusBadge';
-import { FileText, CheckCircle, XCircle } from 'lucide-react';
+import { DownloadButton } from '@/components/shared/DownloadButton';
+import { CheckCircle, XCircle } from 'lucide-react';
 
 export const CustomerQuotes = () => {
   const customerId = 3; // Mock
@@ -62,9 +63,7 @@ export const CustomerQuotes = () => {
         
         return (
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="text-admin-text-secondary hover:text-zeronix-blue">
-              <FileText size={16} />
-            </Button>
+            <DownloadButton type="quote" id={quote.id} variant="ghost" size="icon" />
             {isPending && (
               <>
                 <Button 

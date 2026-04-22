@@ -136,6 +136,7 @@ export interface Quote {
   vat_amount: number;
   total: number;
   valid_until?: string;
+  reference_id?: string;
   notes?: string;
   created_at?: string;
   updated_at?: string;
@@ -150,6 +151,7 @@ export interface QuoteItem {
   quote_id: number;
   product_id?: number | null;
   description: string;
+  product_name?: string;
   quantity: number;
   unit_price: number;
   total: number;
@@ -182,6 +184,7 @@ export interface InvoiceItem {
   invoice_id: number;
   product_id?: number | null;
   description: string;
+  product_name?: string;
   quantity: number;
   unit_price: number;
   total: number;

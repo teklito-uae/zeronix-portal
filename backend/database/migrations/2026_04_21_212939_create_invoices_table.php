@@ -13,12 +13,15 @@ return new class extends Migration
     {
         Schema::create('invoices', function (Blueprint $table) {
             $table->id();
+            $table->string('invoice_number')->unique();
             $table->foreignId('quote_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('customer_id')->constrained()->cascadeOnDelete();
-            $table->decimal('subtotal', 10, 2)->default(0);
-            $table->decimal('vat', 10, 2)->default(0);
-            $table->decimal('total', 10, 2)->default(0);
-            $table->string('status')->default('pending');
+            $table->date('date');
+            $table->date('due_date')->nullable();
+            $table->decimal('subtotal', 12, 2)->default(0);
+            $table->decimal('vat_amount', 12, 2)->default(0);
+            $table->decimal('total', 12, 2)->default(0);
+            $table->string('status')->default('unpaid');
             $table->timestamps();
         });
     }

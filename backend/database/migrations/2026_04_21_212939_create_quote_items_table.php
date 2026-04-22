@@ -15,9 +15,11 @@ return new class extends Migration
             $table->id();
             $table->foreignId('quote_id')->constrained()->cascadeOnDelete();
             $table->foreignId('product_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('product_name');
+            $table->text('description')->nullable();
             $table->integer('quantity')->default(1);
-            $table->decimal('unit_price', 10, 2)->default(0);
-            $table->decimal('total', 10, 2)->default(0);
+            $table->decimal('unit_price', 12, 2)->default(0);
+            $table->decimal('total', 12, 2)->default(0);
             $table->timestamps();
         });
     }

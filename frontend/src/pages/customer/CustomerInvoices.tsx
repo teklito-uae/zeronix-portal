@@ -5,7 +5,8 @@ import { DataTable } from '@/components/shared/DataTable';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/shared/StatusBadge';
-import { Receipt, CheckSquare } from 'lucide-react';
+import { DownloadButton } from '@/components/shared/DownloadButton';
+import { CheckSquare } from 'lucide-react';
 
 export const CustomerInvoices = () => {
   const customerId = 3; // Mock
@@ -78,9 +79,7 @@ export const CustomerInvoices = () => {
         
         return (
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="text-admin-text-secondary hover:text-zeronix-blue">
-              <Receipt size={16} />
-            </Button>
+            <DownloadButton type="invoice" id={invoice.id} variant="ghost" size="icon" />
             {canConfirmDelivery && (
               <Button 
                 variant="outline" 
