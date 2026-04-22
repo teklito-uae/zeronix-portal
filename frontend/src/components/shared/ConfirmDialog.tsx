@@ -1,14 +1,58 @@
-export const ConfirmDialog = () => {
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
+interface ConfirmDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title?: string;
+  description?: string;
+  confirmLabel?: string;
+  onConfirm: () => void;
+  variant?: 'default' | 'destructive';
+}
+
+export const ConfirmDialog = ({
+  open,
+  onOpenChange,
+  title = 'Are you sure?',
+  description = 'This action cannot be undone.',
+  confirmLabel = 'Confirm',
+  onConfirm,
+  variant = 'default',
+}: ConfirmDialogProps) => {
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-admin-surface p-6 rounded-brand border border-admin-border max-w-sm w-full">
-        <h3 className="text-lg font-bold mb-2">Are you sure?</h3>
-        <p className="text-admin-text-secondary mb-4">This action cannot be undone.</p>
-        <div className="flex justify-end gap-2">
-          <button className="px-4 py-2 border border-admin-border rounded-brand hover:bg-admin-surface-hover">Cancel</button>
-          <button className="px-4 py-2 bg-red-500 text-white rounded-brand hover:opacity-90">Confirm</button>
-        </div>
-      </div>
-    </div>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent className="bg-admin-surface border-admin-border">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="text-admin-text-primary">{title}</AlertDialogTitle>
+          <AlertDialogDescription className="text-admin-text-secondary">
+            {description}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel className="border-admin-border text-admin-text-secondary hover:bg-admin-surface-hover">
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={onConfirm}
+            className={
+              variant === 'destructive'
+                ? 'bg-danger text-white hover:bg-danger/90'
+                : 'bg-zeronix-blue text-white hover:bg-zeronix-blue-hover'
+            }
+          >
+            {confirmLabel}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 };

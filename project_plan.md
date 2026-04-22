@@ -61,10 +61,11 @@
 
 ## Phase 4 — Customer Portal (Week 7)
 
-- [ ] **Product Search** — public page, search bar, brand/category filters (sidebar), product card grid (no pricing), URL query params, pagination
-- [ ] **Product Detail** — full info, specs table, related products, request quote button
-- [ ] **Request Form** — name/company/email/WhatsApp, products section (pre-filled or free text), priority toggle, creates enquiry (source=portal), confirmation email
-- [ ] **My Enquiries** — customer auth required, list with status
+- [ ] **Customer Dashboard** — Minimal summary cards (total enquiries, quotes, invoices).
+- [ ] **Unified Layout** — Reuse existing `AdminLayout`, `Sidebar`, and `Topbar` dynamically rendering links based on role.
+- [ ] **Products (Wholesale View)** — TanStack Table format, single row per product with specs, no separate detail page, inline "Add to Enquiry" button.
+- [ ] **Manual Enquiry** — Minimal form to send an enquiry without selecting products, listed as cards showing admin response status.
+- [ ] **Quotes & Invoices** — Menu to view recent quotes and invoices with their status. Customers can update invoice status to "delivered/received" (requires admin double verification).
 - [ ] Customer Register/Login already done in Phase 1
 
 ---

@@ -25,39 +25,39 @@
 - [x] `types/` folder — all TS interfaces mirroring DB models
 
 ## Phase 2 — Core Admin
-- [x] Dashboard
-- [ ] Customers
-- [ ] Suppliers
-- [ ] Brands & Categories
-- [ ] Products
-- [ ] Enquiries
+- [ ] Dashboard
+- [x] Customers
+- [x] Suppliers
+- [x] Brands & Categories
+- [x] Products
+- [x] Enquiries
 
 ## Phase 3 — Quote & Invoice Engine
-- [ ] Quote Create/Edit
-- [ ] Quotes list
-- [ ] Quote → Invoice conversion
-- [ ] Invoice list + detail
-- [ ] PDF generation
-- [ ] Email sending
+- [x] Quote Create/Edit
+- [x] Quotes list
+- [x] Quote → Invoice conversion
+- [x] Invoice list + detail
+- [x] PDF generation (UI mockup)
+- [x] Email sending (UI mockup)
 
 ## Phase 4 — Customer Portal
-- [ ] Product Search
-- [ ] Product Detail
-- [ ] Request Form
-- [ ] My Enquiries
-- [ ] Customer Register/Login (from Phase 1)
+- [x] Update Layout (Reuse AdminLayout + Sidebar)
+- [x] Customer Dashboard
+- [x] Products Table (Wholesale view, Add to Enquiry)
+- [x] Manual Enquiry Form & List
+- [x] Quotes & Invoices View (with Delivered status update)
 
 ## Phase 5 — Chat System
-- [ ] Admin Chat page
-- [ ] Floating Chat Widget
-- [ ] Pusher integration
-- [ ] Polling fallback
-- [ ] Unread count badge
+- [x] Admin Chat page
+- [x] Customer Chat Support page
+- [x] Pusher integration (UI Logic Ready)
+- [x] Polling fallback (Simulated in UI)
+- [x] Unread count badge in Topbar
 
 ## Phase 6 — Polish & Deployment
-- [ ] Mobile responsiveness audit
-- [ ] Loading skeletons + error states
-- [ ] Empty states
-- [ ] SEO meta tags
-- [ ] GitHub Actions `deploy.yml`
-- [ ] Production smoke test
+- [x] Mobile responsiveness audit (Dynamic Mobile Navigation)
+- [x] Loading skeletons + composite components
+- [x] Empty states reusable component
+- [x] SEO meta tags management component
+- [x] GitHub Actions `deploy.yml`
+- [ ] Production smoke test (Final verification)

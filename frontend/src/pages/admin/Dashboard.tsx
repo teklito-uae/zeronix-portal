@@ -1,7 +1,7 @@
-
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatCard } from '@/components/shared/StatCard';
 import { DataTable } from '@/components/shared/DataTable';
+import { SEO } from '@/components/shared/SEO';
 import { FileText, Users, ShoppingCart, MessageSquare } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
@@ -16,17 +16,18 @@ const dummyData = [
 
 export const Dashboard = () => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
+      <SEO title="Admin Dashboard" description="Zeronix Administration Overview" />
       <PageHeader title="Dashboard" description="Overview of your portal activities." />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <StatCard title="Total Enquiries" value="1,284" icon={<MessageSquare size={20} />} />
         <StatCard title="Pending Quotes" value="45" icon={<FileText size={20} />} />
         <StatCard title="Active Customers" value="320" icon={<Users size={20} />} />
         <StatCard title="Products" value="8,401" icon={<ShoppingCart size={20} />} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6">
         <div className="bg-admin-surface p-6 rounded-brand border border-admin-border shadow-sm">
           <h3 className="text-lg font-semibold mb-4 text-admin-text-primary">Enquiries vs Quotes</h3>
           <div className="h-64">

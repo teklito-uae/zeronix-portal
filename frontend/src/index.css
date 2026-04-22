@@ -9,15 +9,15 @@
   --color-warning: #F59E0B;
   --color-danger: #EF4444;
 
-  --color-admin-bg: #F4F6FA;
-  --color-admin-surface: #FFFFFF;
-  --color-admin-surface-hover: #F0F4FF;
-  --color-admin-sidebar-bg: #FFFFFF;
+  --color-admin-bg: var(--admin-bg);
+  --color-admin-surface: var(--admin-surface);
+  --color-admin-surface-hover: var(--admin-surface-hover);
+  --color-admin-sidebar-bg: var(--admin-sidebar-bg);
   --color-admin-sidebar-active: #0F52BA;
-  --color-admin-border: #E2E8F0;
-  --color-admin-text-primary: #0F1629;
-  --color-admin-text-secondary: #4A5568;
-  --color-admin-text-muted: #94A3B8;
+  --color-admin-border: var(--admin-border);
+  --color-admin-text-primary: var(--admin-text-primary);
+  --color-admin-text-secondary: var(--admin-text-secondary);
+  --color-admin-text-muted: var(--admin-text-muted);
 
   --color-cust-bg: #FFFFFF;
   --color-cust-bg-subtle: #F8FAFF;
@@ -28,25 +28,53 @@
   --color-cust-text-on-dark: #F0F4FF;
 
   --radius-brand: 8px;
+
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --admin-bg: #F4F6FA;
+    --admin-surface: #FFFFFF;
+    --admin-surface-hover: #F0F4FF;
+    --admin-sidebar-bg: #FFFFFF;
+    --admin-border: #E2E8F0;
+    --admin-text-primary: #0F1629;
+    --admin-text-secondary: #4A5568;
+    --admin-text-muted: #94A3B8;
   }
+
   .dark {
-    --color-admin-bg: #0E1A23;
-    --color-admin-surface: #152030;
-    --color-admin-surface-hover: #1C2B3A;
-    --color-admin-sidebar-bg: #0A1520;
-    --color-admin-border: #1E3040;
-    --color-admin-text-primary: #F0F4FF;
-    --color-admin-text-secondary: #7A9BB5;
-    --color-admin-text-muted: #3D5468;
+    --admin-bg: #0E1A23;
+    --admin-surface: #152030;
+    --admin-surface-hover: #1C2B3A;
+    --admin-sidebar-bg: #0A1520;
+    --admin-border: #1E3040;
+    --admin-text-primary: #F0F4FF;
+    --admin-text-secondary: #7A9BB5;
+    --admin-text-muted: #3D5468;
   }
 }
 
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Animate-in utility for page transitions */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in {
+  animation: fadeIn 200ms ease-out;
+}
+
+/* Status badge urgent pulse */
+@keyframes urgentPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
