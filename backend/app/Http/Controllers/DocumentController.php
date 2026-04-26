@@ -211,13 +211,22 @@ class DocumentController extends Controller
             $html = str_replace($key, $value, $html);
         }
 
-        $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
+        try {
+            $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
 
-        if ($action === 'stream' || $action === 'view') {
-            return $pdf->stream($filename);
+            if ($action === 'stream' || $action === 'view') {
+                return $pdf->stream($filename);
+            }
+
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'PDF Generation Failed',
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
         }
-
-        return $pdf->download($filename);
     }
 
     private function generateReceiptPdf($id, $action)
