@@ -32,6 +32,16 @@ use App\Http\Controllers\Customer\NotificationController as CustomerNotification
 
 Route::get('/run-migrations', function () {
     try {
+        // 1. Forcibly delete the cached config file that GitHub Actions created
+        $configCachePath = base_path('bootstrap/cache/config.php');
+        if (file_exists($configCachePath)) {
+            unlink($configCachePath);
+        }
+        $routeCachePath = base_path('bootstrap/cache/routes-v7.php');
+        if (file_exists($routeCachePath)) {
+            unlink($routeCachePath);
+        }
+
         \Illuminate\Support\Facades\Artisan::call('config:clear');
         \Illuminate\Support\Facades\Artisan::call('cache:clear');
         \Illuminate\Support\Facades\Artisan::call('migrate:fresh', [
