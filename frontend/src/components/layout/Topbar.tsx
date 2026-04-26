@@ -65,7 +65,7 @@ export const Topbar = () => {
       return (await api.get(endpoint)).data;
     },
     enabled: !!user,
-    refetchInterval: 600000, // Poll every 10 minutes when idle to save DB hits
+    refetchInterval: 300000, // Poll every 5 minutes to reduce DB load
     refetchOnWindowFocus: true, // Fetch immediately when user switches back to tab
   });
 
@@ -90,10 +90,7 @@ export const Topbar = () => {
     }
   }, [unreadNotifs, lastNotifCount, navigate]);
 
-  // Refresh notifications when user navigates between modules to ensure badge is always up to date
-  useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ['unread-notifications', isCustomer ? 'customer' : 'admin'] });
-  }, [location.pathname, queryClient, isCustomer]);
+
 
   useEffect(() => {
     initTheme(isCustomer);

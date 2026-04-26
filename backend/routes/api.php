@@ -29,6 +29,12 @@ use App\Http\Controllers\Customer\DashboardController as CustomerDashboardContro
 use App\Http\Controllers\Customer\EnquiryController as CustomerEnquiryController;
 use App\Http\Controllers\Customer\ProfileController as CustomerProfileController;
 use App\Http\Controllers\Customer\NotificationController as CustomerNotificationController;
+use App\Http\Controllers\Admin\ChatController as AdminChatController;
+use App\Http\Controllers\Customer\ChatController as CustomerChatController;
+use Illuminate\Support\Facades\Broadcast;
+
+// Allow both Admins and Customers to authenticate for Pusher private channels
+Broadcast::routes(['middleware' => ['auth:sanctum,customer']]);
 
 // Customer Auth Routes (Moved to top for priority)
 Route::prefix('customer')->group(function () {
@@ -66,6 +72,11 @@ Route::prefix('customer')->group(function () {
         Route::get('/notifications/unread', [CustomerNotificationController::class, 'unread']);
         Route::post('/notifications/mark-read', [CustomerNotificationController::class, 'markAsRead']);
         Route::post('/notifications/{id}/mark-read', [CustomerNotificationController::class, 'markOneAsRead']);
+        
+        // Chat
+        Route::get('/chat/room', [CustomerChatController::class, 'index']);
+        Route::post('/chat/room/messages', [CustomerChatController::class, 'store']);
+        Route::post('/chat/room/read', [CustomerChatController::class, 'markAsRead']);
     });
 });
 
@@ -181,5 +192,11 @@ Route::prefix('admin')->group(function () {
         Route::get('/notifications/unread', [NotificationController::class, 'unread']);
         Route::post('/notifications/mark-read', [NotificationController::class, 'markAsRead']);
         Route::post('/notifications/{id}/mark-read', [NotificationController::class, 'markOneAsRead']);
+        
+        // Chat
+        Route::get('/chat/rooms', [AdminChatController::class, 'index']);
+        Route::get('/chat/rooms/{id}/messages', [AdminChatController::class, 'show']);
+        Route::post('/chat/rooms/{id}/messages', [AdminChatController::class, 'store']);
+        Route::post('/chat/rooms/{id}/read', [AdminChatController::class, 'markAsRead']);
     });
 });

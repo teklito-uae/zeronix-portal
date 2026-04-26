@@ -282,7 +282,7 @@ export interface ChatRoom {
 
 export interface ChatMessage {
   id: number;
-  chat_room_id: number;
+  chat_conversation_id: number;
   sender_id?: number; // admin user id if sender_type is user
   sender_type: 'user' | 'customer';
   message: string;
