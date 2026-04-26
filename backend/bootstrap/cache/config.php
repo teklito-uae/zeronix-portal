@@ -90,7 +90,7 @@
     'env' => 'production',
     'debug' => false,
     'url' => 'http://localhost',
-    'frontend_url' => 'http://localhost:3000',
+    'frontend_url' => 'http://localhost:5173',
     'asset_url' => NULL,
     'timezone' => 'UTC',
     'locale' => 'en',
@@ -844,6 +844,118 @@
       'allowed_remote_hosts' => NULL,
       'font_height_ratio' => 1.1,
       'enable_html5_parser' => true,
+    ),
+  ),
+  'imap' => 
+  array (
+    'default' => 'default',
+    'date_format' => 'd-M-Y',
+    'accounts' => 
+    array (
+      'default' => 
+      array (
+        'host' => 'localhost',
+        'port' => 993,
+        'protocol' => 'imap',
+        'encryption' => 'ssl',
+        'validate_cert' => true,
+        'username' => 'root@example.com',
+        'password' => '',
+        'authentication' => NULL,
+        'proxy' => 
+        array (
+          'socket' => NULL,
+          'request_fulluri' => false,
+          'username' => NULL,
+          'password' => NULL,
+        ),
+        'timeout' => 30,
+        'extensions' => 
+        array (
+        ),
+      ),
+    ),
+    'options' => 
+    array (
+      'delimiter' => '/',
+      'fetch' => 2,
+      'sequence' => 1,
+      'fetch_body' => true,
+      'fetch_flags' => true,
+      'soft_fail' => false,
+      'rfc822' => true,
+      'debug' => false,
+      'uid_cache' => true,
+      'boundary' => '/boundary=(.*?(?=;)|(.*))/i',
+      'message_key' => 'list',
+      'fetch_order' => 'asc',
+      'dispositions' => 
+      array (
+        0 => 'attachment',
+        1 => 'inline',
+      ),
+      'common_folders' => 
+      array (
+        'root' => 'INBOX',
+        'junk' => 'INBOX/Junk',
+        'draft' => 'INBOX/Drafts',
+        'sent' => 'INBOX/Sent',
+        'trash' => 'INBOX/Trash',
+      ),
+      'open' => 
+      array (
+      ),
+    ),
+    'decoding' => 
+    array (
+      'options' => 
+      array (
+        'header' => 'utf-8',
+        'message' => 'utf-8',
+        'attachment' => 'utf-8',
+      ),
+      'decoder' => 
+      array (
+        'header' => 'Webklex\\PHPIMAP\\Decoder\\HeaderDecoder',
+        'message' => 'Webklex\\PHPIMAP\\Decoder\\MessageDecoder',
+        'attachment' => 'Webklex\\PHPIMAP\\Decoder\\AttachmentDecoder',
+      ),
+    ),
+    'flags' => 
+    array (
+      0 => 'recent',
+      1 => 'flagged',
+      2 => 'answered',
+      3 => 'deleted',
+      4 => 'seen',
+      5 => 'draft',
+    ),
+    'events' => 
+    array (
+      'message' => 
+      array (
+        'new' => 'Webklex\\IMAP\\Events\\MessageNewEvent',
+        'moved' => 'Webklex\\IMAP\\Events\\MessageMovedEvent',
+        'copied' => 'Webklex\\IMAP\\Events\\MessageCopiedEvent',
+        'deleted' => 'Webklex\\IMAP\\Events\\MessageDeletedEvent',
+        'restored' => 'Webklex\\IMAP\\Events\\MessageRestoredEvent',
+      ),
+      'folder' => 
+      array (
+        'new' => 'Webklex\\IMAP\\Events\\FolderNewEvent',
+        'moved' => 'Webklex\\IMAP\\Events\\FolderMovedEvent',
+        'deleted' => 'Webklex\\IMAP\\Events\\FolderDeletedEvent',
+      ),
+      'flag' => 
+      array (
+        'new' => 'Webklex\\IMAP\\Events\\FlagNewEvent',
+        'deleted' => 'Webklex\\IMAP\\Events\\FlagDeletedEvent',
+      ),
+    ),
+    'masks' => 
+    array (
+      'message' => 'Webklex\\PHPIMAP\\Support\\Masks\\MessageMask',
+      'attachment' => 'Webklex\\PHPIMAP\\Support\\Masks\\AttachmentMask',
     ),
   ),
   'tinker' => 

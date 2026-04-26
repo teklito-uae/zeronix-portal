@@ -74,8 +74,8 @@
             <tr>
                 <td style="width: 60%;">
                     <div class="label">Bill To</div>
-                    <div class="customer-name"><?php echo e($quote->customer->name); ?></div>
-                    <div style="margin-top: 2px;"><?php echo e($quote->customer->company); ?></div>
+                    <div class="customer-name"><?php echo e(strtoupper($quote->customer->company)); ?></div>
+                    <div style="margin-top: 2px; color: #444;"><?php echo e($quote->customer->name); ?></div>
                     <div><?php echo e($quote->customer->address); ?></div>
                 </td>
                 <td style="text-align: right; vertical-align: bottom;">

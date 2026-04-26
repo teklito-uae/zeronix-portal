@@ -74,8 +74,8 @@
             <tr>
                 <td style="width: 60%;">
                     <div class="label">Bill To</div>
-                    <div class="customer-name">{{ $invoice->customer->name }}</div>
-                    <div style="margin-top: 2px;">{{ $invoice->customer->company }}</div>
+                    <div class="customer-name">{{ strtoupper($invoice->customer->company) }}</div>
+                    <div style="margin-top: 2px; color: #444;">{{ $invoice->customer->name }}</div>
                     <div>{{ $invoice->customer->address }}</div>
                 </td>
                 <td style="text-align: right; vertical-align: bottom;">

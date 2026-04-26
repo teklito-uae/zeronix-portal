@@ -15,10 +15,12 @@ class AdminAuthController extends Controller
         ]);
 
         if (Auth::guard('admin')->attempt($credentials)) {
-            $request->session()->regenerate();
+            $user = Auth::guard('admin')->user();
+            $token = $user->createToken('admin-token', ['role:admin'])->plainTextToken;
 
             return response()->json([
-                'user' => Auth::guard('admin')->user()
+                'user' => $user,
+                'token' => $token
             ]);
         }
 
@@ -40,7 +42,7 @@ class AdminAuthController extends Controller
     public function user(Request $request)
     {
         return response()->json([
-            'user' => Auth::guard('admin')->user()
+            'user' => $request->user()
         ]);
     }
 }

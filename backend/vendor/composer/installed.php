@@ -3,7 +3,7 @@
         'name' => 'laravel/laravel',
         'pretty_version' => 'dev-master',
         'version' => 'dev-master',
-        'reference' => 'b3850e511f19241b93e9e2d84ee9607c8c649c9e',
+        'reference' => '19f064cd6627c1564fd75bff6d3d1c79ab3305bd',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(
@@ -381,7 +381,7 @@
         'laravel/laravel' => array(
             'pretty_version' => 'dev-master',
             'version' => 'dev-master',
-            'reference' => 'b3850e511f19241b93e9e2d84ee9607c8c649c9e',
+            'reference' => '19f064cd6627c1564fd75bff6d3d1c79ab3305bd',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(
@@ -1050,6 +1050,24 @@
             'reference' => 'd870a33f0f79d2b4579740b0620200221ee44aeb',
             'type' => 'library',
             'install_path' => __DIR__ . '/../voku/portable-ascii',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'webklex/laravel-imap' => array(
+            'pretty_version' => '6.2.0',
+            'version' => '6.2.0.0',
+            'reference' => '57609df58c2f4ef625e4d90a47d8615cfb15f925',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../webklex/laravel-imap',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'webklex/php-imap' => array(
+            'pretty_version' => '6.2.0',
+            'version' => '6.2.0.0',
+            'reference' => '6b8ef85d621bbbaf52741b00cca8e9237e2b2e05',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../webklex/php-imap',
             'aliases' => array(),
             'dev_requirement' => false,
         ),

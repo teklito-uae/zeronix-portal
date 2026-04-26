@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInite120b17c0668176cb4807546d6710be9
+class ComposerStaticInit8c6949f7351979e7f43d9e7fc37c03ba
 {
     public static $files = array (
         '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
@@ -12,12 +12,15 @@ class ComposerStaticInite120b17c0668176cb4807546d6710be9
         'e69f7f6ee287b969198c3c9d6777bd38' => __DIR__ . '/..' . '/symfony/polyfill-intl-normalizer/bootstrap.php',
         '320cde22f66dd4f5d3fd621d3e88b98f' => __DIR__ . '/..' . '/symfony/polyfill-ctype/bootstrap.php',
         '8825ede83f2f289127722d4e842cf7e8' => __DIR__ . '/..' . '/symfony/polyfill-intl-grapheme/bootstrap.php',
-        'b6b991a57620e2fb6b2f66f03fe9ddc2' => __DIR__ . '/..' . '/symfony/string/Resources/functions.php',
         'f598d06aa772fa33d905e87be6398fb1' => __DIR__ . '/..' . '/symfony/polyfill-intl-idn/bootstrap.php',
+        'b6b991a57620e2fb6b2f66f03fe9ddc2' => __DIR__ . '/..' . '/symfony/string/Resources/functions.php',
         '667aeda72477189d0494fecd327c3641' => __DIR__ . '/..' . '/symfony/var-dumper/Resources/functions/dump.php',
         'a4a119a56e50fbb293281d9a48007e0e' => __DIR__ . '/..' . '/symfony/polyfill-php80/bootstrap.php',
         '662a729f963d39afe703c9d9b7ab4a8c' => __DIR__ . '/..' . '/symfony/polyfill-php83/bootstrap.php',
         '606a39d89246991a373564698c2d8383' => __DIR__ . '/..' . '/symfony/polyfill-php85/bootstrap.php',
+        '2203a247e6fda86070a5e4e07aed533a' => __DIR__ . '/..' . '/symfony/clock/Resources/now.php',
+        'a1105708a18b76903365ca1c4aa61b02' => __DIR__ . '/..' . '/symfony/translation/Resources/functions.php',
+        '7b11c4dc42b3b3023073cb14e519683c' => __DIR__ . '/..' . '/ralouphie/getallheaders/src/getallheaders.php',
         '72243e5536b63e298acb6476f01f1aff' => __DIR__ . '/..' . '/thecodingmachine/safe/lib/special_cases.php',
         '3f648889e687f31c52f949ba8a9d0873' => __DIR__ . '/..' . '/thecodingmachine/safe/generated/apache.php',
         'eeb4581d958421a4244aaa4167c6a575' => __DIR__ . '/..' . '/thecodingmachine/safe/generated/apcu.php',
@@ -98,16 +101,12 @@ class ComposerStaticInite120b17c0668176cb4807546d6710be9
         '4af1dca6db8c527c6eed27bff85ff0e5' => __DIR__ . '/..' . '/thecodingmachine/safe/generated/yaz.php',
         'fe43ca06499ac37bc2dedd823af71eb5' => __DIR__ . '/..' . '/thecodingmachine/safe/generated/zip.php',
         '356736db98a6834f0a886b8d509b0ecd' => __DIR__ . '/..' . '/thecodingmachine/safe/generated/zlib.php',
-        '7b11c4dc42b3b3023073cb14e519683c' => __DIR__ . '/..' . '/ralouphie/getallheaders/src/getallheaders.php',
         '0174385c3be07e86008907d06ee66531' => __DIR__ . '/..' . '/sabberworm/php-css-parser/src/Rule/Rule.php',
         '98aea6e41b9cb79b379b10f37ba1f0b7' => __DIR__ . '/..' . '/sabberworm/php-css-parser/src/RuleSet/RuleContainer.php',
-        '2203a247e6fda86070a5e4e07aed533a' => __DIR__ . '/..' . '/symfony/clock/Resources/now.php',
         '09f6b20656683369174dd6fa83b7e5fb' => __DIR__ . '/..' . '/symfony/polyfill-uuid/bootstrap.php',
-        'a1105708a18b76903365ca1c4aa61b02' => __DIR__ . '/..' . '/symfony/translation/Resources/functions.php',
         '37a3dc5111fe8f707ab4c132ef1dbc62' => __DIR__ . '/..' . '/guzzlehttp/guzzle/src/functions_include.php',
         '47e1160838b5e5a10346ac4084b58c23' => __DIR__ . '/..' . '/laravel/prompts/src/helpers.php',
         '35a6ad97d21e794e7e22a17d806652e4' => __DIR__ . '/..' . '/nunomaduro/termwind/src/Functions.php',
-        '801c31d8ed748cfa537fa45402288c95' => __DIR__ . '/..' . '/psy/psysh/src/functions.php',
         'e39a8b23c42d4e1452234d762b03835a' => __DIR__ . '/..' . '/ramsey/uuid/src/functions.php',
         '476ca15b8d69b04665cd879be9cb4c68' => __DIR__ . '/..' . '/laravel/framework/src/Illuminate/Collections/functions.php',
         '265b4faa2b3a9766332744949e83bf97' => __DIR__ . '/..' . '/laravel/framework/src/Illuminate/Collections/helpers.php',
@@ -117,12 +116,18 @@ class ComposerStaticInite120b17c0668176cb4807546d6710be9
         '7f7ac2ddea9cc3fb4b2cc201d63dbc10' => __DIR__ . '/..' . '/laravel/framework/src/Illuminate/Log/functions.php',
         '493c6aea52f6009bab023b26c21a386a' => __DIR__ . '/..' . '/laravel/framework/src/Illuminate/Support/functions.php',
         '58571171fd5812e6e447dce228f52f4d' => __DIR__ . '/..' . '/laravel/framework/src/Illuminate/Support/helpers.php',
+        '801c31d8ed748cfa537fa45402288c95' => __DIR__ . '/..' . '/psy/psysh/src/functions.php',
     );
 
     public static $prefixLengthsPsr4 = array (
         'v' =>
         array (
             'voku\\' => 5,
+        ),
+        'W' =>
+        array (
+            'Webklex\\PHPIMAP\\' => 16,
+            'Webklex\\IMAP\\' => 13,
         ),
         'T' =>
         array (
@@ -255,6 +260,14 @@ class ComposerStaticInite120b17c0668176cb4807546d6710be9
         'voku\\' =>
         array (
             0 => __DIR__ . '/..' . '/voku/portable-ascii/src/voku',
+        ),
+        'Webklex\\PHPIMAP\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/webklex/php-imap/src',
+        ),
+        'Webklex\\IMAP\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/webklex/laravel-imap/src',
         ),
         'TijsVerkoyen\\CssToInlineStyles\\' =>
         array (
@@ -584,11 +597,40 @@ class ComposerStaticInite120b17c0668176cb4807546d6710be9
     );
 
     public static $classMap = array (
+        'App\\Console\\Commands\\SyncCustomerEmails' => __DIR__ . '/../..' . '/app/Console/Commands/SyncCustomerEmails.php',
         'App\\Helpers\\NumberHelper' => __DIR__ . '/../..' . '/app/Helpers/NumberHelper.php',
+        'App\\Http\\Controllers\\ActivityController' => __DIR__ . '/../..' . '/app/Http/Controllers/ActivityController.php',
         'App\\Http\\Controllers\\AdminAuthController' => __DIR__ . '/../..' . '/app/Http/Controllers/AdminAuthController.php',
+        'App\\Http\\Controllers\\BrandController' => __DIR__ . '/../..' . '/app/Http/Controllers/BrandController.php',
+        'App\\Http\\Controllers\\BulkImportController' => __DIR__ . '/../..' . '/app/Http/Controllers/BulkImportController.php',
+        'App\\Http\\Controllers\\CategoryController' => __DIR__ . '/../..' . '/app/Http/Controllers/CategoryController.php',
         'App\\Http\\Controllers\\Controller' => __DIR__ . '/../..' . '/app/Http/Controllers/Controller.php',
         'App\\Http\\Controllers\\CustomerAuthController' => __DIR__ . '/../..' . '/app/Http/Controllers/CustomerAuthController.php',
+        'App\\Http\\Controllers\\CustomerController' => __DIR__ . '/../..' . '/app/Http/Controllers/CustomerController.php',
+        'App\\Http\\Controllers\\Customer\\DashboardController' => __DIR__ . '/../..' . '/app/Http/Controllers/Customer/DashboardController.php',
+        'App\\Http\\Controllers\\Customer\\EnquiryController' => __DIR__ . '/../..' . '/app/Http/Controllers/Customer/EnquiryController.php',
+        'App\\Http\\Controllers\\Customer\\InvoiceController' => __DIR__ . '/../..' . '/app/Http/Controllers/Customer/InvoiceController.php',
+        'App\\Http\\Controllers\\Customer\\NotificationController' => __DIR__ . '/../..' . '/app/Http/Controllers/Customer/NotificationController.php',
+        'App\\Http\\Controllers\\Customer\\ProductController' => __DIR__ . '/../..' . '/app/Http/Controllers/Customer/ProductController.php',
+        'App\\Http\\Controllers\\Customer\\ProfileController' => __DIR__ . '/../..' . '/app/Http/Controllers/Customer/ProfileController.php',
+        'App\\Http\\Controllers\\Customer\\QuoteController' => __DIR__ . '/../..' . '/app/Http/Controllers/Customer/QuoteController.php',
+        'App\\Http\\Controllers\\DashboardController' => __DIR__ . '/../..' . '/app/Http/Controllers/DashboardController.php',
         'App\\Http\\Controllers\\DocumentController' => __DIR__ . '/../..' . '/app/Http/Controllers/DocumentController.php',
+        'App\\Http\\Controllers\\EnquiryController' => __DIR__ . '/../..' . '/app/Http/Controllers/EnquiryController.php',
+        'App\\Http\\Controllers\\InvoiceController' => __DIR__ . '/../..' . '/app/Http/Controllers/InvoiceController.php',
+        'App\\Http\\Controllers\\NotificationController' => __DIR__ . '/../..' . '/app/Http/Controllers/NotificationController.php',
+        'App\\Http\\Controllers\\PaymentReceiptController' => __DIR__ . '/../..' . '/app/Http/Controllers/PaymentReceiptController.php',
+        'App\\Http\\Controllers\\ProductController' => __DIR__ . '/../..' . '/app/Http/Controllers/ProductController.php',
+        'App\\Http\\Controllers\\QuoteController' => __DIR__ . '/../..' . '/app/Http/Controllers/QuoteController.php',
+        'App\\Http\\Controllers\\SupplierController' => __DIR__ . '/../..' . '/app/Http/Controllers/SupplierController.php',
+        'App\\Http\\Controllers\\SupplierProductController' => __DIR__ . '/../..' . '/app/Http/Controllers/SupplierProductController.php',
+        'App\\Http\\Controllers\\TemplateController' => __DIR__ . '/../..' . '/app/Http/Controllers/TemplateController.php',
+        'App\\Http\\Controllers\\UserController' => __DIR__ . '/../..' . '/app/Http/Controllers/UserController.php',
+        'App\\Mail\\InvoiceMail' => __DIR__ . '/../..' . '/app/Mail/InvoiceMail.php',
+        'App\\Mail\\PaymentReceiptMail' => __DIR__ . '/../..' . '/app/Mail/PaymentReceiptMail.php',
+        'App\\Mail\\QuoteMail' => __DIR__ . '/../..' . '/app/Mail/QuoteMail.php',
+        'App\\Mail\\WelcomeCustomerMail' => __DIR__ . '/../..' . '/app/Mail/WelcomeCustomerMail.php',
+        'App\\Models\\ActivityLog' => __DIR__ . '/../..' . '/app/Models/ActivityLog.php',
         'App\\Models\\Brand' => __DIR__ . '/../..' . '/app/Models/Brand.php',
         'App\\Models\\Category' => __DIR__ . '/../..' . '/app/Models/Category.php',
         'App\\Models\\ChatConversation' => __DIR__ . '/../..' . '/app/Models/ChatConversation.php',
@@ -598,13 +640,21 @@ class ComposerStaticInite120b17c0668176cb4807546d6710be9
         'App\\Models\\EnquiryItem' => __DIR__ . '/../..' . '/app/Models/EnquiryItem.php',
         'App\\Models\\Invoice' => __DIR__ . '/../..' . '/app/Models/Invoice.php',
         'App\\Models\\InvoiceItem' => __DIR__ . '/../..' . '/app/Models/InvoiceItem.php',
+        'App\\Models\\PaymentReceipt' => __DIR__ . '/../..' . '/app/Models/PaymentReceipt.php',
         'App\\Models\\Product' => __DIR__ . '/../..' . '/app/Models/Product.php',
         'App\\Models\\Quote' => __DIR__ . '/../..' . '/app/Models/Quote.php',
         'App\\Models\\QuoteItem' => __DIR__ . '/../..' . '/app/Models/QuoteItem.php',
         'App\\Models\\Supplier' => __DIR__ . '/../..' . '/app/Models/Supplier.php',
         'App\\Models\\SupplierBroadcast' => __DIR__ . '/../..' . '/app/Models/SupplierBroadcast.php',
+        'App\\Models\\SupplierPriceHistory' => __DIR__ . '/../..' . '/app/Models/SupplierPriceHistory.php',
+        'App\\Models\\SupplierProduct' => __DIR__ . '/../..' . '/app/Models/SupplierProduct.php',
+        'App\\Models\\Template' => __DIR__ . '/../..' . '/app/Models/Template.php',
         'App\\Models\\User' => __DIR__ . '/../..' . '/app/Models/User.php',
+        'App\\Notifications\\AdminNotification' => __DIR__ . '/../..' . '/app/Notifications/AdminNotification.php',
+        'App\\Notifications\\SystemNotification' => __DIR__ . '/../..' . '/app/Notifications/SystemNotification.php',
         'App\\Providers\\AppServiceProvider' => __DIR__ . '/../..' . '/app/Providers/AppServiceProvider.php',
+        'App\\Services\\MailConfigService' => __DIR__ . '/../..' . '/app/Services/MailConfigService.php',
+        'App\\Traits\\LogsActivity' => __DIR__ . '/../..' . '/app/Traits/LogsActivity.php',
         'Attribute' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/Attribute.php',
         'Barryvdh\\DomPDF\\Facade\\Pdf' => __DIR__ . '/..' . '/barryvdh/laravel-dompdf/src/Facade/Pdf.php',
         'Barryvdh\\DomPDF\\PDF' => __DIR__ . '/..' . '/barryvdh/laravel-dompdf/src/PDF.php',
@@ -732,6 +782,7 @@ class ComposerStaticInite120b17c0668176cb4807546d6710be9
         'Cron\\MonthField' => __DIR__ . '/..' . '/dragonmantank/cron-expression/src/Cron/MonthField.php',
         'Database\\Factories\\UserFactory' => __DIR__ . '/../..' . '/database/factories/UserFactory.php',
         'Database\\Seeders\\DatabaseSeeder' => __DIR__ . '/../..' . '/database/seeders/DatabaseSeeder.php',
+        'Database\\Seeders\\TemplateSeeder' => __DIR__ . '/../..' . '/database/seeders/TemplateSeeder.php',
         'DateError' => __DIR__ . '/..' . '/symfony/polyfill-php83/Resources/stubs/DateError.php',
         'DateException' => __DIR__ . '/..' . '/symfony/polyfill-php83/Resources/stubs/DateException.php',
         'DateInvalidOperationException' => __DIR__ . '/..' . '/symfony/polyfill-php83/Resources/stubs/DateInvalidOperationException.php',
@@ -5266,15 +5317,98 @@ class ComposerStaticInite120b17c0668176cb4807546d6710be9
         'TijsVerkoyen\\CssToInlineStyles\\Css\\Rule\\Rule' => __DIR__ . '/..' . '/tijsverkoyen/css-to-inline-styles/src/Css/Rule/Rule.php',
         'UnhandledMatchError' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/UnhandledMatchError.php',
         'ValueError' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/ValueError.php',
+        'Webklex\\IMAP\\Commands\\ImapIdleCommand' => __DIR__ . '/..' . '/webklex/laravel-imap/src/Commands/ImapIdleCommand.php',
+        'Webklex\\IMAP\\Events\\Event' => __DIR__ . '/..' . '/webklex/laravel-imap/src/Events/Event.php',
+        'Webklex\\IMAP\\Events\\FlagDeletedEvent' => __DIR__ . '/..' . '/webklex/laravel-imap/src/Events/FlagDeletedEvent.php',
+        'Webklex\\IMAP\\Events\\FlagNewEvent' => __DIR__ . '/..' . '/webklex/laravel-imap/src/Events/FlagNewEvent.php',
+        'Webklex\\IMAP\\Events\\FolderDeletedEvent' => __DIR__ . '/..' . '/webklex/laravel-imap/src/Events/FolderDeletedEvent.php',
+        'Webklex\\IMAP\\Events\\FolderMovedEvent' => __DIR__ . '/..' . '/webklex/laravel-imap/src/Events/FolderMovedEvent.php',
+        'Webklex\\IMAP\\Events\\FolderNewEvent' => __DIR__ . '/..' . '/webklex/laravel-imap/src/Events/FolderNewEvent.php',
+        'Webklex\\IMAP\\Events\\MessageCopiedEvent' => __DIR__ . '/..' . '/webklex/laravel-imap/src/Events/MessageCopiedEvent.php',
+        'Webklex\\IMAP\\Events\\MessageDeletedEvent' => __DIR__ . '/..' . '/webklex/laravel-imap/src/Events/MessageDeletedEvent.php',
+        'Webklex\\IMAP\\Events\\MessageMovedEvent' => __DIR__ . '/..' . '/webklex/laravel-imap/src/Events/MessageMovedEvent.php',
+        'Webklex\\IMAP\\Events\\MessageNewEvent' => __DIR__ . '/..' . '/webklex/laravel-imap/src/Events/MessageNewEvent.php',
+        'Webklex\\IMAP\\Events\\MessageRestoredEvent' => __DIR__ . '/..' . '/webklex/laravel-imap/src/Events/MessageRestoredEvent.php',
+        'Webklex\\IMAP\\Facades\\Client' => __DIR__ . '/..' . '/webklex/laravel-imap/src/Facades/Client.php',
+        'Webklex\\IMAP\\Providers\\LaravelServiceProvider' => __DIR__ . '/..' . '/webklex/laravel-imap/src/Providers/LaravelServiceProvider.php',
+        'Webklex\\PHPIMAP\\Address' => __DIR__ . '/..' . '/webklex/php-imap/src/Address.php',
+        'Webklex\\PHPIMAP\\Attachment' => __DIR__ . '/..' . '/webklex/php-imap/src/Attachment.php',
+        'Webklex\\PHPIMAP\\Attribute' => __DIR__ . '/..' . '/webklex/php-imap/src/Attribute.php',
+        'Webklex\\PHPIMAP\\Client' => __DIR__ . '/..' . '/webklex/php-imap/src/Client.php',
+        'Webklex\\PHPIMAP\\ClientManager' => __DIR__ . '/..' . '/webklex/php-imap/src/ClientManager.php',
+        'Webklex\\PHPIMAP\\Config' => __DIR__ . '/..' . '/webklex/php-imap/src/Config.php',
+        'Webklex\\PHPIMAP\\Connection\\Protocols\\ImapProtocol' => __DIR__ . '/..' . '/webklex/php-imap/src/Connection/Protocols/ImapProtocol.php',
+        'Webklex\\PHPIMAP\\Connection\\Protocols\\LegacyProtocol' => __DIR__ . '/..' . '/webklex/php-imap/src/Connection/Protocols/LegacyProtocol.php',
+        'Webklex\\PHPIMAP\\Connection\\Protocols\\Protocol' => __DIR__ . '/..' . '/webklex/php-imap/src/Connection/Protocols/Protocol.php',
+        'Webklex\\PHPIMAP\\Connection\\Protocols\\ProtocolInterface' => __DIR__ . '/..' . '/webklex/php-imap/src/Connection/Protocols/ProtocolInterface.php',
+        'Webklex\\PHPIMAP\\Connection\\Protocols\\Response' => __DIR__ . '/..' . '/webklex/php-imap/src/Connection/Protocols/Response.php',
+        'Webklex\\PHPIMAP\\Decoder\\AttachmentDecoder' => __DIR__ . '/..' . '/webklex/php-imap/src/Decoder/AttachmentDecoder.php',
+        'Webklex\\PHPIMAP\\Decoder\\Decoder' => __DIR__ . '/..' . '/webklex/php-imap/src/Decoder/Decoder.php',
+        'Webklex\\PHPIMAP\\Decoder\\DecoderInterface' => __DIR__ . '/..' . '/webklex/php-imap/src/Decoder/DecoderInterface.php',
+        'Webklex\\PHPIMAP\\Decoder\\HeaderDecoder' => __DIR__ . '/..' . '/webklex/php-imap/src/Decoder/HeaderDecoder.php',
+        'Webklex\\PHPIMAP\\Decoder\\MessageDecoder' => __DIR__ . '/..' . '/webklex/php-imap/src/Decoder/MessageDecoder.php',
+        'Webklex\\PHPIMAP\\EncodingAliases' => __DIR__ . '/..' . '/webklex/php-imap/src/EncodingAliases.php',
+        'Webklex\\PHPIMAP\\Events\\Event' => __DIR__ . '/..' . '/webklex/php-imap/src/Events/Event.php',
+        'Webklex\\PHPIMAP\\Events\\FlagDeletedEvent' => __DIR__ . '/..' . '/webklex/php-imap/src/Events/FlagDeletedEvent.php',
+        'Webklex\\PHPIMAP\\Events\\FlagNewEvent' => __DIR__ . '/..' . '/webklex/php-imap/src/Events/FlagNewEvent.php',
+        'Webklex\\PHPIMAP\\Events\\FolderDeletedEvent' => __DIR__ . '/..' . '/webklex/php-imap/src/Events/FolderDeletedEvent.php',
+        'Webklex\\PHPIMAP\\Events\\FolderMovedEvent' => __DIR__ . '/..' . '/webklex/php-imap/src/Events/FolderMovedEvent.php',
+        'Webklex\\PHPIMAP\\Events\\FolderNewEvent' => __DIR__ . '/..' . '/webklex/php-imap/src/Events/FolderNewEvent.php',
+        'Webklex\\PHPIMAP\\Events\\MessageCopiedEvent' => __DIR__ . '/..' . '/webklex/php-imap/src/Events/MessageCopiedEvent.php',
+        'Webklex\\PHPIMAP\\Events\\MessageDeletedEvent' => __DIR__ . '/..' . '/webklex/php-imap/src/Events/MessageDeletedEvent.php',
+        'Webklex\\PHPIMAP\\Events\\MessageMovedEvent' => __DIR__ . '/..' . '/webklex/php-imap/src/Events/MessageMovedEvent.php',
+        'Webklex\\PHPIMAP\\Events\\MessageNewEvent' => __DIR__ . '/..' . '/webklex/php-imap/src/Events/MessageNewEvent.php',
+        'Webklex\\PHPIMAP\\Events\\MessageRestoredEvent' => __DIR__ . '/..' . '/webklex/php-imap/src/Events/MessageRestoredEvent.php',
+        'Webklex\\PHPIMAP\\Exceptions\\AuthFailedException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/AuthFailedException.php',
+        'Webklex\\PHPIMAP\\Exceptions\\ConnectionFailedException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/ConnectionFailedException.php',
+        'Webklex\\PHPIMAP\\Exceptions\\DecoderNotFoundException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/DecoderNotFoundException.php',
+        'Webklex\\PHPIMAP\\Exceptions\\EventNotFoundException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/EventNotFoundException.php',
+        'Webklex\\PHPIMAP\\Exceptions\\FolderFetchingException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/FolderFetchingException.php',
+        'Webklex\\PHPIMAP\\Exceptions\\GetMessagesFailedException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/GetMessagesFailedException.php',
+        'Webklex\\PHPIMAP\\Exceptions\\ImapBadRequestException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/ImapBadRequestException.php',
+        'Webklex\\PHPIMAP\\Exceptions\\ImapServerErrorException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/ImapServerErrorException.php',
+        'Webklex\\PHPIMAP\\Exceptions\\InvalidMessageDateException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/InvalidMessageDateException.php',
+        'Webklex\\PHPIMAP\\Exceptions\\InvalidWhereQueryCriteriaException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/InvalidWhereQueryCriteriaException.php',
+        'Webklex\\PHPIMAP\\Exceptions\\MaskNotFoundException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/MaskNotFoundException.php',
+        'Webklex\\PHPIMAP\\Exceptions\\MessageContentFetchingException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/MessageContentFetchingException.php',
+        'Webklex\\PHPIMAP\\Exceptions\\MessageFlagException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/MessageFlagException.php',
+        'Webklex\\PHPIMAP\\Exceptions\\MessageHeaderFetchingException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/MessageHeaderFetchingException.php',
+        'Webklex\\PHPIMAP\\Exceptions\\MessageNotFoundException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/MessageNotFoundException.php',
+        'Webklex\\PHPIMAP\\Exceptions\\MessageSearchValidationException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/MessageSearchValidationException.php',
+        'Webklex\\PHPIMAP\\Exceptions\\MessageSizeFetchingException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/MessageSizeFetchingException.php',
+        'Webklex\\PHPIMAP\\Exceptions\\MethodNotFoundException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/MethodNotFoundException.php',
+        'Webklex\\PHPIMAP\\Exceptions\\MethodNotSupportedException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/MethodNotSupportedException.php',
+        'Webklex\\PHPIMAP\\Exceptions\\NotSupportedCapabilityException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/NotSupportedCapabilityException.php',
+        'Webklex\\PHPIMAP\\Exceptions\\ProtocolNotSupportedException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/ProtocolNotSupportedException.php',
+        'Webklex\\PHPIMAP\\Exceptions\\ResponseException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/ResponseException.php',
+        'Webklex\\PHPIMAP\\Exceptions\\RuntimeException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/RuntimeException.php',
+        'Webklex\\PHPIMAP\\Exceptions\\SpoofingAttemptDetectedException' => __DIR__ . '/..' . '/webklex/php-imap/src/Exceptions/SpoofingAttemptDetectedException.php',
+        'Webklex\\PHPIMAP\\Folder' => __DIR__ . '/..' . '/webklex/php-imap/src/Folder.php',
+        'Webklex\\PHPIMAP\\Header' => __DIR__ . '/..' . '/webklex/php-imap/src/Header.php',
+        'Webklex\\PHPIMAP\\IMAP' => __DIR__ . '/..' . '/webklex/php-imap/src/IMAP.php',
+        'Webklex\\PHPIMAP\\Message' => __DIR__ . '/..' . '/webklex/php-imap/src/Message.php',
+        'Webklex\\PHPIMAP\\Part' => __DIR__ . '/..' . '/webklex/php-imap/src/Part.php',
+        'Webklex\\PHPIMAP\\Query\\Query' => __DIR__ . '/..' . '/webklex/php-imap/src/Query/Query.php',
+        'Webklex\\PHPIMAP\\Query\\WhereQuery' => __DIR__ . '/..' . '/webklex/php-imap/src/Query/WhereQuery.php',
+        'Webklex\\PHPIMAP\\Structure' => __DIR__ . '/..' . '/webklex/php-imap/src/Structure.php',
+        'Webklex\\PHPIMAP\\Support\\AttachmentCollection' => __DIR__ . '/..' . '/webklex/php-imap/src/Support/AttachmentCollection.php',
+        'Webklex\\PHPIMAP\\Support\\FlagCollection' => __DIR__ . '/..' . '/webklex/php-imap/src/Support/FlagCollection.php',
+        'Webklex\\PHPIMAP\\Support\\FolderCollection' => __DIR__ . '/..' . '/webklex/php-imap/src/Support/FolderCollection.php',
+        'Webklex\\PHPIMAP\\Support\\Masks\\AttachmentMask' => __DIR__ . '/..' . '/webklex/php-imap/src/Support/Masks/AttachmentMask.php',
+        'Webklex\\PHPIMAP\\Support\\Masks\\Mask' => __DIR__ . '/..' . '/webklex/php-imap/src/Support/Masks/Mask.php',
+        'Webklex\\PHPIMAP\\Support\\Masks\\MessageMask' => __DIR__ . '/..' . '/webklex/php-imap/src/Support/Masks/MessageMask.php',
+        'Webklex\\PHPIMAP\\Support\\MessageCollection' => __DIR__ . '/..' . '/webklex/php-imap/src/Support/MessageCollection.php',
+        'Webklex\\PHPIMAP\\Support\\PaginatedCollection' => __DIR__ . '/..' . '/webklex/php-imap/src/Support/PaginatedCollection.php',
+        'Webklex\\PHPIMAP\\Traits\\HasEvents' => __DIR__ . '/..' . '/webklex/php-imap/src/Traits/HasEvents.php',
         'voku\\helper\\ASCII' => __DIR__ . '/..' . '/voku/portable-ascii/src/voku/helper/ASCII.php',
     );
 
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInite120b17c0668176cb4807546d6710be9::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInite120b17c0668176cb4807546d6710be9::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInite120b17c0668176cb4807546d6710be9::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit8c6949f7351979e7f43d9e7fc37c03ba::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit8c6949f7351979e7f43d9e7fc37c03ba::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInit8c6949f7351979e7f43d9e7fc37c03ba::$classMap;
 
         }, null, ClassLoader::class);
     }

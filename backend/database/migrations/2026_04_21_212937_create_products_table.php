@@ -15,12 +15,13 @@ return new class extends Migration
             $table->id();
             $table->foreignId('brand_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
-            $table->string('part_number')->nullable();
-            $table->string('model_number')->nullable();
+            $table->string('model_code')->nullable()->index();
+            $table->string('slug')->nullable()->unique();
             $table->string('name');
             $table->text('description')->nullable();
             $table->json('specs')->nullable();
             $table->string('image')->nullable();
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }

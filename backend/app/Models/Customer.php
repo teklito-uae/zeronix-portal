@@ -2,23 +2,55 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
-class Customer extends Model
+use App\Traits\LogsActivity;
+
+class Customer extends Authenticatable
 {
+    use HasApiTokens, HasFactory, Notifiable, LogsActivity;
+
     protected $fillable = [
+        'customer_code',
         'name',
         'company',
         'email',
         'phone',
         'address',
-        'password'
+        'trn',
+        'password',
+        'user_id',
+        'is_portal_active'
     ];
 
     protected $hidden = [
         'password',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_portal_active' => 'boolean',
+        ];
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($customer) {
+            if (empty($customer->customer_code)) {
+                $date = Carbon::now()->format('Ymd');
+                $count = static::whereDate('created_at', Carbon::today())->count() + 1;
+                $customer->customer_code = 'ZRNX-CUS-' . $date . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+            }
+        });
+    }
 
     public function quotes(): HasMany
     {
@@ -28,5 +60,15 @@ class Customer extends Model
     public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class);
+    }
+
+    public function enquiries(): HasMany
+    {
+        return $this->hasMany(Enquiry::class);
+    }
+
+    public function assignedUser()
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

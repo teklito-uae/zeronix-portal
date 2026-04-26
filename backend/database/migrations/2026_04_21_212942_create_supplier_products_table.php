@@ -14,10 +14,18 @@ return new class extends Migration
         Schema::create('supplier_products', function (Blueprint $table) {
             $table->id();
             $table->foreignId('supplier_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
-            $table->decimal('price', 10, 2)->nullable();
+            $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('product_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->text('raw_text')->nullable();
+            $table->string('identifier_hash')->nullable()->index();
+            $table->string('model_code')->nullable()->index();
+            $table->string('name')->nullable();
+            $table->decimal('price', 12, 2)->nullable();
             $table->string('currency')->default('AED');
+            $table->json('specs')->nullable();
+            $table->boolean('is_active')->default(true);
             $table->boolean('availability')->default(true);
+            $table->timestamp('last_pasted_at')->nullable();
             $table->timestamps();
         });
     }
