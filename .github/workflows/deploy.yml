@@ -55,10 +55,17 @@ jobs:
           # 3. Inject .env from Secrets
           echo "${{ secrets.PRODUCTION_ENV }}" > deploy/backend/.env
           
-          # 4. Create Laravel storage folders
+          # 4. Create Laravel storage folders and preserve them
           mkdir -p deploy/backend/storage/app/public
-          mkdir -p deploy/backend/storage/framework/{cache,sessions,views}
+          mkdir -p deploy/backend/storage/framework/cache
+          mkdir -p deploy/backend/storage/framework/sessions
+          mkdir -p deploy/backend/storage/framework/views
           mkdir -p deploy/backend/storage/logs
+          touch deploy/backend/storage/app/public/.gitkeep
+          touch deploy/backend/storage/framework/cache/.gitkeep
+          touch deploy/backend/storage/framework/sessions/.gitkeep
+          touch deploy/backend/storage/framework/views/.gitkeep
+          touch deploy/backend/storage/logs/.gitkeep
           chmod -R 775 deploy/backend/storage
           
           # 5. Create root .htaccess for routing
