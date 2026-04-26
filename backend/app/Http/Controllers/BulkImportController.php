@@ -48,6 +48,7 @@ class BulkImportController extends Controller
                     $product = \App\Models\Product::create([
                         'name' => $item['name'],
                         'model_code' => $item['model_code'],
+                        'brand_id' => $item['brand_id'] ?? $this->detectBrand($item['name']),
                         'category_id' => $item['category_id'] ?? null,
                         'specs' => $item['specs'],
                         'slug' => Str::slug($item['name']) . '-' . Str::random(5),
@@ -120,6 +121,118 @@ class BulkImportController extends Controller
         ]);
     }
 
+    private function detectBrand($name)
+    {
+        if (empty($name)) return null;
+
+        $brandMap = [
+            'HP' => ['HP', 'Hewlett Packard'],
+            'HPE' => ['HPE', 'HP Enterprise'],
+            'Dell' => ['Dell'],
+            'Asus' => ['Asus'],
+            'Lenovo' => ['Lenovo'],
+            'Cisco' => ['Cisco'],
+            'Synology' => ['Synology'],
+            'Mikrotik' => ['Mikrotik'],
+            'TP-Link' => ['TP-Link', 'TP Link', 'TPLink'],
+            'Aruba' => ['Aruba'],
+            'Ubiquiti' => ['Ubiquiti', 'UBNT', 'UniFi'],
+            'Microsoft' => ['Microsoft', 'MS', 'Surface'],
+            'Apple' => ['Apple', 'MacBook', 'iPhone', 'iPad'],
+            'Samsung' => ['Samsung'],
+            'Intel' => ['Intel', 'Xeon'],
+            'AMD' => ['AMD', 'Ryzen', 'EPYC'],
+            'NVIDIA' => ['NVIDIA', 'GeForce', 'Quadro', 'Tesla', 'Mellanox'],
+            'Western Digital' => ['Western Digital', 'WD', 'HGST', 'G-Technology'],
+            'Seagate' => ['Seagate', 'LaCie'],
+            'Kingston' => ['Kingston', 'HyperX'],
+            'SanDisk' => ['SanDisk'],
+            'Crucial' => ['Crucial', 'Micron'],
+            'Corsair' => ['Corsair'],
+            'Logitech' => ['Logitech', 'Logi'],
+            'Razer' => ['Razer'],
+            'Acer' => ['Acer', 'Predator'],
+            'MSI' => ['MSI'],
+            'Sony' => ['Sony', 'PlayStation'],
+            'Toshiba' => ['Toshiba'],
+            'Fujitsu' => ['Fujitsu'],
+            'Brother' => ['Brother'],
+            'Canon' => ['Canon'],
+            'Epson' => ['Epson'],
+            'Xerox' => ['Xerox'],
+            'APC' => ['APC', 'Schneider'],
+            'Eaton' => ['Eaton'],
+            'Netgear' => ['Netgear', 'NightHawk'],
+            'D-Link' => ['D-Link', 'DLink'],
+            'Linksys' => ['Linksys'],
+            'Juniper' => ['Juniper'],
+            'Sophos' => ['Sophos'],
+            'Fortinet' => ['Fortinet', 'FortiGate', 'FortiSwitch'],
+            'Palo Alto' => ['Palo Alto', 'PAN-OS'],
+            'Check Point' => ['Check Point'],
+            'Zyxel' => ['Zyxel'],
+            'QNAP' => ['QNAP'],
+            'Buffalo' => ['Buffalo'],
+            'Transcend' => ['Transcend'],
+            'Lexar' => ['Lexar'],
+            'PNY' => ['PNY'],
+            'BenQ' => ['BenQ'],
+            'ViewSonic' => ['ViewSonic'],
+            'Philips' => ['Philips'],
+            'LG' => ['LG'],
+            'Panasonic' => ['Panasonic', 'Toughbook'],
+            'Sharp' => ['Sharp'],
+            'NEC' => ['NEC'],
+            'Kyocera' => ['Kyocera'],
+            'Ricoh' => ['Ricoh'],
+            'Zebra' => ['Zebra', 'Motorola'],
+            'Honeywell' => ['Honeywell'],
+            'Poly' => ['Poly', 'Polycom'],
+            'Jabra' => ['Jabra'],
+            'Sennheiser' => ['Sennheiser'],
+            'Hikvision' => ['Hikvision'],
+            'Dahua' => ['Dahua'],
+            'Grandstream' => ['Grandstream'],
+            'Yealink' => ['Yealink'],
+            'HUAWEI' => ['HUAWEI', 'Huawei'],
+            'Supermicro' => ['Supermicro'],
+            'NetApp' => ['NetApp'],
+            'Pure Storage' => ['Pure Storage', 'PureStorage'],
+            'Nutanix' => ['Nutanix'],
+            'VMware' => ['VMware', 'ESXi'],
+            'Veeam' => ['Veeam'],
+            'Veritas' => ['Veritas', 'BackupExec'],
+            'Commvault' => ['Commvault'],
+            'Allied Telesis' => ['Allied Telesis', 'AlliedTelesis'],
+            'Ruckus' => ['Ruckus', 'CommScope'],
+            'Cambium' => ['Cambium'],
+            'Peplink' => ['Peplink'],
+            'Riverbed' => ['Riverbed'],
+            'F5' => ['F5', 'Big-IP'],
+            'Citrix' => ['Citrix'],
+            'CrowdStrike' => ['CrowdStrike'],
+            'SentinelOne' => ['SentinelOne'],
+            'Symantec' => ['Symantec'],
+            'McAfee' => ['McAfee', 'Trellix'],
+            'Kaspersky' => ['Kaspersky'],
+        ];
+
+        foreach ($brandMap as $brandName => $aliases) {
+            foreach ($aliases as $alias) {
+                // Case insensitive match with word boundaries or start/end of string
+                $pattern = "/(^|[^a-z0-9])" . preg_quote($alias, '/') . "([^a-z0-9]|$)/i";
+                if (preg_match($pattern, $name)) {
+                    $brand = \App\Models\Brand::firstOrCreate(
+                        ['name' => $brandName],
+                        ['slug' => Str::slug($brandName)]
+                    );
+                    return $brand->id;
+                }
+            }
+        }
+
+        return null;
+    }
     private function logPriceHistory($product)
     {
         SupplierPriceHistory::create([

@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
-import { DataTable } from '@/components/shared/DataTable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -15,30 +13,28 @@ import {
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'sonner';
-import api from '@/lib/axios';
-import { Shield, Mail, Loader2, Plus, Search, MoreHorizontal, Pencil } from 'lucide-react';
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+
+import { Shield, Mail, Loader2, UserCog, CheckCircle2, Lock } from 'lucide-react';
 import type { User } from '@/types';
+import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
+import { ActionGroup } from '@/components/shared/ActionGroup';
+import { useResourceMutation } from '@/hooks/useApi';
 
 const AVAILABLE_MODULES = [
-  { id: 'dashboard', label: 'Dashboard' },
-  { id: 'customers', label: 'Customers' },
-  { id: 'enquiries', label: 'Enquiries' },
-  { id: 'quotes', label: 'Quotes' },
-  { id: 'invoices', label: 'Invoices' },
-  { id: 'products', label: 'Products' },
-  { id: 'suppliers', label: 'Suppliers' },
+  { id: 'dashboard', label: 'Dashboard Overview' },
+  { id: 'customers', label: 'Customer Relations' },
+  { id: 'enquiries', label: 'Enquiry Hub' },
+  { id: 'quotes', label: 'Quotation Engine' },
+  { id: 'invoices', label: 'Billing & Invoices' },
+  { id: 'products', label: 'Inventory Management' },
+  { id: 'suppliers', label: 'Supplier Network' },
 ];
 
+/**
+ * User Management Module
+ * Refactored to use the standardized State-Driven architecture.
+ */
 export const Users = () => {
-  const queryClient = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState('');
-  const [searchInput, setSearchInput] = useState('');
-  
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   
@@ -52,34 +48,10 @@ export const Users = () => {
     permissions: [] as string[],
   });
 
-  const { data: usersData, isLoading } = useQuery({
-    queryKey: ['users', page, search],
-    queryFn: async () => {
-      const params = new URLSearchParams({ page: String(page), per_page: '15' });
-      if (search) params.set('search', search);
-      const res = await api.get(`/admin/users?${params}`);
-      return res.data;
-    }
-  });
+  // CRUD State Hooks
+  const { create, update } = useResourceMutation('users');
 
-  const saveMutation = useMutation({
-    mutationFn: async (data: any) => {
-      if (editId) {
-        return api.put(`/admin/users/${editId}`, data);
-      }
-      return api.post('/admin/users', data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      setDialogOpen(false);
-      resetForm();
-      toast.success(editId ? 'User updated' : 'User created');
-    },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to save user');
-    }
-  });
-
+  // Handlers
   const resetForm = () => {
     setEditId(null);
     setForm({
@@ -97,7 +69,7 @@ export const Users = () => {
     setForm({
       name: user.name,
       email: user.email,
-      password: '', // Leave blank unless changing
+      password: '', 
       role: user.role || 'salesman',
       designation: user.designation || '',
       is_active: user.is_active ?? true,
@@ -106,7 +78,14 @@ export const Users = () => {
     setDialogOpen(true);
   };
 
-  const handleSearch = () => { setSearch(searchInput); setPage(1); };
+  const handleSave = async () => {
+    if (editId) {
+      await update.mutateAsync({ id: editId, data: form });
+    } else {
+      await create.mutateAsync(form);
+    }
+    setDialogOpen(false);
+  };
 
   const togglePermission = (moduleId: string) => {
     setForm(prev => {
@@ -121,30 +100,37 @@ export const Users = () => {
   const columns: ColumnDef<User>[] = [
     {
       accessorKey: 'name',
-      header: 'User',
+      header: 'Team Member',
       cell: ({ row }) => (
-        <div>
-          <p className="font-medium text-admin-text-primary flex items-center gap-2">
-            {row.original.name}
-            {row.original.role === 'admin' && <Shield size={12} className="text-zeronix-blue" />}
-          </p>
-          <p className="text-xs text-admin-text-muted flex items-center gap-1 mt-0.5">
-            <Mail size={10} /> {row.original.email}
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-full bg-admin-bg border border-admin-border flex items-center justify-center text-admin-text-secondary text-xs font-black">
+            {row.original.name?.[0]?.toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-black text-admin-text-primary flex items-center gap-2">
+              {row.original.name}
+              {row.original.role === 'admin' && <Shield size={12} className="text-zeronix-blue" />}
+            </p>
+            <p className="text-[10px] text-admin-text-muted font-bold uppercase tracking-widest flex items-center gap-1 mt-0.5">
+              <Mail size={10} className="opacity-50" /> {row.original.email}
+            </p>
+          </div>
         </div>
       ),
     },
     {
       accessorKey: 'designation',
       header: 'Designation',
-      cell: ({ row }) => <span className="text-sm text-admin-text-secondary">{row.original.designation || '—'}</span>,
+      cell: ({ row }) => <span className="text-xs font-bold text-admin-text-secondary uppercase">{row.original.designation || 'STAF MEMBER'}</span>,
     },
     {
       accessorKey: 'role',
-      header: 'Role',
+      header: 'Access Level',
       cell: ({ row }) => (
-        <span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${
-          row.original.role === 'admin' ? 'bg-zeronix-blue/10 text-zeronix-blue' : 'bg-admin-surface-hover text-admin-text-secondary border border-admin-border'
+        <span className={`px-2.5 py-1 rounded-full text-[9px] font-black tracking-widest uppercase border ${
+          row.original.role === 'admin' 
+            ? 'bg-zeronix-blue/10 text-zeronix-blue border-zeronix-blue/20' 
+            : 'bg-admin-bg text-admin-text-muted border-admin-border'
         }`}>
           {row.original.role}
         </span>
@@ -152,181 +138,165 @@ export const Users = () => {
     },
     {
       accessorKey: 'is_active',
-      header: 'Status',
+      header: 'Security',
       cell: ({ row }) => (
-        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-          row.original.is_active ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
-        }`}>
-          {row.original.is_active ? 'Active' : 'Inactive'}
-        </span>
+        <div className="flex items-center gap-1.5">
+          {row.original.is_active ? (
+             <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600 uppercase">
+                <CheckCircle2 size={12} /> Authorized
+             </span>
+          ) : (
+            <span className="flex items-center gap-1 text-[10px] font-black text-red-500 uppercase opacity-50">
+               <Lock size={12} /> Restricted
+            </span>
+          )}
+        </div>
       ),
     },
     {
       id: 'actions',
       header: '',
       cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-admin-text-muted hover:text-admin-text-primary" onClick={(e: any) => e.stopPropagation()}>
-              <MoreHorizontal size={16} />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-admin-surface border-admin-border">
-            <DropdownMenuItem onClick={(e: any) => { e.stopPropagation(); openEdit(row.original); }} className="text-admin-text-secondary hover:bg-admin-surface-hover cursor-pointer">
-              <Pencil size={14} className="mr-2" /> Edit User
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <ActionGroup
+          onEdit={() => openEdit(row.original)}
+        />
       ),
     },
   ];
 
   return (
     <div className="space-y-4">
-      {/* Search & Action Bar - Matching Products UI */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-admin-text-muted" />
-            <Input
-              placeholder="Search by name or email..."
-              value={searchInput}
-              onChange={e => setSearchInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSearch()}
-              className="pl-9 h-[38px] bg-admin-surface border-admin-border text-admin-text-primary"
-            />
-          </div>
-          <Button onClick={handleSearch} className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover h-[38px]">Search</Button>
-          <Button onClick={openAdd} className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover h-[38px] font-medium">
-            <Plus size={16} className="mr-1" /> Add User
-          </Button>
-        </div>
-      </div>
-
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="animate-spin text-zeronix-blue" size={32} />
-        </div>
-      ) : (
-        <>
-          <DataTable
-            columns={columns}
-            data={usersData?.data || []}
-            hidePagination={true}
-          />
-          {usersData && usersData.total > 0 && (
-            <div className="flex items-center justify-between py-2 mt-2">
-              <p className="text-sm text-admin-text-muted">{usersData.total} users total</p>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="bg-admin-surface border-admin-border text-admin-text-secondary">Previous</Button>
-                <span className="text-sm text-admin-text-muted px-2">Page {page} of {usersData.last_page}</span>
-                <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= usersData.last_page} className="bg-admin-surface border-admin-border text-admin-text-secondary">Next</Button>
-              </div>
-            </div>
-          )}
-        </>
-      )}
+      <ResourceListingPage<User>
+        resource="users"
+        title="Access Management"
+        subtitle="Control administrative privileges and team member security."
+        icon={<UserCog size={20} />}
+        columns={columns}
+        createLabel="Onboard User"
+        createPath="#"
+        onCreateClick={openAdd}
+        searchPlaceholder="Search members by name or email..."
+      />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-admin-surface border-admin-border sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-admin-text-primary">{editId ? 'Edit User' : 'Add New User'}</DialogTitle>
-            <DialogDescription className="text-admin-text-secondary">
-              Configure team member details and module access.
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="bg-admin-surface border-admin-border sm:max-w-3xl rounded-3xl shadow-2xl p-0 overflow-hidden">
+          <div className="bg-admin-bg/30 p-6 border-b border-admin-border">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-black text-admin-text-primary flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-zeronix-blue/10 flex items-center justify-center text-zeronix-blue">
+                   <Shield size={24} />
+                </div>
+                {editId ? 'Modify Access Control' : 'Grant New Access'}
+              </DialogTitle>
+              <DialogDescription className="text-xs font-bold text-admin-text-muted uppercase tracking-widest mt-1 ml-1">
+                Configure user roles, authentication, and module permissions.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
           
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-admin-text-secondary text-sm">Full Name *</Label>
-                <Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="h-9 bg-admin-bg border-admin-border text-admin-text-primary" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-admin-text-secondary text-sm">Email Address *</Label>
-                <Input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="h-9 bg-admin-bg border-admin-border text-admin-text-primary" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-admin-text-secondary text-sm">Password {editId && '(leave blank to keep current)'}</Label>
-                <Input type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} className="h-9 bg-admin-bg border-admin-border text-admin-text-primary" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+            {/* Identity Column */}
+            <div className="p-6 space-y-5 border-r border-admin-border">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Identity & Auth</h4>
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-admin-text-secondary text-sm">Role *</Label>
-                  <Select value={form.role} onValueChange={v => setForm({...form, role: v})}>
-                    <SelectTrigger className="h-9 bg-admin-bg border-admin-border text-admin-text-primary">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-admin-surface border-admin-border">
-                      <SelectItem value="admin">Super Admin</SelectItem>
-                      <SelectItem value="salesman">Salesman</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Full Name *</Label>
+                  <Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl font-bold" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-admin-text-secondary text-sm">Designation</Label>
-                  <Input value={form.designation} onChange={e => setForm({...form, designation: e.target.value})} className="h-9 bg-admin-bg border-admin-border text-admin-text-primary" />
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Email Address *</Label>
+                  <Input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl" />
                 </div>
-              </div>
-              <div className="flex items-center justify-between p-3 rounded border border-admin-border bg-admin-bg">
-                <div>
-                  <Label className="text-sm font-medium text-admin-text-primary">Account Active</Label>
-                  <p className="text-xs text-admin-text-muted">Allow user to login</p>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Credentials {editId && '(keep blank to retain current)'}</Label>
+                  <Input type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl" />
                 </div>
-                <Switch checked={form.is_active} onCheckedChange={v => setForm({...form, is_active: v})} />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Access Role</Label>
+                    <Select value={form.role} onValueChange={v => setForm({...form, role: v})}>
+                      <SelectTrigger className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl font-bold">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-admin-surface border-admin-border rounded-xl">
+                        <SelectItem value="admin" className="font-bold">Super Admin</SelectItem>
+                        <SelectItem value="salesman" className="font-bold">Sales Agent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Designation</Label>
+                    <Input value={form.designation} onChange={e => setForm({...form, designation: e.target.value})} className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl" placeholder="e.g. Sales Manager" />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between p-4 rounded-2xl border border-admin-border bg-admin-bg mt-4">
+                  <div className="min-w-0">
+                    <Label className="text-xs font-black text-admin-text-primary uppercase tracking-tighter">Status: {form.is_active ? 'ENABLED' : 'LOCKED'}</Label>
+                    <p className="text-[10px] text-admin-text-muted font-medium mt-0.5">Control login accessibility</p>
+                  </div>
+                  <Switch checked={form.is_active} onCheckedChange={v => setForm({...form, is_active: v})} />
+                </div>
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <Label className="text-admin-text-primary text-sm font-medium">Module Permissions</Label>
-                <p className="text-xs text-admin-text-muted mb-3">Select which areas this user can access.</p>
-                
-                {form.role === 'admin' ? (
-                  <div className="p-4 bg-zeronix-blue/10 border border-zeronix-blue/20 rounded-lg text-sm text-zeronix-blue flex flex-col items-center justify-center text-center h-48">
-                    <Shield size={32} className="mb-2" />
-                    <p className="font-semibold">Full Access Granted</p>
-                    <p className="text-xs mt-1">Super Admins automatically have access to all modules.</p>
+            {/* Permissions Column */}
+            <div className="p-6 space-y-5 bg-admin-bg/10">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Module Granular Access</h4>
+              
+              {form.role === 'admin' ? (
+                <div className="p-8 bg-zeronix-blue/5 border border-zeronix-blue/10 rounded-3xl text-center h-[350px] flex flex-col items-center justify-center space-y-4">
+                  <div className="h-16 w-16 rounded-full bg-zeronix-blue/10 flex items-center justify-center text-zeronix-blue shadow-inner">
+                    <Shield size={32} />
                   </div>
-                ) : (
-                  <div className="space-y-1 bg-admin-bg p-3 rounded border border-admin-border max-h-[300px] overflow-y-auto">
-                    {AVAILABLE_MODULES.map(module => {
-                      const isChecked = form.permissions?.includes(module.id) ?? false;
-                      return (
-                        <div 
-                          key={module.id} 
-                          className="flex items-center justify-between py-2.5 px-2 border-b border-admin-border last:border-0 hover:bg-admin-surface/50 transition-colors rounded-sm"
+                  <div className="space-y-1">
+                    <p className="font-black text-admin-text-primary uppercase tracking-tight">ELEVATED PRIVILEGES</p>
+                    <p className="text-xs font-medium text-admin-text-muted max-w-[200px] mx-auto">
+                      Super Admins bypass module restrictions and have full system control.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[350px] overflow-y-auto pr-2 scrollbar-thin">
+                  {AVAILABLE_MODULES.map(module => {
+                    const isChecked = form.permissions?.includes(module.id) ?? false;
+                    return (
+                      <div 
+                        key={module.id} 
+                        className={`flex items-center justify-between p-4 border border-admin-border rounded-2xl transition-all ${
+                          isChecked ? "bg-white border-zeronix-blue/30 shadow-sm" : "bg-admin-bg/50 grayscale opacity-60"
+                        }`}
+                      >
+                        <Label 
+                          htmlFor={`perm-${module.id}`} 
+                          className="text-xs font-black text-admin-text-primary cursor-pointer flex-1"
                         >
-                          <Label 
-                            htmlFor={`perm-${module.id}`} 
-                            className="text-sm font-medium text-admin-text-secondary cursor-pointer flex-1"
-                          >
-                            {module.label}
-                          </Label>
-                          <Switch 
-                            id={`perm-${module.id}`}
-                            checked={isChecked} 
-                            onCheckedChange={() => togglePermission(module.id)} 
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                          {module.label}
+                        </Label>
+                        <Switch 
+                          id={`perm-${module.id}`}
+                          checked={isChecked} 
+                          onCheckedChange={() => togglePermission(module.id)} 
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
-          <DialogFooter className="mt-6">
-            <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-admin-text-secondary">Cancel</Button>
-            <Button 
-              onClick={() => saveMutation.mutate(form)} 
-              disabled={saveMutation.isPending || !form.name || !form.email || (!editId && !form.password)}
-              className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover"
-            >
-              {saveMutation.isPending ? <Loader2 className="animate-spin" /> : 'Save User'}
-            </Button>
-          </DialogFooter>
+          <div className="p-6 border-t border-admin-border">
+            <DialogFooter className="gap-2">
+              <Button variant="ghost" onClick={() => setDialogOpen(false)} className="rounded-xl font-bold">CANCEL</Button>
+              <Button 
+                onClick={handleSave} 
+                disabled={create.isPending || update.isPending || !form.name || !form.email || (!editId && !form.password)}
+                className="flex-1 bg-zeronix-blue text-white hover:bg-zeronix-blue-hover h-12 rounded-xl font-black shadow-lg shadow-zeronix-blue/20"
+              >
+                {(create.isPending || update.isPending) ? <Loader2 className="animate-spin" /> : 'SAVE USER PRIVILEGES'}
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

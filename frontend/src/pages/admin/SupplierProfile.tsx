@@ -1,317 +1,187 @@
-import { useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { useBreadcrumb } from '@/hooks/useBreadcrumb';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { DataTable } from '@/components/shared/DataTable';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/axios';
-import { toast } from 'sonner';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { SupplierProduct } from '@/types';
-import { Mail, Phone, Globe, MapPin, User, Loader2, Pencil, History } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { DataTable } from '@/components/shared/DataTable';
+import { CopyableText } from '@/components/shared/CopyableText';
+import { ActionGroup } from '@/components/shared/ActionGroup';
+import { ProductModal } from '@/components/shared/ProductModal';
 
+/**
+ * Supplier Profile Detail View
+ * Refactored for high-fidelity partner management and catalog tracking.
+ */
 export const SupplierProfile = () => {
   const { id } = useParams();
-  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   
   const [page, setPage] = useState(1);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<SupplierProduct | null>(null);
-  const [newPrice, setNewPrice] = useState('');
 
   const { data: supplierData, isLoading } = useQuery({
     queryKey: ['supplier', id, page],
-    queryFn: async () => {
-      const res = await api.get(`/admin/suppliers/${id}?page=${page}`);
-      return res.data;
-    }
+    queryFn: async () => (await api.get(`/admin/suppliers/${id}?page=${page}`)).data
   });
 
-  const updatePriceMutation = useMutation({
-    mutationFn: async ({ itemId, price }: { itemId: number; price: number }) => {
-      return api.put(`/admin/supplier-products/${itemId}`, { price });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['supplier', id] });
-      setEditDialogOpen(false);
-      toast.success('Price updated successfully');
-    },
-    onError: () => {
-      toast.error('Failed to update price');
-    }
+  const { data: brandsData } = useQuery({
+    queryKey: ['brands'],
+    queryFn: async () => (await api.get('/admin/brands')).data,
   });
+  const brands = brandsData?.data || [];
+
+  const { data: categoriesData } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => (await api.get('/admin/categories')).data,
+  });
+  const categories = categoriesData?.data || [];
 
   const supplier = supplierData?.supplier;
   const productsResult = supplierData?.products;
   const products = productsResult?.data || [];
 
-  // Must be called before any early return (Rules of Hooks)
-  useBreadcrumb([
-    { label: 'Suppliers', href: '/admin/suppliers' },
-    { label: supplier?.name || 'Loading…' },
-  ]);
-
   if (isLoading && page === 1) {
     return (
-      <div className="flex flex-col items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-zeronix-blue mb-3" />
-        <p className="text-sm text-admin-text-muted">Loading supplier profile...</p>
+      <div className="flex flex-col items-center justify-center h-96 gap-3">
+        <Loader2 className="h-10 w-10 animate-spin text-zeronix-blue" />
+        <p className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted">Establishing Secure Link...</p>
       </div>
     );
   }
 
   if (!supplier) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-admin-text-muted">Supplier not found.</p>
+      <div className="flex items-center justify-center h-64 bg-admin-surface border border-dashed border-admin-border rounded-2xl">
+        <p className="text-sm font-bold text-admin-text-muted uppercase tracking-wider">Partner Identity Not Found</p>
       </div>
     );
   }
 
   const openEdit = (item: SupplierProduct) => {
     setEditingItem(item);
-    setNewPrice(String(item.price));
     setEditDialogOpen(true);
-  };
-
-  const handleUpdatePrice = () => {
-    if (editingItem && newPrice) {
-      updatePriceMutation.mutate({ itemId: editingItem.id, price: parseFloat(newPrice) });
-    }
   };
 
   const productColumns: ColumnDef<SupplierProduct>[] = [
     {
+      accessorKey: 'model_code',
+      header: 'Code',
+      cell: ({ row }) => (
+        <span className="font-mono text-[11px] font-medium text-zeronix-blue bg-zeronix-blue/5 px-2 py-0.5 rounded whitespace-nowrap border border-zeronix-blue/10">
+          {row.original.model_code || '—'}
+        </span>
+      ),
+    },
+    {
       accessorKey: 'name',
-      header: 'Product',
-      cell: ({ row }: any) => (
-        <div className="flex flex-col max-w-[400px]">
-          <span className="font-medium text-admin-text-primary truncate">
-            {row.original.name}
-          </span>
-          <span className="text-[10px] text-admin-text-muted font-mono uppercase">
-            {row.original.model_code || 'No Model Code'}
-          </span>
-        </div>
+      header: 'Product Name',
+      cell: ({ row }) => <CopyableText value={row.original.name} limit={85} />,
+    },
+    {
+      accessorKey: 'price',
+      header: 'Price',
+      cell: ({ row }) => (
+        <span className="font-mono text-sm font-bold text-admin-text-primary whitespace-nowrap">
+          {Number(row.original.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-[10px] text-admin-text-muted ml-0.5">{row.original.currency}</span>
+        </span>
       ),
     },
     {
       accessorKey: 'category',
       header: 'Category',
-      cell: ({ row }: any) => (
-        <span className="text-sm text-admin-text-secondary">
+      cell: ({ row }) => (
+        <Badge variant="secondary" className="bg-zeronix-blue/5 text-zeronix-blue border-0 text-[10px] font-bold px-2 h-5 uppercase tracking-tight">
           {row.original.category?.name || '—'}
-        </span>
-      ),
-    },
-    {
-      accessorKey: 'price',
-      header: 'Price',
-      cell: ({ row }: any) => (
-        <span className="font-mono text-sm font-bold text-admin-text-primary">
-          {row.original.price} {row.original.currency}
-        </span>
+        </Badge>
       ),
     },
     {
       accessorKey: 'availability',
-      header: 'Status',
-      cell: ({ row }: any) => (
+      header: 'Availability',
+      cell: ({ row }) => (
         <Badge
-          variant="secondary"
-          className={
+          className={cn(
+            "rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider border",
             row.original.availability
-              ? 'bg-zeronix-green-dim text-zeronix-green border-0 text-[10px] px-2 h-5'
-              : 'bg-danger/10 text-danger border-0 text-[10px] px-2 h-5'
-          }
+              ? 'bg-emerald-500/5 text-emerald-600 border-emerald-500/10'
+              : 'bg-red-500/5 text-red-600 border-red-500/10'
+          )}
         >
-          {row.original.availability ? 'In Stock' : 'Out of Stock'}
+          {row.original.availability ? 'IN STOCK' : 'OUT OF STOCK'}
         </Badge>
       ),
     },
     {
       id: 'actions',
       header: '',
-      cell: ({ row }: any) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => openEdit(row.original)}
-          className="h-8 px-2 text-xs text-admin-text-muted hover:text-zeronix-blue"
-        >
-          <Pencil size={12} className="mr-1" /> Edit
-        </Button>
+      cell: ({ row }) => (
+        <ActionGroup
+          onEdit={() => openEdit(row.original)}
+          onView={() => navigate(`/admin/products/${row.original.product_id}`)}
+        />
       ),
     },
   ];
 
   return (
-    <div className="space-y-5">
-      {/* Header info bar */}
-      <div className="flex flex-wrap items-center gap-3">
-        <Badge className="bg-zeronix-blue/10 text-zeronix-blue border-0 text-xs px-2">
-          {supplier.products_count || 0} Products
-        </Badge>
-        <span className="font-mono text-xs text-admin-text-muted">{supplier.supplier_code || 'PENDING'}</span>
-        {supplier.contact_person && (
-          <p className="text-sm text-admin-text-secondary flex items-center gap-1">
-            <User size={13} className="text-admin-text-muted" /> {supplier.contact_person}
-          </p>
-        )}
-        <p className="text-sm text-admin-text-secondary flex items-center gap-1">
-          <Mail size={13} className="text-admin-text-muted" /> {supplier.email}
-        </p>
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold text-admin-text-primary tracking-tight uppercase">{supplier.name}</h1>
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="products" className="space-y-4">
-        <TabsList className="bg-admin-surface border border-admin-border">
-          <TabsTrigger value="products" className="data-[state=active]:bg-zeronix-blue data-[state=active]:text-white text-admin-text-secondary">
-            Products & Pricing
-          </TabsTrigger>
-          <TabsTrigger value="profile" className="data-[state=active]:bg-zeronix-blue data-[state=active]:text-white text-admin-text-secondary">
-            Supplier Profile
-          </TabsTrigger>
-          <TabsTrigger value="broadcast" className="data-[state=active]:bg-zeronix-blue data-[state=active]:text-white text-admin-text-secondary">
-            Synchronization Log
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="products">
-          <DataTable 
-            columns={productColumns} 
-            data={products} 
-            searchColumn="name" 
-            searchPlaceholder="Search synced products..."
-          />
-          
-          {/* Simple Pagination Controls */}
-          <div className="flex items-center justify-end space-x-2 py-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="bg-admin-surface border-admin-border text-admin-text-secondary"
-            >
-              Previous
-            </Button>
-            <div className="text-sm text-admin-text-muted">
-              Page {page} of {productsResult?.last_page || 1}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => p + 1)}
-              disabled={page >= (productsResult?.last_page || 1)}
-              className="bg-admin-surface border-admin-border text-admin-text-secondary"
-            >
-              Next
-            </Button>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="profile">
-          <div className="bg-admin-surface border border-admin-border rounded-xl p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-admin-text-primary">Contact Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-admin-bg">
-                <div className="p-2 rounded-lg bg-zeronix-blue/10">
-                  <Phone size={18} className="text-zeronix-blue" />
-                </div>
-                <div>
-                  <p className="text-xs text-admin-text-muted uppercase font-medium">Phone</p>
-                  <p className="text-sm text-admin-text-primary">{supplier.phone || 'Not provided'}</p>
-                </div>
+      <div className="bg-admin-surface border border-admin-border rounded-xl overflow-hidden shadow-sm">
+         <div className="px-6 py-4 border-b border-admin-border bg-admin-bg/10">
+            <h2 className="text-xs font-semibold text-admin-text-primary uppercase tracking-wider">Product Catalog</h2>
+         </div>
+         <DataTable 
+           columns={productColumns} 
+           data={products} 
+           hidePagination={true}
+         />
+         
+         <div className="flex items-center justify-between px-6 py-4 border-t border-admin-border bg-admin-bg/10">
+            <p className="text-[10px] font-bold text-admin-text-muted uppercase tracking-wider">
+               Showing {products.length} of {productsResult?.total || 0} entries
+            </p>
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setPage(p => Math.max(1, p - 1))} 
+                disabled={page === 1}
+                className="h-8 px-3 rounded-md border-admin-border bg-admin-surface font-bold text-[10px] uppercase tracking-wider shadow-sm"
+              >
+                Prev
+              </Button>
+              <div className="h-8 px-3 rounded-md bg-admin-bg border border-admin-border flex items-center justify-center font-bold text-[10px] text-zeronix-blue">
+                 {page} / {productsResult?.last_page || 1}
               </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-admin-bg">
-                <div className="p-2 rounded-lg bg-zeronix-blue/10">
-                  <Globe size={18} className="text-zeronix-blue" />
-                </div>
-                <div>
-                  <p className="text-xs text-admin-text-muted uppercase font-medium">Website</p>
-                  <p className="text-sm text-admin-text-primary">{supplier.website || 'Not provided'}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-admin-bg">
-                <div className="p-2 rounded-lg bg-zeronix-blue/10">
-                  <MapPin size={18} className="text-zeronix-blue" />
-                </div>
-                <div>
-                  <p className="text-xs text-admin-text-muted uppercase font-medium">Address</p>
-                  <p className="text-sm text-admin-text-primary">{supplier.address || 'Not provided'}</p>
-                </div>
-              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setPage(p => p + 1)} 
+                disabled={page >= (productsResult?.last_page || 1)}
+                className="h-8 px-3 rounded-md border-admin-border bg-admin-surface font-bold text-[10px] uppercase tracking-wider shadow-sm"
+              >
+                Next
+              </Button>
             </div>
-          </div>
-        </TabsContent>
+         </div>
+      </div>
 
-        <TabsContent value="broadcast">
-          <div className="bg-admin-surface border border-admin-border rounded-xl overflow-hidden">
-            <div className="p-6 border-b border-admin-border bg-admin-bg/50">
-              <div className="flex items-center gap-3">
-                <History className="text-zeronix-blue" size={20} />
-                <div>
-                  <h3 className="text-lg font-semibold text-admin-text-primary">Synchronization Log</h3>
-                  <p className="text-sm text-admin-text-secondary">History of data updates from this supplier.</p>
-                </div>
-              </div>
-            </div>
-            <div className="p-6 text-center py-12">
-               <p className="text-admin-text-secondary">No recent sync activity logged.</p>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
-
-      {/* Edit Price Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="bg-admin-surface border-admin-border">
-          <DialogHeader>
-            <DialogTitle className="text-admin-text-primary">Edit Listing</DialogTitle>
-            <DialogDescription className="text-admin-text-secondary">
-              Update pricing for: {editingItem?.name}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-admin-text-primary">Price ({editingItem?.currency})</Label>
-              <Input
-                type="number"
-                value={newPrice}
-                onChange={(e) => setNewPrice(e.target.value)}
-                className="bg-admin-bg border-admin-border text-admin-text-primary"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setEditDialogOpen(false)} className="text-admin-text-secondary">
-              Cancel
-            </Button>
-            <Button
-              onClick={handleUpdatePrice}
-              disabled={updatePriceMutation.isPending}
-              className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover"
-            >
-              {updatePriceMutation.isPending ? <Loader2 className="animate-spin h-4 w-4" /> : 'Save Changes'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ProductModal
+        isOpen={editDialogOpen}
+        onClose={() => setEditDialogOpen(false)}
+        editingProduct={editingItem?.product || null}
+        brands={brands}
+        categories={categories}
+      />
     </div>
   );
 };

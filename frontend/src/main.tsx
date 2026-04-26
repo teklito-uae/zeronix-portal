@@ -6,15 +6,18 @@ import { queryClient } from './lib/queryClient'
 import ErrorBoundary from './components/shared/ErrorBoundary'
 import './index.css'
 import { Toaster } from 'sonner'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <ErrorBoundary>
-          <App />
-        </ErrorBoundary>
+        <TooltipProvider>
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
+        </TooltipProvider>
         <Toaster position="top-right" richColors />
       </BrowserRouter>
     </QueryClientProvider>

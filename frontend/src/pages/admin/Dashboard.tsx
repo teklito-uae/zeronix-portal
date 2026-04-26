@@ -1,3 +1,4 @@
+import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import { SEO } from '@/components/shared/SEO';
@@ -9,42 +10,26 @@ import {
   AlertCircle, ArrowRight, User, CreditCard,
 } from 'lucide-react';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar,
+  XAxis, CartesianGrid, BarChart, Bar, PieChart, Pie, Cell,
 } from 'recharts';
-import { cn } from '@/lib/utils';
-import { timeAgo } from '@/lib/utils';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { cn, timeAgo } from '@/lib/utils';
 
-// ── Stat Card ────────────────────────────────────────────────────────────────
-interface StatCardProps {
-  title: string;
-  value: string | number;
-  subtitle?: string;
-  icon: React.ReactNode;
-  iconBg: string;
-  href?: string;
-}
-
-const StatCard = ({ title, value, subtitle, icon, iconBg, href }: StatCardProps) => {
-  const navigate = useNavigate();
-  return (
-    <div
-      className={cn(
-        "bg-admin-surface border border-admin-border rounded-md p-3.5 transition-all",
-        href && "cursor-pointer hover:border-zeronix-blue/30 hover:shadow-sm"
-      )}
-      onClick={() => href && navigate(href)}
-    >
-      <div className="flex items-center gap-3">
-        <div className={cn("p-2 rounded-md shrink-0", iconBg)}>{icon}</div>
-        <div className="min-w-0">
-          <p className="text-[11px] text-admin-text-muted">{title}</p>
-          <p className="text-sm font-semibold text-admin-text-primary mt-0.5 truncate">{value}</p>
-          {subtitle && <p className="text-[11px] text-admin-text-muted">{subtitle}</p>}
-        </div>
-      </div>
-    </div>
-  );
-};
+import { StatCard } from '@/components/shared/StatCard';
 
 // ── Section Header ────────────────────────────────────────────────────────────
 const SectionHeader = ({ icon, title, action }: { icon: React.ReactNode; title: string; action?: React.ReactNode }) => (
@@ -56,15 +41,38 @@ const SectionHeader = ({ icon, title, action }: { icon: React.ReactNode; title: 
   </div>
 );
 
+const chartConfig = {
+  enquiries: { label: "Enquiries", color: "#A78BFA" },
+  quotes: { label: "Quotes", color: "#FCD34D" },
+  invoices: { label: "Invoices", color: "#10B981" },
+  revenue: { label: "Revenue" },
+  bank: { label: "Bank Transfer", color: "#6366F1" },
+  cash: { label: "Cash Payment", color: "#10B981" },
+  distribution: { label: "Payment Distribution" },
+} satisfies ChartConfig;
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 export const Dashboard = () => {
   const navigate = useNavigate();
+  const [activeChart, setActiveChart] = useState<"bank" | "cash">("bank");
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin-dashboard'],
     queryFn: async () => (await api.get('/admin/dashboard')).data,
     refetchInterval: 60_000,
   });
+
+  const daily_revenue = data?.daily_revenue || [];
+
+  const totals = useMemo(() => ({
+    bank: daily_revenue.reduce((acc: number, curr: any) => acc + curr.bank, 0),
+    cash: daily_revenue.reduce((acc: number, curr: any) => acc + curr.cash, 0),
+  }), [daily_revenue]);
+
+  const pieData = useMemo(() => [
+    { name: "bank", value: totals.bank, fill: chartConfig.bank.color },
+    { name: "cash", value: totals.cash, fill: chartConfig.cash.color },
+  ], [totals]);
 
   if (isLoading) {
     return (
@@ -84,7 +92,8 @@ export const Dashboard = () => {
     );
   }
 
-  const { stats, chart_data, recent_enquiries, recent_invoices, recent_activities, user_stats } = data;
+  const { stats, daily_activity = [], recent_enquiries, recent_invoices, recent_activities, user_stats } = data;
+
   const fmt = (val: number) => val > 0 ? `${Number(val).toLocaleString(undefined, { minimumFractionDigits: 0 })} AED` : '0 AED';
   const pct = stats.total_invoiced > 0 ? Math.round((stats.total_paid / stats.total_invoiced) * 100) : 0;
 
@@ -108,61 +117,148 @@ export const Dashboard = () => {
         <StatCard title="Products" value={stats.total_products} icon={<Package size={15} className="text-orange-500" />} iconBg="bg-orange-500/10" href="/admin/products" />
       </div>
 
-      {/* Row 3 — Charts */}
+      {/* Row 3 — Financial Analytics */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Revenue chart */}
-        <div className="lg:col-span-2 bg-admin-surface border border-admin-border rounded-md overflow-hidden">
-          <SectionHeader
-            icon={<TrendingUp size={13} className="text-zeronix-blue" />}
-            title="Revenue (Last 6 Months)"
-            action={<span className="text-[11px] text-admin-text-muted">AED</span>}
-          />
-          <div className="p-4">
-            <div className="h-56 w-full [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chart_data} style={{ outline: 'none' }}>
-                  <defs>
-                    <linearGradient id="gradRev" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.15} />
-                      <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 11 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 11 }} tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} width={40} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: 'var(--admin-surface, #fff)', borderColor: '#E2E8F0', borderRadius: '6px', fontSize: '12px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}
-                    cursor={{ stroke: '#10B981', strokeWidth: 1, strokeDasharray: '3 3' }}
-                  />
-                  <Area type="monotone" dataKey="revenue" stroke="#10B981" strokeWidth={2} fillOpacity={1} fill="url(#gradRev)" name="Revenue (AED)" dot={false} activeDot={{ r: 4, fill: '#10B981', strokeWidth: 0 }} />
-                </AreaChart>
-              </ResponsiveContainer>
+        {/* Revenue Analytics */}
+        <Card className="lg:col-span-1 bg-admin-surface border border-admin-border rounded-xl overflow-hidden shadow-sm flex flex-col">
+          <CardHeader className="flex flex-col items-stretch border-b border-admin-border p-0 bg-admin-bg/10">
+            <div className="flex flex-col justify-center gap-0.5 px-5 py-3">
+              <CardTitle className="text-base font-bold text-admin-text-primary flex items-center gap-2">
+                <TrendingUp size={16} className="text-zeronix-blue" />
+                Revenue
+              </CardTitle>
+              <CardDescription className="text-[10px] text-admin-text-muted uppercase tracking-tight">
+                Daily collection (30d)
+              </CardDescription>
             </div>
-          </div>
-        </div>
+            <div className="flex border-t border-admin-border">
+              {["bank", "cash"].map((key) => {
+                const chart = key as keyof typeof chartConfig;
+                const isActive = activeChart === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setActiveChart(key as "bank" | "cash")}
+                    className={cn(
+                      "flex flex-1 flex-col justify-center gap-0.5 px-4 py-2 text-left transition-all border-l first:border-l-0 border-admin-border",
+                      isActive ? "bg-zeronix-blue/5 border-b-2 border-b-zeronix-blue" : "hover:bg-admin-bg/50"
+                    )}
+                  >
+                    <span className="text-[9px] font-medium uppercase text-admin-text-muted">
+                      {chartConfig[chart].label}
+                    </span>
+                    <span className="text-sm font-bold text-admin-text-primary">
+                      {totals[key as keyof typeof totals].toLocaleString()}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 flex-1">
+            <ChartContainer config={chartConfig} className="aspect-auto h-[200px] w-full">
+              <BarChart accessibilityLayer data={daily_revenue} margin={{ top: 10 }}>
+                <CartesianGrid vertical={false} stroke="#E2E8F0" strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  minTickGap={32}
+                  tick={{ fill: '#94A3B8', fontSize: 10 }}
+                  tickFormatter={(v) => new Date(v).getDate().toString()}
+                />
+                <ChartTooltip content={<ChartTooltipContent className="w-[120px]" nameKey="revenue" />} />
+                <Bar dataKey={activeChart} fill={chartConfig[activeChart].color} radius={[2, 2, 0, 0]} />
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
 
-        {/* Activity volume bar chart */}
-        <div className="bg-admin-surface border border-admin-border rounded-md overflow-hidden">
-          <SectionHeader icon={<Activity size={13} className="text-purple-500" />} title="Activity Volume" />
-          <div className="p-4">
-            <div className="h-56 w-full [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chart_data} style={{ outline: 'none' }} barSize={8} barCategoryGap="30%">
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 10 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 10 }} width={24} allowDecimals={false} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: 'var(--admin-surface, #fff)', borderColor: '#E2E8F0', borderRadius: '6px', fontSize: '11px' }}
-                    cursor={{ fill: '#F4F6FA' }}
-                  />
-                  <Bar dataKey="enquiries" name="Enquiries" fill="#A78BFA" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="quotes" name="Quotes" fill="#FCD34D" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="invoices" name="Invoices" fill="#10B981" radius={[3, 3, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
+        {/* Payment Distribution Pie */}
+        <Card className="lg:col-span-1 bg-admin-surface border border-admin-border rounded-xl overflow-hidden shadow-sm flex flex-col">
+          <CardHeader className="border-b border-admin-border bg-admin-bg/10 px-5 py-4">
+            <CardTitle className="text-base font-bold text-admin-text-primary flex items-center gap-2">
+              <CreditCard size={16} className="text-emerald-500" />
+              Distribution
+            </CardTitle>
+            <CardDescription className="text-[10px] text-admin-text-muted uppercase tracking-tight">
+              Bank vs Cash Ratio
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 flex-1 flex flex-col items-center justify-center">
+            <ChartContainer config={chartConfig} className="aspect-square h-[200px] w-full">
+              <PieChart>
+                <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                <Pie
+                  data={pieData}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={60}
+                  outerRadius={80}
+                  strokeWidth={5}
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <ChartLegend content={<ChartLegendContent />} className="mt-2" />
+              </PieChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* Activity Volume */}
+        <Card className="lg:col-span-1 bg-admin-surface border border-admin-border rounded-xl overflow-hidden shadow-sm flex flex-col">
+          <CardHeader className="border-b border-admin-border bg-admin-bg/10 px-5 py-4">
+            <CardTitle className="text-base font-bold text-admin-text-primary flex items-center gap-2">
+              <Activity size={16} className="text-purple-500" />
+              Activity
+            </CardTitle>
+            <CardDescription className="text-[10px] text-admin-text-muted uppercase tracking-tight">
+              {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 flex-1 flex flex-col justify-center">
+            <ChartContainer config={chartConfig} className="aspect-auto h-[200px] w-full">
+              <BarChart accessibilityLayer data={daily_activity} barSize={4} barCategoryGap="5%">
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                <XAxis
+                  dataKey="name"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                  minTickGap={20}
+                  tick={{ fill: '#94A3B8', fontSize: 9 }}
+                  tickFormatter={(value) => value.split(' ')[0]}
+                />
+                <Bar
+                  dataKey="enquiries"
+                  stackId="activity"
+                  fill="var(--color-enquiries)"
+                  radius={[0, 0, 1, 1]}
+                />
+                <Bar
+                  dataKey="quotes"
+                  stackId="activity"
+                  fill="var(--color-quotes)"
+                  radius={[0, 0, 0, 0]}
+                />
+                <Bar
+                  dataKey="invoices"
+                  stackId="activity"
+                  fill="var(--color-invoices)"
+                  radius={[1, 1, 0, 0]}
+                />
+                <ChartTooltip
+                  content={<ChartTooltipContent indicator="line" />}
+                  cursor={false}
+                />
+                <ChartLegend content={<ChartLegendContent />} className="mt-4" />
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Row 4 — Collection summary + Recent enquiries + Recent invoices */}

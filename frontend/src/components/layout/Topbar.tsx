@@ -213,7 +213,7 @@ export const Topbar = () => {
           >
             <Bell size={17} />
             {user && (unreadNotifs?.length || 0) > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 h-4 w-4 text-[8px] font-black text-white flex items-center justify-center rounded-full bg-red-500 border-2 border-admin-surface shadow-sm">
+              <span className="absolute -top-0.5 -right-0.5 h-4 w-4 text-[8px] font-bold text-white flex items-center justify-center rounded-full bg-red-500 border-2 border-admin-surface shadow-sm">
                 {unreadNotifs.length}
               </span>
             )}
@@ -262,10 +262,10 @@ export const Topbar = () => {
               <div className="hidden sm:flex flex-col items-start leading-tight">
                 {isCustomer ? (
                   <>
-                    <span className="text-sm font-black text-emerald-500 uppercase tracking-tight">
+                    <span className="text-sm font-bold text-emerald-500 uppercase tracking-tight">
                       {customer?.company || 'My Company'}
                     </span>
-                    <span className="text-[10px] text-admin-text-muted font-bold flex items-center gap-1">
+                    <span className="text-[10px] text-admin-text-muted font-medium flex items-center gap-1">
                       <UserCircle2 size={10} className="text-zeronix-blue" />
                       Account Mgr: {customer?.assigned_user?.name || 'Zeronix Sales'}
                     </span>

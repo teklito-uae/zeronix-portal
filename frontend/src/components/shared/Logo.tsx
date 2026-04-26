@@ -33,7 +33,7 @@ export const Logo = ({ className, size = 'md', showText = true }: LogoProps) => 
       {showText && (
         <div className="flex items-baseline ml-1 animate-in fade-in slide-in-from-left-2 duration-700">
           <span className={cn(
-            "text-blue-950 dark:text-white font-black uppercase tracking-[-0.02em]",
+            "text-blue-950 dark:text-white font-bold uppercase tracking-[-0.02em]",
             textSizes[size]
           )}>
             eronix

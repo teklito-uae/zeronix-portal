@@ -1,12 +1,8 @@
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { DataTable } from '@/components/shared/DataTable';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Loader2, User, Clock, Info } from 'lucide-react';
+import { Clock, Info, User as UserIcon, Activity as ActivityIcon } from 'lucide-react';
 import api from '@/lib/axios';
-import { type ColumnDef } from '@tanstack/react-table';
+import type { ColumnDef } from '@tanstack/react-table';
+import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 
 // Native date formatter helper
 const formatActivityDate = (dateStr: string, includeTime: boolean = false) => {
@@ -38,47 +34,27 @@ interface ActivityLog {
   };
 }
 
+/**
+ * Activity Logs Module
+ * Refactored to use the standardized State-Driven architecture.
+ */
 export const Activities = () => {
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState('');
-  const [userFilter, setUserFilter] = useState('all');
-  const [actionFilter, setActionFilter] = useState('all');
-
-  const { data: activitiesData, isLoading } = useQuery({
-    queryKey: ['activities', page, search, userFilter, actionFilter],
-    queryFn: async () => {
-      const res = await api.get('/admin/activities', {
-        params: {
-          page,
-          search,
-          user_id: userFilter,
-          action: actionFilter,
-          per_page: 20
-        }
-      });
-      return res.data;
-    }
-  });
-
   const { data: usersData } = useQuery({
     queryKey: ['users-list'],
-    queryFn: async () => {
-      const res = await api.get('/admin/users', { params: { per_page: 100 } });
-      return res.data;
-    }
+    queryFn: async () => (await api.get('/admin/users', { params: { per_page: 100 } })).data,
   });
 
   const columns: ColumnDef<ActivityLog>[] = [
     {
       accessorKey: 'created_at',
-      header: 'Time',
+      header: 'Timestamp',
       cell: ({ row }) => (
         <div className="flex flex-col">
-          <span className="text-sm font-medium text-admin-text-primary">
+          <span className="text-sm font-black text-admin-text-primary uppercase tracking-tighter">
             {formatActivityDate(row.original.created_at)}
           </span>
-          <span className="text-xs text-admin-text-muted flex items-center gap-1">
-            <Clock size={10} />
+          <span className="text-[10px] text-admin-text-muted flex items-center gap-1 font-bold">
+            <Clock size={10} className="opacity-50" />
             {formatActivityDate(row.original.created_at, true)}
           </span>
         </div>
@@ -86,44 +62,48 @@ export const Activities = () => {
     },
     {
       accessorKey: 'user.name',
-      header: 'User',
+      header: 'Actor',
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-zeronix-blue/10 flex items-center justify-center text-zeronix-blue">
-            <User size={14} />
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-full bg-admin-bg border border-admin-border flex items-center justify-center text-admin-text-secondary">
+            <UserIcon size={14} />
           </div>
           <div>
-            <p className="text-sm font-medium text-admin-text-primary">{row.original.user?.name || 'System'}</p>
-            <p className="text-[10px] uppercase tracking-wider text-admin-text-muted">{row.original.user?.role || 'System'}</p>
+            <p className="text-sm font-bold text-admin-text-primary">{row.original.user?.name || 'SYSTEM'}</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-admin-text-muted">{row.original.user?.role || 'CORE'}</p>
           </div>
         </div>
       ),
     },
     {
       accessorKey: 'description',
-      header: 'Activity',
+      header: 'Action Detail',
       cell: ({ row }) => (
-        <div className="flex items-start gap-2 max-w-md">
-          <div className="mt-0.5 text-zeronix-blue">
+        <div className="flex items-start gap-2.5 max-w-lg">
+          <div className="mt-0.5 text-zeronix-blue opacity-40">
             <Info size={14} />
           </div>
-          <p className="text-sm text-admin-text-primary">{row.original.description}</p>
+          <p className="text-sm font-medium text-admin-text-secondary leading-relaxed">
+            {row.original.description}
+          </p>
         </div>
       ),
     },
     {
       accessorKey: 'action',
-      header: 'Action',
+      header: 'Event Type',
       cell: ({ row }) => {
         const action = row.original.action;
-        let variant = "bg-gray-100 text-gray-700";
-        if (action.startsWith('created')) variant = "bg-green-100 text-green-700";
-        if (action.startsWith('updated')) variant = "bg-blue-100 text-blue-700";
-        if (action.startsWith('deleted')) variant = "bg-red-100 text-red-700";
+        let colorClass = "bg-admin-bg text-admin-text-muted border-admin-border";
+        
+        if (action.includes('created')) colorClass = "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
+        if (action.includes('updated')) colorClass = "bg-blue-500/10 text-blue-600 border-blue-500/20";
+        if (action.includes('deleted')) colorClass = "bg-red-500/10 text-red-600 border-red-500/20";
+        if (action.includes('email') || action.includes('sent')) colorClass = "bg-indigo-500/10 text-indigo-600 border-indigo-500/20";
 
         return (
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight ${variant}`}>
-            {action.replace('_', ' ')}
+          <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${colorClass}`}>
+            {action.replace(/_/g, ' ')}
           </span>
         );
       },
@@ -131,87 +111,33 @@ export const Activities = () => {
   ];
 
   return (
-    <div className="space-y-4">
-      {/* Search & Filters Bar - Matching Products style */}
-      <div className="bg-admin-surface border border-admin-border rounded-xl p-4 flex flex-wrap gap-3">
-        <div className="flex-1 min-w-[200px]">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-admin-text-muted" size={16} />
-            <Input
-              placeholder="Search descriptions..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="pl-9 h-9 bg-admin-bg border-admin-border text-admin-text-primary text-sm"
-            />
-          </div>
-        </div>
-
-        <Select value={userFilter} onValueChange={(v) => { setUserFilter(v); setPage(1); }}>
-          <SelectTrigger className="h-9 w-44 bg-admin-bg border-admin-border text-admin-text-primary text-sm">
-            <SelectValue placeholder="All Users" />
-          </SelectTrigger>
-          <SelectContent className="bg-admin-surface border-admin-border">
-            <SelectItem value="all">All Users</SelectItem>
-            {usersData?.data?.map((user: any) => (
-              <SelectItem key={user.id} value={user.id.toString()}>{user.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={actionFilter} onValueChange={(v) => { setActionFilter(v); setPage(1); }}>
-          <SelectTrigger className="h-9 w-44 bg-admin-bg border-admin-border text-admin-text-primary text-sm">
-            <SelectValue placeholder="All Actions" />
-          </SelectTrigger>
-          <SelectContent className="bg-admin-surface border-admin-border">
-            <SelectItem value="all">All Actions</SelectItem>
-            <SelectItem value="created_enquiry">Created Enquiry</SelectItem>
-            <SelectItem value="updated_enquiry">Updated Enquiry</SelectItem>
-            <SelectItem value="created_quote">Created Quote</SelectItem>
-            <SelectItem value="created_invoice">Created Invoice</SelectItem>
-            <SelectItem value="created_customer">Created Customer</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="animate-spin text-zeronix-blue" size={32} />
-        </div>
-      ) : (
-        <>
-          <DataTable
-            columns={columns}
-            data={activitiesData?.data || []}
-            hidePagination={true}
-          />
-          {activitiesData && activitiesData.total > 0 && (
-            <div className="flex items-center justify-between py-2 mt-2">
-              <p className="text-sm text-admin-text-muted">{activitiesData.total} activities found</p>
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setPage(p => Math.max(1, p - 1))} 
-                  disabled={page === 1}
-                  className="bg-admin-surface border-admin-border text-admin-text-secondary"
-                >
-                  Previous
-                </Button>
-                <span className="text-sm text-admin-text-muted px-2">Page {page} of {activitiesData.last_page}</span>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setPage(p => p + 1)} 
-                  disabled={page >= activitiesData.last_page}
-                  className="bg-admin-surface border-admin-border text-admin-text-secondary"
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-    </div>
+    <ResourceListingPage<ActivityLog>
+      resource="activities"
+      title="Audit Logs"
+      subtitle="Complete traceability of all administrative actions and system events."
+      icon={<ActivityIcon size={20} />}
+      columns={columns}
+      searchPlaceholder="Search logs by description or user..."
+      filters={[
+        {
+          name: 'user_id',
+          label: 'User',
+          placeholder: 'All Users',
+          options: usersData?.data?.map((u: any) => ({ label: u.name, value: String(u.id) })) || []
+        },
+        {
+          name: 'action',
+          label: 'Action Type',
+          placeholder: 'All Actions',
+          options: [
+            { label: 'Created Enquiry', value: 'created_enquiry' },
+            { label: 'Updated Enquiry', value: 'updated_enquiry' },
+            { label: 'Created Quote', value: 'created_quote' },
+            { label: 'Created Invoice', value: 'created_invoice' },
+            { label: 'Created Customer', value: 'created_customer' },
+          ]
+        }
+      ]}
+    />
   );
 };

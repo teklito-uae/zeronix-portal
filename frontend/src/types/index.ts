@@ -103,7 +103,7 @@ export interface Product {
   // Relations
   brand?: Brand;
   category?: Category;
-  suppliers?: SupplierProduct[];
+  supplier_products?: SupplierProduct[];
   suppliers_count?: number;
   supplier_products_count?: number;
 }
@@ -128,6 +128,7 @@ export interface SupplierProduct {
   // Relations
   supplier?: Supplier;
   product?: Product;
+  category?: Category;
 }
 
 export interface Enquiry {

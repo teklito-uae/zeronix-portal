@@ -209,12 +209,12 @@ class InvoiceController extends Controller
             // Notify Customer
             if ($invoice->customer) {
                 $slug = \Illuminate\Support\Str::slug($invoice->customer->company ?? 'company');
-                $invoice->customer->notify(new \App\Notifications\SystemNotification(
-                    'Invoice Updated',
-                    "Invoice {$invoice->invoice_number} has been updated.",
-                    'info',
-                    "/portal/{$slug}/invoices/{$invoice->id}"
-                ));
+                $invoice->customer->notify(new \App\Notifications\SystemNotification([
+                    'title' => 'Invoice Updated',
+                    'message' => "Invoice {$invoice->invoice_number} has been updated.",
+                    'type' => 'info',
+                    'action_url' => "/portal/{$slug}/invoices/{$invoice->id}"
+                ]));
             }
 
             return response()->json($invoice->load(['customer', 'items']));

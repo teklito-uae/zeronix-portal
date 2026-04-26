@@ -1,12 +1,11 @@
+import type { ColumnDef, SortingState } from '@tanstack/react-table';
 import {
-  type ColumnDef,
   flexRender,
   getCoreRowModel,
   getSortedRowModel,
   getPaginationRowModel,
   getFilteredRowModel,
   useReactTable,
-  type SortingState,
 } from '@tanstack/react-table';
 import { useState, Fragment } from 'react';
 import {
