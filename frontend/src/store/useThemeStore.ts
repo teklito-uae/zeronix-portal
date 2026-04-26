@@ -11,13 +11,6 @@ interface ThemeState {
 
 const getThemeKey = (isCustomer?: boolean) => isCustomer ? 'zeronix-customer-theme' : 'zeronix-theme';
 
-const getInitialTheme = (isCustomer?: boolean): Theme => {
-  if (typeof window !== 'undefined') {
-    const key = getThemeKey(isCustomer);
-    return (localStorage.getItem(key) as Theme) || 'light';
-  }
-  return 'light';
-};
 
 export const useThemeStore = create<ThemeState>((set) => ({
   theme: 'light', // Default, will be initialized

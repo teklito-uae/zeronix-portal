@@ -62,7 +62,7 @@ export const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
   const [results, setResults] = useState<ResultItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [recent, setRecent] = useState<{ label: string; href: string }[]>([]);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Reset on open

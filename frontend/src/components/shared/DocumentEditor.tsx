@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBreadcrumb } from '@/hooks/useBreadcrumb';
 import { useQueryClient } from '@tanstack/react-query';
@@ -27,7 +27,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useQuery } from '@tanstack/react-query';
-import type { Customer, Product, QuoteItem, InvoiceItem } from '@/types';
+import type { Customer, Product } from '@/types';
 import { ArrowLeft, Save, Plus, Trash2, Receipt, Loader2, Calendar, User, FileText, Settings2, Edit3, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';

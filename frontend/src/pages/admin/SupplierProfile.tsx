@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { useBreadcrumb } from '@/hooks/useBreadcrumb';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -20,11 +20,10 @@ import api from '@/lib/axios';
 import { toast } from 'sonner';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { SupplierProduct } from '@/types';
-import { ArrowLeft, Mail, Phone, Globe, MapPin, User, Loader2, Pencil, History } from 'lucide-react';
+import { Mail, Phone, Globe, MapPin, User, Loader2, Pencil, History } from 'lucide-react';
 
 export const SupplierProfile = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   
   const [page, setPage] = useState(1);

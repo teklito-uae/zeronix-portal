@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
-import { User, Mail, Building, Phone, MapPin, FileText, CheckCircle2, Edit3, Send, Loader2 } from 'lucide-react';
+import { Mail, Phone, MapPin, CheckCircle2, Edit3, Send, Loader2 } from 'lucide-react';
 import { SEO } from '@/components/shared/SEO';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

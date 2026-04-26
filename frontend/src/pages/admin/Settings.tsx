@@ -26,8 +26,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import type { Quote, PaginatedResponse, Template } from '@/types';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import type { Template } from '@/types';
 
 const PLACEHOLDERS = [
   { key: '{quote_number}', label: 'Quote Number', type: 'quote' },
@@ -144,7 +144,7 @@ export const Settings = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [templateForm, setTemplateForm] = useState<Partial<Template>>({});
 
-  const { data: templates, isLoading: isLoadingTemplates } = useQuery<Template[]>({
+  const { data: templates } = useQuery<Template[]>({
     queryKey: ['templates'],
     queryFn: async () => {
       const res = await api.get('/admin/templates');

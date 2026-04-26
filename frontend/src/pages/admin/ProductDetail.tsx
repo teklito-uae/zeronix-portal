@@ -1,18 +1,16 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useBreadcrumb } from '@/hooks/useBreadcrumb';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/shared/DataTable';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { SupplierProduct } from '@/types';
-import { ArrowLeft, Tag, Layers, Package, Loader2, User } from 'lucide-react';
+import { Tag, Layers, Package, Loader2, User } from 'lucide-react';
 
 export const ProductDetail = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
 
   const { data: productData, isLoading } = useQuery({
     queryKey: ['product', id],
@@ -57,7 +55,7 @@ export const ProductDetail = () => {
             {row.original.supplier?.name}
           </span>
           <span className="text-[10px] text-admin-text-muted flex items-center gap-1">
-             <User size={10} /> {row.original.supplier?.contact_person || 'No contact'}
+            <User size={10} /> {row.original.supplier?.contact_person || 'No contact'}
           </span>
         </div>
       ),

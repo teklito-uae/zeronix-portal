@@ -13,7 +13,7 @@ interface AuthState {
   logout: (role?: 'admin' | 'customer') => void;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>((set) => ({
   admin: null,
   customer: null,
   adminToken: localStorage.getItem('zeronix_admin_token'),

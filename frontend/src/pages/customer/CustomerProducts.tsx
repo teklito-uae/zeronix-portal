@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import type { Product, Category, PaginatedResponse } from '@/types';
@@ -17,8 +16,6 @@ import { toast } from 'sonner';
 import { SEO } from '@/components/shared/SEO';
 
 export const CustomerProducts = () => {
-  const navigate = useNavigate();
-  const { company } = useParams();
   const addItem = useCartStore((state) => state.addItem);
   const addManualItem = useCartStore((state) => state.addManualItem);
   

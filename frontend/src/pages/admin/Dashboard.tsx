@@ -5,8 +5,8 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { useNavigate } from 'react-router-dom';
 import {
   FileText, MessageSquare, TrendingUp, Building2, Banknote,
-  Clock, Loader2, Package, Receipt, Users, Activity,
-  CheckCircle2, AlertCircle, ArrowRight, User, CreditCard,
+  Loader2, Package, Receipt, Users, Activity,
+  AlertCircle, ArrowRight, User, CreditCard,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar,

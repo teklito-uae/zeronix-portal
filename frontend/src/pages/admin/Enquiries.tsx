@@ -35,7 +35,7 @@ import { toast } from 'sonner';
 import api from '@/lib/axios';
 import { timeAgo } from '@/lib/utils';
 import type { Enquiry, Customer, User } from '@/types';
-import { Filter, X, Building2, Mail, Phone, Calendar, FileText, Package, Loader2, Search, Plus, UserCircle2, Tag, XCircle, CheckCircle2 } from 'lucide-react';
+import { Filter, X, Building2, Mail, Phone, Calendar, FileText, Package, Loader2, Search, Plus, Tag, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export const Enquiries = () => {

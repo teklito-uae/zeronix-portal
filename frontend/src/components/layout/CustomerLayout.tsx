@@ -80,7 +80,7 @@ export const CustomerLayout = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={toggle}
+              onClick={() => toggle(false)}
               className="rounded-full text-cust-text-secondary hover:text-cust-text-primary hover:bg-cust-bg-subtle dark:hover:bg-admin-surface-hover"
             >
               {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}

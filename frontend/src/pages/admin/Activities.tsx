@@ -4,7 +4,7 @@ import { DataTable } from '@/components/shared/DataTable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Activity, Search, Loader2, User, Clock, Info } from 'lucide-react';
+import { Search, Loader2, User, Clock, Info } from 'lucide-react';
 import api from '@/lib/axios';
 import { type ColumnDef } from '@tanstack/react-table';
 

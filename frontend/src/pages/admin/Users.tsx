@@ -17,7 +17,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import api from '@/lib/axios';
-import { Shield, Mail, Edit2, Loader2, Plus, Users as UsersIcon, Search, MoreHorizontal, Trash2, Pencil } from 'lucide-react';
+import { Shield, Mail, Loader2, Plus, Search, MoreHorizontal, Pencil } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';

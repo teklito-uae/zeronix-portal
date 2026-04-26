@@ -18,7 +18,7 @@ import api from '@/lib/axios';
 import { toast } from 'sonner';
 import { timeAgo } from '@/lib/utils';
 import type { Customer } from '@/types';
-import { Plus, Mail, Phone, Building2, MoreHorizontal, Pencil, Trash2, Loader2, Search, ShieldCheck } from 'lucide-react';
+import { Plus, Mail, Phone, Building2, MoreHorizontal, Pencil, Trash2, Loader2, Search } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 
 export const Customers = () => {

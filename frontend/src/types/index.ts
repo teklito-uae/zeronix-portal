@@ -43,6 +43,7 @@ export interface Customer {
   created_at?: string;
   updated_at?: string;
   is_portal_active?: boolean;
+  assigned_user?: User;
   // Computed / relationship counts
   enquiries_count?: number;
   quotes_count?: number;

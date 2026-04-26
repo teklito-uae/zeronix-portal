@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { DataTable } from '@/components/shared/DataTable';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -16,8 +15,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
 export const CustomerInvoices = () => {
-  const navigate = useNavigate();
-  const { company } = useParams();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const queryClient = useQueryClient();
@@ -63,7 +60,7 @@ export const CustomerInvoices = () => {
       setConfirmModal({ open: false, invoiceId: null, status: null });
       setConfirmNotes('');
     },
-    onError: (err, newData, context) => {
+    onError: (_err, _newData, context) => {
       if (context?.previousInvoices) {
         queryClient.setQueryData(['customer-invoices', page, search], context.previousInvoices);
       }

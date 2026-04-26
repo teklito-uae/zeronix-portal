@@ -14,10 +14,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Menu, Sun, Moon, LogOut, Settings, User, MessageCircle, ChevronRight, Home, Search, ShoppingCart, Bell, UserCircle2 } from 'lucide-react';
+import { Menu, Sun, Moon, LogOut, Settings, User, ChevronRight, Home, Search, ShoppingCart, Bell, UserCircle2 } from 'lucide-react';
 import { CartDrawer } from '../portal/CartDrawer';
 import { useCartStore } from '@/store/useCartStore';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import api from '@/lib/axios';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -43,8 +44,6 @@ export const Topbar = () => {
   const { theme, toggle: toggleTheme } = useThemeStore();
   const admin = useAuthStore((s) => s.admin);
   const customer = useAuthStore((s) => s.customer);
-  const setAdmin = useAuthStore((s) => s.setAdmin);
-  const setCustomer = useAuthStore((s) => s.setCustomer);
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();

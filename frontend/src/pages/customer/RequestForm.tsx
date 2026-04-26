@@ -57,11 +57,11 @@ export const RequestForm = () => {
                 <h3 className="font-semibold text-admin-text-primary">Selected Items ({items.length})</h3>
               </div>
               <div className="divide-y divide-admin-border">
-                {items.map((item) => (
-                  <div key={item.product.id} className="p-4 flex flex-col sm:flex-row gap-4 sm:items-center">
+                {items.filter(i => !i.isManual).map((item) => (
+                  <div key={item.product?.id} className="p-4 flex flex-col sm:flex-row gap-4 sm:items-center">
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-admin-text-primary mb-1 truncate">{item.product.name}</h4>
-                      <p className="text-sm text-admin-text-secondary font-mono mb-2">{item.product.part_number}</p>
+                      <h4 className="font-medium text-admin-text-primary mb-1 truncate">{item.product?.name}</h4>
+                      <p className="text-sm text-admin-text-secondary font-mono mb-2">{item.product?.part_number}</p>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="flex items-center">
@@ -70,12 +70,12 @@ export const RequestForm = () => {
                           type="number"
                           min="1"
                           value={item.quantity}
-                          onChange={(e) => updateQuantity(item.product.id, Number(e.target.value) || 1)}
+                          onChange={(e) => updateQuantity(Number(e.target.value) || 1, item.product?.id)}
                           className="h-8 w-20 text-sm bg-admin-bg border-admin-border"
                         />
                       </div>
                       <button
-                        onClick={() => removeItem(item.product.id)}
+                        onClick={() => removeItem(item.product?.id)}
                         className="text-sm text-danger hover:underline flex items-center gap-1"
                       >
                         <Trash2 size={14} />

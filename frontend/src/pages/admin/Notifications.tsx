@@ -1,8 +1,7 @@
-import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import { Button } from '@/components/ui/button';
-import { Bell, CheckCircle2, Loader2, Calendar, Link as LinkIcon, Trash2, MailOpen, AlertTriangle } from 'lucide-react';
+import { Bell, CheckCircle2, Loader2, Calendar, Link as LinkIcon, MailOpen, AlertTriangle } from 'lucide-react';
 import { SEO } from '@/components/shared/SEO';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';

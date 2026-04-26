@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Receipt, DollarSign, Calendar, CreditCard, Banknote, Building2 } from 'lucide-react';
+import { Receipt } from 'lucide-react';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import { StatCard } from '@/components/shared/StatCard';
-import { MessageSquareText, FileText, Receipt, Package, Loader2, TrendingUp, Calendar, ArrowRight, Clock, User, CheckCircle2, AlertCircle } from 'lucide-react';
+import { MessageSquareText, FileText, Receipt, Package, Loader2, TrendingUp, Clock, AlertCircle } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { SEO } from '@/components/shared/SEO';
