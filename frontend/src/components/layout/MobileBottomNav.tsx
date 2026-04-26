@@ -220,7 +220,7 @@ export const MobileBottomNav = ({ isVisible = true }: { isVisible?: boolean }) =
         </div>
 
         {/* Grouped Navigation (Scrollable) */}
-        <div className="flex-1 overflow-y-auto touch-scroll overscroll-contain">
+        <div className="flex-1 overflow-y-auto touch-scroll overscroll-contain scrollbar-green">
           <div className="p-4 space-y-6 pb-16">
             {filteredGroups.map((group) => (
               <div key={group.label}>
