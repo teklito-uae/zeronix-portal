@@ -21,7 +21,7 @@ import { useCartStore } from '@/store/useCartStore';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+
 
 // Static fallback breadcrumbs from URL when no store segments are set
 const routeLabels: Record<string, string> = {

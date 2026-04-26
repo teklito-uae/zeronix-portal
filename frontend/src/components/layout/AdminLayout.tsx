@@ -7,7 +7,7 @@ import { SplashScreen } from '../shared/SplashScreen';
 
 export const AdminLayout = () => {
   const [showBottomNav, setShowBottomNav] = useState(true);
-  const [showSplash, setShowSplash] = useState(() => {
+  const [showSplash] = useState(() => {
     // Only show splash once per session
     if (sessionStorage.getItem('zeronix-splash-shown')) return false;
     sessionStorage.setItem('zeronix-splash-shown', 'true');
