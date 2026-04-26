@@ -18,7 +18,7 @@ import {
 import { Menu, Sun, Moon, LogOut, Settings, User, ChevronRight, Home, Search, ShoppingCart, Bell, UserCircle2 } from 'lucide-react';
 import { CartDrawer } from '../portal/CartDrawer';
 import { useCartStore } from '@/store/useCartStore';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
 
@@ -47,7 +47,6 @@ export const Topbar = () => {
   const customer = useAuthStore((s) => s.customer);
   const navigate = useNavigate();
   const location = useLocation();
-  const queryClient = useQueryClient();
   const storeSegments = useBreadcrumbStore((s) => s.segments);
   const [searchOpen, setSearchOpen] = useState(false);
   const cartItems = useCartStore((s) => s.items);
