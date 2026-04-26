@@ -199,30 +199,29 @@ export const MobileBottomNav = ({ isVisible = true }: { isVisible?: boolean }) =
 
       {/* Navigation Drawer — slides from bottom */}
       <div className={cn(
-        "md:hidden fixed bottom-0 left-0 right-0 z-[70] bg-admin-surface rounded-t-2xl border-t border-admin-border transition-transform duration-300 ease-out",
+        "md:hidden fixed bottom-0 left-0 right-0 z-[70] bg-admin-surface rounded-t-2xl border-t border-admin-border transition-transform duration-300 ease-out flex flex-col",
         drawerOpen ? "translate-y-0" : "translate-y-full"
-      )} style={{ maxHeight: '80vh' }}>
-        {/* Handle Bar */}
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 bg-admin-border rounded-full" />
+      )} style={{ maxHeight: '85dvh' }}>
+        {/* Header Section (Fixed) */}
+        <div className="shrink-0">
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-10 h-1 bg-admin-border rounded-full" />
+          </div>
+          <div className="flex items-center justify-between px-5 pb-3">
+            <h3 className="text-base font-bold text-admin-text-primary">Navigation</h3>
+            <button
+              onClick={() => setDrawerOpen(false)}
+              className="h-8 w-8 flex items-center justify-center rounded-lg text-admin-text-muted hover:bg-admin-surface-hover hover:text-admin-text-primary transition-colors"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <Separator className="bg-admin-border" />
         </div>
 
-        {/* Drawer Header */}
-        <div className="flex items-center justify-between px-5 pb-3">
-          <h3 className="text-base font-bold text-admin-text-primary">Navigation</h3>
-          <button
-            onClick={() => setDrawerOpen(false)}
-            className="h-8 w-8 flex items-center justify-center rounded-lg text-admin-text-muted hover:bg-admin-surface-hover hover:text-admin-text-primary transition-colors"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        <Separator className="bg-admin-border" />
-
-        {/* Grouped Navigation */}
-        <ScrollArea className="touch-scroll" style={{ maxHeight: 'calc(80vh - 80px)' }}>
-          <div className="p-4 space-y-5 pb-8">
+        {/* Grouped Navigation (Scrollable) */}
+        <div className="flex-1 overflow-y-auto touch-scroll overscroll-contain">
+          <div className="p-4 space-y-6 pb-16">
             {filteredGroups.map((group) => (
               <div key={group.label}>
                 <p className="px-2 mb-2 text-[11px] font-semibold uppercase tracking-wider text-admin-text-muted">
@@ -256,7 +255,7 @@ export const MobileBottomNav = ({ isVisible = true }: { isVisible?: boolean }) =
               </div>
             ))}
           </div>
-        </ScrollArea>
+        </div>
       </div>
     </>
   );
