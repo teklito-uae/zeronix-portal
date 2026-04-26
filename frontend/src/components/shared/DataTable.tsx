@@ -30,6 +30,7 @@ interface DataTableProps<TData, TValue> {
   pageSize?: number;
   renderRowDetails?: (row: TData) => React.ReactNode;
   headerAction?: React.ReactNode;
+  hidePagination?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -41,6 +42,7 @@ export function DataTable<TData, TValue>({
   pageSize = 10,
   renderRowDetails,
   headerAction,
+  hidePagination = false,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
@@ -172,7 +174,7 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* Pagination */}
-      {table.getPageCount() > 1 && (
+      {!hidePagination && table.getPageCount() > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-admin-text-muted">
             {table.getFilteredRowModel().rows.length} total rows

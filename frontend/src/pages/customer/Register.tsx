@@ -6,7 +6,7 @@ export const CustomerRegister = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/login');
+    navigate('/portal/login');
   };
 
   return (
@@ -33,7 +33,7 @@ export const CustomerRegister = () => {
           <button type="submit" className="w-full bg-zeronix-green text-white py-2 rounded-brand font-bold hover:opacity-90">Create Account</button>
         </form>
         <p className="mt-4 text-center text-sm text-cust-text-secondary">
-          Already have an account? <Link to="/login" className="text-zeronix-blue hover:underline">Login</Link>
+          Already have an account? <Link to="/portal/login" className="text-zeronix-blue hover:underline">Login</Link>
         </p>
       </div>
     </div>

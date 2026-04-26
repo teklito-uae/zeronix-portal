@@ -7,21 +7,37 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, ArrowRight } from 'lucide-react';
+import api from '@/lib/axios';
 
 export const CustomerLogin = () => {
   const setCustomer = useAuthStore((state) => state.setCustomer);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate API delay
-    setTimeout(() => {
-      setCustomer({ id: 1, name: 'Mohammed Ali', email: 'customer@example.com' });
-      navigate('/portal');
+    setError(null);
+    
+    try {
+      const response = await api.post('/customer/login', { email, password });
+      const { customer, token } = response.data;
+      
+      if (customer) {
+        setCustomer(customer, token);
+        navigate('/portal');
+      } else {
+        console.error('Login response missing customer data:', response.data);
+        setError('Login failed: Invalid response from server.');
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Invalid email or password');
+    } finally {
       setLoading(false);
-    }, 1200);
+    }
   };
 
   return (
@@ -39,11 +55,18 @@ export const CustomerLogin = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
+            {error && (
+              <div className="p-3 rounded bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-medium animate-shake text-center">
+                {error}
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email" className="text-slate-300">Email Address</Label>
               <Input 
                 id="email" 
                 type="email" 
+                value={email}
+                onChange={e => setEmail(e.target.value)}
                 placeholder="customer@example.com" 
                 required 
                 className="bg-slate-950 border-slate-800 text-white placeholder:text-slate-600 focus-visible:ring-emerald-500 h-11"
@@ -57,6 +80,8 @@ export const CustomerLogin = () => {
               <Input 
                 id="password" 
                 type="password" 
+                value={password}
+                onChange={e => setPassword(e.target.value)}
                 required 
                 className="bg-slate-950 border-slate-800 text-white placeholder:text-slate-600 focus-visible:ring-emerald-500 h-11"
               />

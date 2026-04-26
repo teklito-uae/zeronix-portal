@@ -1,8 +1,9 @@
 @import "tailwindcss";
+@plugin "tailwindcss-animate";
 
 @theme {
-  --color-zeronix-blue: #0F52BA;
-  --color-zeronix-blue-hover: #0A3D8F;
+  --color-zeronix-blue: #10B981;
+  --color-zeronix-blue-hover: #059669;
   --color-zeronix-green: #23F78C;
   --color-zeronix-green-dim: rgba(35, 247, 140, 0.12);
   --color-success: #10B981;
@@ -13,7 +14,7 @@
   --color-admin-surface: var(--admin-surface);
   --color-admin-surface-hover: var(--admin-surface-hover);
   --color-admin-sidebar-bg: var(--admin-sidebar-bg);
-  --color-admin-sidebar-active: #0F52BA;
+  --color-admin-sidebar-active: #10B981;
   --color-admin-border: var(--admin-border);
   --color-admin-text-primary: var(--admin-text-primary);
   --color-admin-text-secondary: var(--admin-text-secondary);

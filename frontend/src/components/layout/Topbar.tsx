@@ -1,9 +1,12 @@
 import { useSidebarStore } from '@/store/useSidebarStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useBreadcrumbStore } from '@/store/useBreadcrumbStore';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { GlobalSearch } from './GlobalSearch';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,14 +14,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Menu, Sun, Moon, LogOut, Settings, User, MessageCircle } from 'lucide-react';
+import { Menu, Sun, Moon, LogOut, Settings, User, MessageCircle, ChevronRight, Home, Search, ShoppingCart, Bell, UserCircle2 } from 'lucide-react';
+import { CartDrawer } from '../portal/CartDrawer';
+import { useCartStore } from '@/store/useCartStore';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
-// Breadcrumb helper
-const formatBreadcrumb = (pathname: string): string[] => {
-  const parts = pathname.split('/').filter(Boolean);
-  return parts.map((part) =>
-    part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, ' ')
-  );
+// Static fallback breadcrumbs from URL when no store segments are set
+const routeLabels: Record<string, string> = {
+  dashboard: 'Dashboard',
+  customers: 'Customers',
+  suppliers: 'Suppliers',
+  products: 'Products',
+  enquiries: 'Enquiries',
+  quotes: 'Quotes',
+  invoices: 'Invoices',
+  'payment-receipts': 'Payment Receipts',
+  users: 'Users',
+  settings: 'Settings',
+  activities: 'Activities',
+  chat: 'Chat',
+  'bulk-import': 'Bulk Import',
 };
 
 export const Topbar = () => {
@@ -30,88 +47,202 @@ export const Topbar = () => {
   const setCustomer = useAuthStore((s) => s.setCustomer);
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
+  const storeSegments = useBreadcrumbStore((s) => s.segments);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const cartItems = useCartStore((s) => s.items);
+  const totalCartItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   const isCustomer = location.pathname.startsWith('/portal');
   const user = isCustomer ? customer : admin;
+  const initTheme = useThemeStore((s) => s.initTheme);
+
+  // Notifications logic (Both Admin and Customer)
+  const { data: unreadNotifs } = useQuery({
+    queryKey: ['unread-notifications', isCustomer ? 'customer' : 'admin'],
+    queryFn: async () => {
+      const endpoint = isCustomer ? '/customer/notifications/unread' : '/admin/notifications/unread';
+      return (await api.get(endpoint)).data;
+    },
+    enabled: !!user,
+    refetchInterval: 600000, // Poll every 10 minutes when idle to save DB hits
+    refetchOnWindowFocus: true, // Fetch immediately when user switches back to tab
+  });
+
+  const [lastNotifCount, setLastNotifCount] = useState(0);
+
+  useEffect(() => {
+    if (unreadNotifs && unreadNotifs.length > lastNotifCount) {
+      const newNotif = unreadNotifs[0];
+      const notifUrl = isCustomer ? `/portal/${companySlug}/notifications` : '/admin/notifications';
+      
+      toast(newNotif.data?.title || 'New Notification', {
+        description: newNotif.data?.message || 'You have a new message.',
+        position: 'bottom-right',
+        action: {
+          label: 'View',
+          onClick: () => navigate(newNotif.data?.action_url || notifUrl)
+        }
+      });
+      setLastNotifCount(unreadNotifs.length);
+    } else if (unreadNotifs) {
+      setLastNotifCount(unreadNotifs.length);
+    }
+  }, [unreadNotifs, lastNotifCount, navigate]);
+
+  // Refresh notifications when user navigates between modules to ensure badge is always up to date
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ['unread-notifications', isCustomer ? 'customer' : 'admin'] });
+  }, [location.pathname, queryClient, isCustomer]);
+
+  useEffect(() => {
+    initTheme(isCustomer);
+  }, [isCustomer, initTheme]);
 
   const parts = location.pathname.split('/');
   const companySlug = isCustomer && parts.length > 2 ? parts[2] : 'company';
 
-  const breadcrumbs = formatBreadcrumb(location.pathname);
+  // Ctrl+K / Cmd+K to open search
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setSearchOpen((o) => !o);
+      }
+    };
+    document.addEventListener('keydown', down);
+    return () => document.removeEventListener('keydown', down);
+  }, []);
+
+  // Build breadcrumbs: use store if set, else derive from URL
+  const breadcrumbs = storeSegments.length > 0
+    ? storeSegments
+    : (() => {
+        const segments = parts.filter(Boolean);
+        const baseParts = isCustomer ? segments.slice(2) : segments.slice(1); // skip "admin" or "portal/company"
+        return baseParts.map((seg, i) => {
+          const href = isCustomer
+            ? `/portal/${companySlug}/${baseParts.slice(0, i + 1).join('/')}`
+            : `/admin/${baseParts.slice(0, i + 1).join('/')}`;
+          return {
+            label: routeLabels[seg] ?? (seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, ' ')),
+            href: i < baseParts.length - 1 ? href : undefined, // last segment is current page — no link
+          };
+        });
+      })();
+
+  const logout = useAuthStore((s) => s.logout);
 
   const handleLogout = () => {
-    if (isCustomer) {
-      setCustomer(null);
-      localStorage.removeItem('zeronix_customer_token');
-      navigate('/login');
-    } else {
-      setAdmin(null);
-      localStorage.removeItem('zeronix_token');
-      navigate('/admin/login');
-    }
+    logout(isCustomer ? 'customer' : 'admin');
+    toast.success('Logged out successfully');
+    navigate(isCustomer ? '/portal/login' : '/admin/login');
   };
 
   return (
-    <header className="h-16 bg-admin-surface border-b border-admin-border flex items-center px-4 justify-between flex-shrink-0">
+    <header className="h-14 bg-admin-surface border-b border-admin-border flex items-center px-4 justify-between flex-shrink-0">
       {/* Left: Menu toggle + Breadcrumbs */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <Button
           variant="ghost"
           size="icon"
           onClick={toggle}
-          className="text-admin-text-secondary hover:text-admin-text-primary hover:bg-admin-surface-hover"
+          className="h-8 w-8 text-admin-text-secondary hover:text-admin-text-primary hover:bg-admin-surface-hover"
         >
-          <Menu size={20} />
+          <Menu size={18} />
         </Button>
 
         <nav className="hidden sm:flex items-center gap-1 text-sm">
+          {/* Home icon */}
+          <Link
+            to={isCustomer ? `/portal/${companySlug}/dashboard` : '/admin/dashboard'}
+            className="text-admin-text-muted hover:text-admin-text-primary transition-colors"
+          >
+            <Home size={13} />
+          </Link>
+
           {breadcrumbs.map((crumb, i) => (
             <span key={i} className="flex items-center gap-1">
-              {i > 0 && <span className="text-admin-text-muted">/</span>}
-              <span
-                className={
-                  i === breadcrumbs.length - 1
-                    ? 'text-admin-text-primary font-medium'
-                    : 'text-admin-text-muted'
-                }
-              >
-                {crumb}
-              </span>
+              <ChevronRight size={12} className="text-admin-text-muted/50" />
+              {crumb.href ? (
+                <Link
+                  to={crumb.href}
+                  className="text-admin-text-muted hover:text-admin-text-primary transition-colors text-sm"
+                >
+                  {crumb.label}
+                </Link>
+              ) : (
+                <span className="text-admin-text-primary font-medium text-sm">
+                  {crumb.label}
+                </span>
+              )}
             </span>
           ))}
         </nav>
       </div>
 
-      {/* Right: Theme toggle + Notifications + User */}
-      <div className="flex items-center gap-2">
-        {/* Chat Notifications */}
+      {/* Right: Theme + Chat + User */}
+      <div className="flex items-center gap-1.5">
+        {/* Search trigger */}
+        <button
+          onClick={() => setSearchOpen(true)}
+          className="hidden md:flex items-center gap-2 h-8 px-3 rounded-md bg-admin-bg border border-admin-border text-admin-text-muted hover:border-zeronix-blue/40 hover:text-admin-text-primary transition-colors"
+        >
+          <Search size={13} />
+          <span className="text-xs">Search…</span>
+          <kbd className="ml-3 text-[10px] opacity-60 border border-admin-border rounded px-1 py-0.5 bg-admin-surface">⌘K</kbd>
+        </button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(isCustomer ? `/portal/${companySlug}/notifications` : '/admin/notifications')}
+            className="h-8 w-8 text-admin-text-secondary hover:text-admin-text-primary hover:bg-admin-surface-hover relative"
+          >
+            <Bell size={17} />
+            {user && (
+              <span className={cn(
+                "absolute top-1.5 right-1.5 h-3.5 w-3.5 text-[8px] font-black text-white flex items-center justify-center rounded-full border-2 border-admin-surface transition-transform",
+                (unreadNotifs?.length || 0) > 0 ? "bg-red-500 scale-110 shadow-sm" : "bg-admin-text-muted/30 scale-100"
+              )}>
+                {unreadNotifs?.length || 0}
+              </span>
+            )}
+          </Button>
+
+
+        {isCustomer && (
+          <CartDrawer>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-admin-text-secondary hover:text-admin-text-primary hover:bg-admin-surface-hover relative group"
+            >
+              <ShoppingCart size={17} className="group-hover:scale-110 transition-transform" />
+              {totalCartItems > 0 && (
+                <span className="absolute -top-1 -right-1 h-4 w-4 bg-emerald-500 text-[10px] font-bold text-white flex items-center justify-center rounded-full border-2 border-admin-surface animate-in zoom-in">
+                  {totalCartItems}
+                </span>
+              )}
+            </Button>
+          </CartDrawer>
+        )}
+
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate(isCustomer ? `/portal/${companySlug}/chat` : '/admin/chat')}
-          className="h-[38px] w-[38px] text-admin-text-secondary hover:text-admin-text-primary hover:bg-admin-surface-hover relative"
+          onClick={() => toggleTheme(isCustomer)}
+          className="h-8 w-8 text-admin-text-secondary hover:text-admin-text-primary hover:bg-admin-surface-hover"
         >
-          <MessageCircle size={18} />
-          <span className="absolute top-2 right-2 h-2 w-2 bg-zeronix-blue rounded-full border-2 border-admin-surface"></span>
+          {theme === 'light' ? <Moon size={17} /> : <Sun size={17} />}
         </Button>
 
-        {/* Theme Toggle */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleTheme}
-          className="h-[38px] w-[38px] text-admin-text-secondary hover:text-admin-text-primary hover:bg-admin-surface-hover"
-        >
-          {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-        </Button>
-
-        {/* User Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 px-2 hover:bg-admin-surface-hover">
-              <Avatar className="h-8 w-8 border border-admin-border">
-                <img 
-                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'User'}`} 
+            <Button variant="ghost" className="flex items-center gap-2 px-2 h-9 hover:bg-admin-surface-hover">
+              <Avatar className="h-7 w-7 border border-admin-border">
+                <img
+                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'User'}`}
                   alt={user?.name}
                   className="h-full w-full object-cover"
                 />
@@ -119,37 +250,47 @@ export const Topbar = () => {
                   {user?.name?.charAt(0) || (isCustomer ? 'C' : 'A')}
                 </AvatarFallback>
               </Avatar>
-              <span className="hidden sm:block text-sm font-medium text-admin-text-primary">
-                {user?.name || (isCustomer ? 'Customer' : 'Admin')}
-              </span>
+              <div className="hidden sm:flex flex-col items-start leading-tight">
+                {isCustomer ? (
+                  <>
+                    <span className="text-sm font-black text-emerald-500 uppercase tracking-tight">
+                      {customer?.company || 'My Company'}
+                    </span>
+                    <span className="text-[10px] text-admin-text-muted font-bold flex items-center gap-1">
+                      <UserCircle2 size={10} className="text-zeronix-blue" />
+                      Account Mgr: {customer?.assigned_user?.name || 'Zeronix Sales'}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-sm font-bold text-admin-text-primary">
+                    {user?.name || 'Admin'}
+                  </span>
+                )}
+              </div>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            className="w-48 bg-admin-surface border-admin-border"
-          >
-            <DropdownMenuItem 
-              className="text-admin-text-secondary hover:bg-admin-surface-hover cursor-pointer"
+          <DropdownMenuContent align="end" className="w-48 bg-admin-surface border-admin-border">
+            <DropdownMenuItem
+              className="text-admin-text-secondary hover:bg-admin-surface-hover cursor-pointer text-sm"
               onClick={() => navigate(isCustomer ? `/portal/${companySlug}/profile` : '#')}
             >
-              <User size={16} className="mr-2" />
-              Profile
+              <User size={14} className="mr-2" /> Profile
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-admin-text-secondary hover:bg-admin-surface-hover cursor-pointer">
-              <Settings size={16} className="mr-2" />
-              Settings
+            <DropdownMenuItem className="text-admin-text-secondary hover:bg-admin-surface-hover cursor-pointer text-sm">
+              <Settings size={14} className="mr-2" /> Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-admin-border" />
             <DropdownMenuItem
               onClick={handleLogout}
-              className="text-danger hover:bg-admin-surface-hover cursor-pointer"
+              className="text-danger hover:bg-admin-surface-hover cursor-pointer text-sm"
             >
-              <LogOut size={16} className="mr-2" />
-              Logout
+              <LogOut size={14} className="mr-2" /> Logout
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </header>
   );
 };

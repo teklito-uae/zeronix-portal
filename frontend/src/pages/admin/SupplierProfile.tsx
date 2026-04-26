@@ -1,18 +1,77 @@
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useBreadcrumb } from '@/hooks/useBreadcrumb';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { StatCard } from '@/components/shared/StatCard';
 import { DataTable } from '@/components/shared/DataTable';
 import { Badge } from '@/components/ui/badge';
-import { mockSuppliers, mockBrands, mockSupplierProducts } from '@/lib/mockData';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import api from '@/lib/axios';
+import { toast } from 'sonner';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { SupplierProduct } from '@/types';
-import { ArrowLeft, Mail, Phone, Globe, MapPin, User, Tag, Package, Megaphone } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, Globe, MapPin, User, Loader2, Pencil, History } from 'lucide-react';
 
 export const SupplierProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const supplier = mockSuppliers.find((s) => s.id === Number(id));
+  const queryClient = useQueryClient();
+  
+  const [page, setPage] = useState(1);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<SupplierProduct | null>(null);
+  const [newPrice, setNewPrice] = useState('');
+
+  const { data: supplierData, isLoading } = useQuery({
+    queryKey: ['supplier', id, page],
+    queryFn: async () => {
+      const res = await api.get(`/admin/suppliers/${id}?page=${page}`);
+      return res.data;
+    }
+  });
+
+  const updatePriceMutation = useMutation({
+    mutationFn: async ({ itemId, price }: { itemId: number; price: number }) => {
+      return api.put(`/admin/supplier-products/${itemId}`, { price });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['supplier', id] });
+      setEditDialogOpen(false);
+      toast.success('Price updated successfully');
+    },
+    onError: () => {
+      toast.error('Failed to update price');
+    }
+  });
+
+  const supplier = supplierData?.supplier;
+  const productsResult = supplierData?.products;
+  const products = productsResult?.data || [];
+
+  // Must be called before any early return (Rules of Hooks)
+  useBreadcrumb([
+    { label: 'Suppliers', href: '/admin/suppliers' },
+    { label: supplier?.name || 'Loading…' },
+  ]);
+
+  if (isLoading && page === 1) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-zeronix-blue mb-3" />
+        <p className="text-sm text-admin-text-muted">Loading supplier profile...</p>
+      </div>
+    );
+  }
 
   if (!supplier) {
     return (
@@ -22,104 +81,153 @@ export const SupplierProfile = () => {
     );
   }
 
-  const supplierProducts = mockSupplierProducts.filter((sp) => sp.supplier_id === supplier.id);
+  const openEdit = (item: SupplierProduct) => {
+    setEditingItem(item);
+    setNewPrice(String(item.price));
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdatePrice = () => {
+    if (editingItem && newPrice) {
+      updatePriceMutation.mutate({ itemId: editingItem.id, price: parseFloat(newPrice) });
+    }
+  };
 
   const productColumns: ColumnDef<SupplierProduct>[] = [
     {
-      accessorKey: 'product_id',
+      accessorKey: 'name',
       header: 'Product',
-      cell: ({ row }) => (
-        <span className="font-medium text-admin-text-primary">
-          {row.original.product?.name || `Product #${row.original.product_id}`}
+      cell: ({ row }: any) => (
+        <div className="flex flex-col max-w-[400px]">
+          <span className="font-medium text-admin-text-primary truncate">
+            {row.original.name}
+          </span>
+          <span className="text-[10px] text-admin-text-muted font-mono uppercase">
+            {row.original.model_code || 'No Model Code'}
+          </span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'category',
+      header: 'Category',
+      cell: ({ row }: any) => (
+        <span className="text-sm text-admin-text-secondary">
+          {row.original.category?.name || '—'}
         </span>
       ),
     },
     {
       accessorKey: 'price',
       header: 'Price',
-      cell: ({ row }) => (
-        <span className="font-mono text-sm text-admin-text-primary">
-          {row.original.price?.toLocaleString()} {row.original.currency}
+      cell: ({ row }: any) => (
+        <span className="font-mono text-sm font-bold text-admin-text-primary">
+          {row.original.price} {row.original.currency}
         </span>
       ),
     },
     {
       accessorKey: 'availability',
-      header: 'Availability',
-      cell: ({ row }) => (
+      header: 'Status',
+      cell: ({ row }: any) => (
         <Badge
           variant="secondary"
           className={
             row.original.availability
-              ? 'bg-[#10B9811F] text-[#10B981] border-0'
-              : 'bg-[#EF44441F] text-[#EF4444] border-0'
+              ? 'bg-zeronix-green-dim text-zeronix-green border-0 text-[10px] px-2 h-5'
+              : 'bg-danger/10 text-danger border-0 text-[10px] px-2 h-5'
           }
         >
           {row.original.availability ? 'In Stock' : 'Out of Stock'}
         </Badge>
       ),
     },
+    {
+      id: 'actions',
+      header: '',
+      cell: ({ row }: any) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => openEdit(row.original)}
+          className="h-8 px-2 text-xs text-admin-text-muted hover:text-zeronix-blue"
+        >
+          <Pencil size={12} className="mr-1" /> Edit
+        </Button>
+      ),
+    },
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate('/admin/suppliers')}
-          className="text-admin-text-muted hover:text-admin-text-primary hover:bg-admin-surface-hover"
-        >
-          <ArrowLeft size={20} />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-admin-text-primary">{supplier.name}</h1>
-          {supplier.contact_person && (
-            <p className="text-sm text-admin-text-secondary flex items-center gap-1 mt-0.5">
-              <User size={14} /> {supplier.contact_person}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <StatCard title="Brands" value={supplier.brands_count || 0} icon={<Tag size={20} />} />
-        <StatCard title="Products" value={supplier.products_count || 0} icon={<Package size={20} />} />
-        <StatCard title="Avg. Lead Time" value="5 days" icon={<Megaphone size={20} />} />
+    <div className="space-y-5">
+      {/* Header info bar */}
+      <div className="flex flex-wrap items-center gap-3">
+        <Badge className="bg-zeronix-blue/10 text-zeronix-blue border-0 text-xs px-2">
+          {supplier.products_count || 0} Products
+        </Badge>
+        <span className="font-mono text-xs text-admin-text-muted">{supplier.supplier_code || 'PENDING'}</span>
+        {supplier.contact_person && (
+          <p className="text-sm text-admin-text-secondary flex items-center gap-1">
+            <User size={13} className="text-admin-text-muted" /> {supplier.contact_person}
+          </p>
+        )}
+        <p className="text-sm text-admin-text-secondary flex items-center gap-1">
+          <Mail size={13} className="text-admin-text-muted" /> {supplier.email}
+        </p>
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="profile" className="space-y-4">
+      <Tabs defaultValue="products" className="space-y-4">
         <TabsList className="bg-admin-surface border border-admin-border">
-          <TabsTrigger value="profile" className="data-[state=active]:bg-zeronix-blue data-[state=active]:text-white text-admin-text-secondary">
-            Profile
-          </TabsTrigger>
-          <TabsTrigger value="brands" className="data-[state=active]:bg-zeronix-blue data-[state=active]:text-white text-admin-text-secondary">
-            Brands
-          </TabsTrigger>
           <TabsTrigger value="products" className="data-[state=active]:bg-zeronix-blue data-[state=active]:text-white text-admin-text-secondary">
             Products & Pricing
           </TabsTrigger>
+          <TabsTrigger value="profile" className="data-[state=active]:bg-zeronix-blue data-[state=active]:text-white text-admin-text-secondary">
+            Supplier Profile
+          </TabsTrigger>
           <TabsTrigger value="broadcast" className="data-[state=active]:bg-zeronix-blue data-[state=active]:text-white text-admin-text-secondary">
-            Broadcast Log
+            Synchronization Log
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="products">
+          <DataTable 
+            columns={productColumns} 
+            data={products} 
+            searchColumn="name" 
+            searchPlaceholder="Search synced products..."
+          />
+          
+          {/* Simple Pagination Controls */}
+          <div className="flex items-center justify-end space-x-2 py-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="bg-admin-surface border-admin-border text-admin-text-secondary"
+            >
+              Previous
+            </Button>
+            <div className="text-sm text-admin-text-muted">
+              Page {page} of {productsResult?.last_page || 1}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => p + 1)}
+              disabled={page >= (productsResult?.last_page || 1)}
+              className="bg-admin-surface border-admin-border text-admin-text-secondary"
+            >
+              Next
+            </Button>
+          </div>
+        </TabsContent>
 
         <TabsContent value="profile">
           <div className="bg-admin-surface border border-admin-border rounded-xl p-6 space-y-4">
             <h3 className="text-lg font-semibold text-admin-text-primary">Contact Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-admin-bg">
-                <div className="p-2 rounded-lg bg-zeronix-blue/10">
-                  <Mail size={18} className="text-zeronix-blue" />
-                </div>
-                <div>
-                  <p className="text-xs text-admin-text-muted uppercase font-medium">Email</p>
-                  <p className="text-sm text-admin-text-primary">{supplier.email}</p>
-                </div>
-              </div>
               <div className="flex items-center gap-3 p-3 rounded-lg bg-admin-bg">
                 <div className="p-2 rounded-lg bg-zeronix-blue/10">
                   <Phone size={18} className="text-zeronix-blue" />
@@ -151,35 +259,60 @@ export const SupplierProfile = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="brands">
-          <div className="bg-admin-surface border border-admin-border rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-admin-text-primary mb-4">Associated Brands</h3>
-            <div className="flex flex-wrap gap-2">
-              {mockBrands.slice(0, supplier.brands_count || 3).map((brand) => (
-                <Badge
-                  key={brand.id}
-                  variant="secondary"
-                  className="bg-zeronix-blue/10 text-zeronix-blue border-0 px-3 py-1 text-sm"
-                >
-                  {brand.name}
-                </Badge>
-              ))}
+        <TabsContent value="broadcast">
+          <div className="bg-admin-surface border border-admin-border rounded-xl overflow-hidden">
+            <div className="p-6 border-b border-admin-border bg-admin-bg/50">
+              <div className="flex items-center gap-3">
+                <History className="text-zeronix-blue" size={20} />
+                <div>
+                  <h3 className="text-lg font-semibold text-admin-text-primary">Synchronization Log</h3>
+                  <p className="text-sm text-admin-text-secondary">History of data updates from this supplier.</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-6 text-center py-12">
+               <p className="text-admin-text-secondary">No recent sync activity logged.</p>
             </div>
           </div>
         </TabsContent>
-
-        <TabsContent value="products">
-          <DataTable columns={productColumns} data={supplierProducts} searchColumn="product_id" searchPlaceholder="Search products..." />
-        </TabsContent>
-
-        <TabsContent value="broadcast">
-          <div className="flex flex-col items-center justify-center p-12 text-center border border-dashed border-admin-border rounded-xl bg-admin-surface">
-            <Megaphone size={40} className="text-admin-text-muted mb-3" />
-            <h3 className="text-lg font-semibold text-admin-text-primary mb-1">Broadcast Log Coming Soon</h3>
-            <p className="text-admin-text-secondary">Supplier broadcast history will appear here.</p>
-          </div>
-        </TabsContent>
       </Tabs>
+
+      {/* Edit Price Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="bg-admin-surface border-admin-border">
+          <DialogHeader>
+            <DialogTitle className="text-admin-text-primary">Edit Listing</DialogTitle>
+            <DialogDescription className="text-admin-text-secondary">
+              Update pricing for: {editingItem?.name}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-admin-text-primary">Price ({editingItem?.currency})</Label>
+              <Input
+                type="number"
+                value={newPrice}
+                onChange={(e) => setNewPrice(e.target.value)}
+                className="bg-admin-bg border-admin-border text-admin-text-primary"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditDialogOpen(false)} className="text-admin-text-secondary">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpdatePrice}
+              disabled={updatePriceMutation.isPending}
+              className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover"
+            >
+              {updatePriceMutation.isPending ? <Loader2 className="animate-spin h-4 w-4" /> : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

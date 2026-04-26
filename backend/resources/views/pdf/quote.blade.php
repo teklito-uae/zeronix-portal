@@ -74,8 +74,8 @@
             <tr>
                 <td style="width: 60%;">
                     <div class="label">Bill To</div>
-                    <div class="customer-name">{{ $quote->customer->name }}</div>
-                    <div style="margin-top: 2px;">{{ $quote->customer->company }}</div>
+                    <div class="customer-name">{{ strtoupper($quote->customer->company) }}</div>
+                    <div style="margin-top: 2px; color: #444;">{{ $quote->customer->name }}</div>
                     <div>{{ $quote->customer->address }}</div>
                 </td>
                 <td style="text-align: right; vertical-align: bottom;">

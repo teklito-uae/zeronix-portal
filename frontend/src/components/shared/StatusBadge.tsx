@@ -27,15 +27,22 @@ const statusConfig: Record<string, { label: string; className: string; pulse?: b
   rejected: { label: 'REJECTED', className: 'text-[#EF4444] bg-[#EF44441F]' },
   expired: { label: 'EXPIRED', className: 'text-admin-text-muted bg-admin-surface-hover' },
 
-  // Invoice statuses
+  // Shared/Invoice statuses
   paid: { label: 'PAID', className: 'text-[#10B981] bg-[#10B9811F]' },
+  partial: { label: 'PARTIAL', className: 'text-[#6366F1] bg-[#6366F11F]' },
+  unpaid: { label: 'UNPAID', className: 'text-[#F59E0B] bg-[#F59E0B1F]' },
   overdue: { label: 'OVERDUE', className: 'text-[#EF4444] bg-[#EF44441F]' },
   cancelled: { label: 'CANCELLED', className: 'text-admin-text-muted bg-admin-surface-hover' },
+  
+  // Delivery Statuses
+  pending: { label: 'PENDING', className: 'text-[#F59E0B] bg-[#F59E0B1F]' },
+  shipped: { label: 'SHIPPED', className: 'text-[#0F52BA] bg-[#0F52BA1F]' },
+  delivered: { label: 'DELIVERED', className: 'text-[#10B981] bg-[#10B9811F]' },
 };
 
 export const StatusBadge = ({ status, className }: StatusBadgeProps) => {
-  const config = statusConfig[status] || {
-    label: status.toUpperCase(),
+  const config = (status && statusConfig[status]) || {
+    label: (status || 'UNKNOWN').toString().toUpperCase(),
     className: 'text-admin-text-secondary bg-admin-surface-hover',
   };
 

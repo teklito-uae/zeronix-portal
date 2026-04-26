@@ -6,10 +6,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -20,6 +21,20 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'designation',
+        'permissions',
+        'is_active',
+        'smtp_host',
+        'smtp_port',
+        'smtp_username',
+        'smtp_password',
+        'smtp_encryption',
+        'imap_host',
+        'imap_port',
+        'imap_username',
+        'imap_password',
+        'imap_encryption',
     ];
 
     /**
@@ -30,6 +45,8 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'smtp_password',
+        'imap_password',
     ];
 
     /**
@@ -42,6 +59,23 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'permissions' => 'array',
+            'is_active' => 'boolean',
         ];
+    }
+
+    public function enquiries(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Enquiry::class);
+    }
+
+    public function quotes(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Quote::class);
+    }
+
+    public function invoices(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Invoice::class);
     }
 }

@@ -1,17 +1,43 @@
 import { useParams, useNavigate } from 'react-router-dom';
+import { useBreadcrumb } from '@/hooks/useBreadcrumb';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/shared/DataTable';
-import { mockProducts, mockSupplierProducts } from '@/lib/mockData';
+import { useQuery } from '@tanstack/react-query';
+import api from '@/lib/axios';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { SupplierProduct } from '@/types';
-import { ArrowLeft, Tag, Layers, Package } from 'lucide-react';
+import { ArrowLeft, Tag, Layers, Package, Loader2, User } from 'lucide-react';
 
 export const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const product = mockProducts.find((p) => p.id === Number(id));
+
+  const { data: productData, isLoading } = useQuery({
+    queryKey: ['product', id],
+    queryFn: async () => {
+      const res = await api.get(`/admin/products/${id}`);
+      return res.data;
+    }
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96">
+        <Loader2 className="h-10 w-10 animate-spin text-zeronix-blue mb-4" />
+        <p className="text-admin-text-muted">Loading product details...</p>
+      </div>
+    );
+  }
+
+  const product = productData?.product;
+  const suppliers = productData?.suppliers || [];
+
+  useBreadcrumb([
+    { label: 'Products', href: '/admin/products' },
+    { label: product?.name || 'Loading…' },
+  ]);
 
   if (!product) {
     return (
@@ -21,37 +47,40 @@ export const ProductDetail = () => {
     );
   }
 
-  const productSuppliers = mockSupplierProducts.filter((sp) => sp.product_id === product.id);
-
   const supplierColumns: ColumnDef<SupplierProduct>[] = [
     {
       accessorKey: 'supplier',
       header: 'Supplier',
-      cell: ({ row }) => (
-        <span className="font-medium text-admin-text-primary">
-          {row.original.supplier?.name || `Supplier #${row.original.supplier_id}`}
-        </span>
+      cell: ({ row }: any) => (
+        <div className="flex flex-col">
+          <span className="font-medium text-admin-text-primary">
+            {row.original.supplier?.name}
+          </span>
+          <span className="text-[10px] text-admin-text-muted flex items-center gap-1">
+             <User size={10} /> {row.original.supplier?.contact_person || 'No contact'}
+          </span>
+        </div>
       ),
     },
     {
       accessorKey: 'price',
       header: 'Price',
-      cell: ({ row }) => (
-        <span className="font-mono text-sm text-admin-text-primary">
-          {row.original.price?.toLocaleString()} {row.original.currency}
+      cell: ({ row }: any) => (
+        <span className="font-mono text-sm font-bold text-admin-text-primary">
+          {row.original.price} {row.original.currency}
         </span>
       ),
     },
     {
       accessorKey: 'availability',
-      header: 'Availability',
-      cell: ({ row }) => (
+      header: 'Status',
+      cell: ({ row }: any) => (
         <Badge
           variant="secondary"
           className={
             row.original.availability
-              ? 'bg-[#10B9811F] text-[#10B981] border-0'
-              : 'bg-[#EF44441F] text-[#EF4444] border-0'
+              ? 'bg-zeronix-green-dim text-zeronix-green border-0'
+              : 'bg-danger/10 text-danger border-0'
           }
         >
           {row.original.availability ? 'In Stock' : 'Out of Stock'}
@@ -61,40 +90,13 @@ export const ProductDetail = () => {
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate('/admin/products')}
-          className="text-admin-text-muted hover:text-admin-text-primary hover:bg-admin-surface-hover"
-        >
-          <ArrowLeft size={20} />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-admin-text-primary">{product.name}</h1>
-          <div className="flex items-center gap-3 mt-1">
-            {product.part_number && (
-              <span className="font-mono text-xs text-zeronix-blue bg-zeronix-blue/10 px-2 py-0.5 rounded">
-                {product.part_number}
-              </span>
-            )}
-            {product.model_number && (
-              <span className="font-mono text-xs text-admin-text-muted">
-                {product.model_number}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
+    <div className="space-y-5">
       {/* Product Info Card */}
-      <div className="bg-admin-surface border border-admin-border rounded-xl p-6">
+      <div className="bg-admin-surface border border-admin-border rounded-xl p-6 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Image Placeholder */}
-          <div className="flex items-center justify-center bg-admin-bg rounded-lg border border-admin-border aspect-square">
-            <Package size={48} className="text-admin-text-muted" />
+          <div className="flex items-center justify-center bg-admin-bg rounded-lg border border-admin-border aspect-square group overflow-hidden">
+            <Package size={48} className="text-admin-text-muted group-hover:scale-110 transition-transform duration-300" />
           </div>
 
           {/* Details */}
@@ -102,7 +104,7 @@ export const ProductDetail = () => {
             {product.description && (
               <div>
                 <p className="text-xs text-admin-text-muted uppercase font-medium mb-1">Description</p>
-                <p className="text-sm text-admin-text-secondary">{product.description}</p>
+                <p className="text-sm text-admin-text-secondary leading-relaxed">{product.description}</p>
               </div>
             )}
 
@@ -139,7 +141,7 @@ export const ProductDetail = () => {
                         {key}
                       </div>
                       <div className="flex-1 px-4 py-2.5 text-sm text-admin-text-primary font-mono">
-                        {value}
+                        {String(value)}
                       </div>
                     </div>
                   ))}
@@ -154,18 +156,18 @@ export const ProductDetail = () => {
       <Tabs defaultValue="suppliers" className="space-y-4">
         <TabsList className="bg-admin-surface border border-admin-border">
           <TabsTrigger value="suppliers" className="data-[state=active]:bg-zeronix-blue data-[state=active]:text-white text-admin-text-secondary">
-            Suppliers ({productSuppliers.length})
+            Linked Suppliers ({suppliers.length})
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="suppliers">
-          {productSuppliers.length > 0 ? (
-            <DataTable columns={supplierColumns} data={productSuppliers} />
+          {suppliers.length > 0 ? (
+            <DataTable columns={supplierColumns} data={suppliers} />
           ) : (
             <div className="flex flex-col items-center justify-center p-12 text-center border border-dashed border-admin-border rounded-xl bg-admin-surface">
               <Package size={40} className="text-admin-text-muted mb-3" />
-              <h3 className="text-lg font-semibold text-admin-text-primary mb-1">No Suppliers</h3>
-              <p className="text-admin-text-secondary">No suppliers have been linked to this product yet.</p>
+              <h3 className="text-lg font-semibold text-admin-text-primary mb-1">No Suppliers Linked</h3>
+              <p className="text-admin-text-secondary">No current listings found for this product.</p>
             </div>
           )}
         </TabsContent>

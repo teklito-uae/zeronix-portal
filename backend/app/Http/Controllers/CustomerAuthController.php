@@ -27,27 +27,56 @@ class CustomerAuthController extends Controller
             'phone' => $validated['phone'] ?? null,
         ]);
 
-        Auth::guard('customer')->login($customer);
-        $request->session()->regenerate();
+        // Notify Admins
+        $admins = \App\Models\User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            $admin->notify(new \App\Notifications\AdminNotification(
+                'New Customer Registration',
+                "{$customer->name} from {$customer->company} has registered on the portal.",
+                'info',
+                "/admin/customers/{$customer->id}"
+            ));
+        }
+
+        $token = $customer->createToken('customer-token', ['role:customer'])->plainTextToken;
 
         return response()->json([
-            'user' => $customer
+            'user' => $customer,
+            'token' => $token
         ], 201);
     }
 
     public function login(Request $request)
     {
-        $credentials = $request->validate([
+        $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
         ]);
 
-        if (Auth::guard('customer')->attempt($credentials)) {
-            $request->session()->regenerate();
+        \Log::info('Login attempt', ['email' => $request->email]);
 
-            return response()->json([
-                'user' => Auth::guard('customer')->user()
-            ]);
+        $customer = Customer::where('email', $request->email)->first();
+
+        if ($customer) {
+            $check = Hash::check($request->password, $customer->password);
+            \Log::info('Password check result', ['matches' => $check]);
+
+            if ($check) {
+                if (!$customer->is_portal_active) {
+                    return response()->json([
+                        'message' => 'Your portal access has been disabled. Please contact support.'
+                    ], 403);
+                }
+
+                $token = $customer->createToken('customer-token', ['role:customer'])->plainTextToken;
+
+                return response()->json([
+                    'customer' => $customer->load('assignedUser'),
+                    'token' => $token
+                ]);
+            }
+        } else {
+            \Log::info('Customer not found for email', ['email' => $request->email]);
         }
 
         return response()->json([
@@ -59,8 +88,7 @@ class CustomerAuthController extends Controller
     {
         Auth::guard('customer')->logout();
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        $request->user()->currentAccessToken()->delete();
 
         return response()->json(['message' => 'Logged out successfully']);
     }
@@ -68,7 +96,7 @@ class CustomerAuthController extends Controller
     public function user(Request $request)
     {
         return response()->json([
-            'user' => Auth::guard('customer')->user()
+            'customer' => $request->user()->load('assignedUser')
         ]);
     }
 }

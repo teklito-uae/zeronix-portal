@@ -1,63 +1,36 @@
-# Task List
+# Current Active Tasks
 
-## Phase 1 — Project Setup
-### Backend
-- [x] Laravel 11 install, configure `.env` (DB, mail, Pusher, Sanctum)
-- [x] All migrations (users, customers, suppliers, brands, categories, supplier_brands, products, supplier_products, enquiries, enquiry_items, quotes, quote_items, invoices, invoice_items, chat_conversations, chat_messages, supplier_broadcasts)
-- [x] Seeders: admin user, sample brands/categories
-- [x] Sanctum setup: admin guard + customer guard (separate)
-- [x] Auth routes: admin login/logout, customer register/login/logout
-- [x] CORS config (frontend domain only)
-- [x] Rate limiting on public endpoints
+## 1. CRM Lead Generation Flow (Enquiries)
+- [x] Update `Enquiries.tsx` "Add Enquiry" dialog to include a "New Customer / Lead" toggle.
+- [x] If toggled to new customer, capture `name`, `email`, `phone`, `company`.
+- [x] Update `EnquiryController@store` to automatically create a new `Customer` record if these lead details are provided instead of a `customer_id`.
+- [x] Return the new customer data seamlessly so the UI updates.
 
-### Frontend
-- [x] Vite + React + TypeScript scaffold inside `frontend/`
-- [x] TailwindCSS + Shadcn UI init
-- [x] Install TanStack Query, TanStack Table, Axios, Zustand, React Router
-- [x] `lib/axios.ts` — base URL + auth token interceptor
-- [x] `lib/queryClient.ts` — TanStack Query client config
-- [x] Base layouts: `AdminLayout.tsx`, `CustomerLayout.tsx`, `Sidebar.tsx`, `Topbar.tsx`
-- [x] Shared components: `DataTable.tsx`, `PageHeader.tsx`, `StatCard.tsx`, `ConfirmDialog.tsx`, `EmptyState.tsx`
-- [x] Zustand stores: sidebar state, chat widget state
-- [x] Admin auth pages: Login
-- [x] Customer auth pages: Login, Register
-- [x] React Router setup with protected routes (admin + customer guards)
-- [x] `types/` folder — all TS interfaces mirroring DB models
+## 2. Admin User Management & Permissions
+- [x] Create `Permission` and `UserPermission` (or update `users` table) schema for designations and module access.
+- [x] Build `UserController` for Super Admins to CRUD Salesmen.
+- [x] Create `Users.tsx` admin page with a form to select accessible modules (e.g., Products, Quotes, Enquiries).
+- [x] Update frontend Auth state to store user permissions.
+- [x] Modify `Sidebar.tsx` to conditionally render navigation links based on current user permissions.
+- [x] **Data Scoping/Isolation**: Update backend controllers (`CustomerController`, `EnquiryController`, `QuoteController`, `InvoiceController`) so `salesman` roles only retrieve/modify records assigned to them, while `admin` sees everything.
 
-## Phase 2 — Core Admin
-- [ ] Dashboard
-- [x] Customers
-- [x] Suppliers
-- [x] Brands & Categories
-- [x] Products
-- [x] Enquiries
+## 3. Global Activity Log
+- [x] Create `ActivityLog` migration and model (`user_id`, `action`, `subject_type`, `subject_id`, `description`).
+- [x] Add backend logging triggers when users create/send quotes, update status, etc.
+- [x] Create `Activities.tsx` page for Admin view to monitor all interactions and filter by User/Date.
 
-## Phase 3 — Quote & Invoice Engine
-- [x] Quote Create/Edit
-- [x] Quotes list
-- [x] Quote → Invoice conversion
-- [x] Invoice list + detail
-- [x] PDF generation (UI mockup)
-- [x] Email sending (UI mockup)
+## 4. Per-User SMTP & IMAP Configuration
+- [x] Add SMTP & IMAP fields (host, port, username, password, encryption) to the `users` table.
+- [x] Create a `Settings.tsx` page where salesmen can securely input their SMTP/IMAP credentials.
+- [x] Build a backend service (`MailConfigService`) that dynamically swaps Laravel's Mail config based on the authenticated user's settings.
+- [x] Implement "Test Email" feature to verify SMTP settings at runtime.
+- [x] Integrate `webklex/laravel-imap` to sync incoming customer replies.
 
-## Phase 4 — Customer Portal
-- [x] Update Layout (Reuse AdminLayout + Sidebar)
-- [x] Customer Dashboard
-- [x] Products Table (Wholesale view, Add to Enquiry)
-- [x] Manual Enquiry Form & List
-- [x] Quotes & Invoices View (with Delivered status update)
-
-## Phase 5 — Chat System
-- [x] Admin Chat page
-- [x] Customer Chat Support page
-- [x] Pusher integration (UI Logic Ready)
-- [x] Polling fallback (Simulated in UI)
-- [x] Unread count badge in Topbar
-
-## Phase 6 — Polish & Deployment
-- [x] Mobile responsiveness audit (Dynamic Mobile Navigation)
-- [x] Loading skeletons + composite components
-- [x] Empty states reusable component
-- [x] SEO meta tags management component
-- [x] GitHub Actions `deploy.yml`
-- [ ] Production smoke test (Final verification)
+## 5. Quote & Invoice Engine (API Migration)
+- [x] Build `QuoteController` (CRUD, status updates, duplicate).
+- [x] Update `QuoteDetail.tsx` to fetch real products and calculate margins (Fixed TS errors).
+- [x] Build `InvoiceController`.
+- [x] Implement DomPDF generation for both endpoints (handled via `DocumentController`).
+- [x] Ensure `salesman` users only see their own generated quotes/invoices.
+- [x] Fixed all TypeScript and build errors in detail pages and settings.
+- [x] Integrated Hostinger default email configurations.

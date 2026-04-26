@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSidebarStore } from '@/store/useSidebarStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import { Logo } from '@/components/shared/Logo';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -16,12 +17,17 @@ import {
   MessageCircle,
   ChevronsLeft,
   ChevronsRight,
+  Upload,
+  Settings,
+  Activity,
 } from 'lucide-react';
 
 interface NavItem {
+  id: string;
   label: string;
   icon: React.ReactNode;
   path: string;
+  adminOnly?: boolean;
 }
 
 interface NavGroup {
@@ -33,29 +39,39 @@ const adminNavGroups: NavGroup[] = [
   {
     label: 'Overview',
     items: [
-      { label: 'Dashboard', icon: <LayoutDashboard size={18} />, path: '/admin/dashboard' },
+      { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} />, path: '/admin/dashboard' },
     ],
   },
   {
     label: 'Management',
     items: [
-      { label: 'Customers', icon: <Users size={18} />, path: '/admin/customers' },
-      { label: 'Suppliers', icon: <Truck size={18} />, path: '/admin/suppliers' },
-      { label: 'Products', icon: <Package size={18} />, path: '/admin/products' },
+      { id: 'customers', label: 'Customers', icon: <Users size={18} />, path: '/admin/customers' },
+      { id: 'suppliers', label: 'Suppliers', icon: <Truck size={18} />, path: '/admin/suppliers' },
+      { id: 'products', label: 'Products', icon: <Package size={18} />, path: '/admin/products' },
+      { id: 'users', label: 'Team', icon: <Users size={18} />, path: '/admin/users', adminOnly: true },
+      { id: 'bulk-import', label: 'Bulk Import', icon: <Upload size={18} />, path: '/admin/bulk-import', adminOnly: true },
     ],
   },
   {
     label: 'Operations',
     items: [
-      { label: 'Enquiries', icon: <MessageSquareText size={18} />, path: '/admin/enquiries' },
-      { label: 'Quotes', icon: <FileText size={18} />, path: '/admin/quotes' },
-      { label: 'Invoices', icon: <Receipt size={18} />, path: '/admin/invoices' },
+      { id: 'enquiries', label: 'Enquiries', icon: <MessageSquareText size={18} />, path: '/admin/enquiries' },
+      { id: 'quotes', label: 'Quotes', icon: <FileText size={18} />, path: '/admin/quotes' },
+      { id: 'invoices', label: 'Invoices', icon: <Receipt size={18} />, path: '/admin/invoices' },
+      { id: 'receipts', label: 'Payment Receipts', icon: <Receipt size={18} />, path: '/admin/payment-receipts' },
     ],
   },
   {
     label: 'Communication',
     items: [
-      { label: 'Chat', icon: <MessageCircle size={18} />, path: '/admin/chat' },
+      { id: 'chat', label: 'Chat', icon: <MessageCircle size={18} />, path: '/admin/chat' },
+    ],
+  },
+  {
+    label: 'System',
+    items: [
+      { id: 'activities', label: 'Activities', icon: <Activity size={18} />, path: '/admin/activities', adminOnly: true },
+      { id: 'settings', label: 'Settings', icon: <Settings size={18} />, path: '/admin/settings' },
     ],
   },
 ];
@@ -64,28 +80,29 @@ const getCustomerNavGroups = (companySlug: string): NavGroup[] => [
   {
     label: 'Overview',
     items: [
-      { label: 'Dashboard', icon: <LayoutDashboard size={18} />, path: `/portal/${companySlug}/dashboard` },
+      { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} />, path: `/portal/${companySlug}/dashboard` },
     ],
   },
   {
     label: 'Purchasing',
     items: [
-      { label: 'Products', icon: <Package size={18} />, path: `/portal/${companySlug}/products` },
-      { label: 'My Enquiries', icon: <MessageSquareText size={18} />, path: `/portal/${companySlug}/enquiries` },
-      { label: 'Quotes', icon: <FileText size={18} />, path: `/portal/${companySlug}/quotes` },
-      { label: 'Invoices', icon: <Receipt size={18} />, path: `/portal/${companySlug}/invoices` },
+      { id: 'products', label: 'Products', icon: <Package size={18} />, path: `/portal/${companySlug}/products` },
+      { id: 'my-enquiries', label: 'My Enquiries', icon: <MessageSquareText size={18} />, path: `/portal/${companySlug}/enquiries` },
+      { id: 'quotes', label: 'Quotes', icon: <FileText size={18} />, path: `/portal/${companySlug}/quotes` },
+      { id: 'invoices', label: 'Invoices', icon: <Receipt size={18} />, path: `/portal/${companySlug}/invoices` },
     ],
   },
   {
     label: 'Communication',
     items: [
-      { label: 'Chat Support', icon: <MessageCircle size={18} />, path: `/portal/${companySlug}/chat` },
+      { id: 'chat', label: 'Chat Support', icon: <MessageCircle size={18} />, path: `/portal/${companySlug}/chat` },
     ],
   },
 ];
 
 export const Sidebar = () => {
   const { isOpen, toggle } = useSidebarStore();
+  const adminUser = useAuthStore((state) => state.admin);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -96,7 +113,24 @@ export const Sidebar = () => {
   const parts = location.pathname.split('/');
   const companySlug = isCustomer && parts.length > 2 ? parts[2] : 'company';
 
-  const navGroups = isCustomer ? getCustomerNavGroups(companySlug) : adminNavGroups;
+  // Filter groups based on permissions
+  const filterAdminGroups = () => {
+    if (!adminUser) return [];
+    if (adminUser.role === 'admin') return adminNavGroups;
+
+    return adminNavGroups.map(group => ({
+      ...group,
+      items: group.items.filter(item => {
+        if (item.adminOnly) return false;
+        if (item.id === 'dashboard') return true; // Everyone sees dashboard
+        if (item.id === 'chat') return true; // Chat is generic
+        if (item.id === 'settings') return true; // Settings is for personal config
+        return adminUser.permissions?.includes(item.id);
+      })
+    })).filter(group => group.items.length > 0);
+  };
+
+  const navGroups = isCustomer ? getCustomerNavGroups(companySlug) : filterAdminGroups();
 
   return (
     <TooltipProvider delayDuration={0}>
