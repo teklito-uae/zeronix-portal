@@ -38,7 +38,6 @@ class DummyDataSeeder extends Seeder
                 'address' => $faker->address,
                 'trn' => 'TRN' . $faker->numerify('###########'),
                 'password' => Hash::make('password'),
-                'is_active' => true,
                 'user_id' => $adminUserId,
             ]);
         }
