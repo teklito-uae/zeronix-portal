@@ -598,6 +598,7 @@ class ComposerStaticInit8c6949f7351979e7f43d9e7fc37c03ba
 
     public static $classMap = array (
         'App\\Console\\Commands\\SyncCustomerEmails' => __DIR__ . '/../..' . '/app/Console/Commands/SyncCustomerEmails.php',
+        'App\\Events\\MessageSent' => __DIR__ . '/../..' . '/app/Events/MessageSent.php',
         'App\\Helpers\\NumberHelper' => __DIR__ . '/../..' . '/app/Helpers/NumberHelper.php',
         'App\\Http\\Controllers\\ActivityController' => __DIR__ . '/../..' . '/app/Http/Controllers/ActivityController.php',
         'App\\Http\\Controllers\\AdminAuthController' => __DIR__ . '/../..' . '/app/Http/Controllers/AdminAuthController.php',

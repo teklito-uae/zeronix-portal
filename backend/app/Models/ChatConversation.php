@@ -11,7 +11,13 @@ class ChatConversation extends Model
     protected $fillable = [
         'customer_id',
         'subject',
-        'status'
+        'status',
+        'last_message',
+        'last_message_at'
+    ];
+
+    protected $casts = [
+        'last_message_at' => 'datetime',
     ];
 
     public function customer(): BelongsTo

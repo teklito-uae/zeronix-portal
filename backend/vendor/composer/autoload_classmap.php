@@ -7,6 +7,7 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'App\\Console\\Commands\\SyncCustomerEmails' => $baseDir . '/app/Console/Commands/SyncCustomerEmails.php',
+    'App\\Events\\MessageSent' => $baseDir . '/app/Events/MessageSent.php',
     'App\\Helpers\\NumberHelper' => $baseDir . '/app/Helpers/NumberHelper.php',
     'App\\Http\\Controllers\\ActivityController' => $baseDir . '/app/Http/Controllers/ActivityController.php',
     'App\\Http\\Controllers\\AdminAuthController' => $baseDir . '/app/Http/Controllers/AdminAuthController.php',
