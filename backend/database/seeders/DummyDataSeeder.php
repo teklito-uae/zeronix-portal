@@ -115,7 +115,6 @@ class DummyDataSeeder extends Seeder
                     'enquiry_id' => $enquiry->id,
                     'product_id' => $faker->randomElement($productIds),
                     'quantity' => rand(1, 10),
-                    'is_manual' => false,
                 ]);
             }
         }
@@ -153,7 +152,6 @@ class DummyDataSeeder extends Seeder
                     'quantity' => rand(1, 10),
                     'unit_price' => $faker->randomFloat(2, 50, 500),
                     'total' => $faker->randomFloat(2, 50, 500) * rand(1, 10),
-                    'is_manual' => false,
                 ]);
             }
         }
@@ -186,7 +184,6 @@ class DummyDataSeeder extends Seeder
                     'quantity' => $qItem->quantity,
                     'unit_price' => $qItem->unit_price,
                     'total' => $qItem->total,
-                    'is_manual' => $qItem->is_manual,
                 ]);
             }
         }
