@@ -30,6 +30,27 @@ use App\Http\Controllers\Customer\EnquiryController as CustomerEnquiryController
 use App\Http\Controllers\Customer\ProfileController as CustomerProfileController;
 use App\Http\Controllers\Customer\NotificationController as CustomerNotificationController;
 
+Route::get('/run-migrations', function () {
+    try {
+        \Illuminate\Support\Facades\Artisan::call('config:clear');
+        \Illuminate\Support\Facades\Artisan::call('cache:clear');
+        \Illuminate\Support\Facades\Artisan::call('migrate:fresh', [
+            '--force' => true,
+            '--seed' => true
+        ]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Database successfully migrated and seeded!',
+            'output' => \Illuminate\Support\Facades\Artisan::output()
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
 // Customer Auth Routes (Moved to top for priority)
 Route::prefix('customer')->group(function () {
     Route::post('/register', [CustomerAuthController::class, 'register']);
