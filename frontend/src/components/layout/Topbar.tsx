@@ -3,6 +3,7 @@ import { useThemeStore } from '@/store/useThemeStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useBreadcrumbStore } from '@/store/useBreadcrumbStore';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { Logo } from '@/components/shared/Logo';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -140,13 +141,18 @@ export const Topbar = () => {
 
   return (
     <header className="h-14 bg-admin-surface border-b border-admin-border flex items-center px-4 justify-between flex-shrink-0">
-      {/* Left: Menu toggle + Breadcrumbs */}
+      {/* Left: Logo (mobile) / Menu toggle + Breadcrumbs (desktop) */}
       <div className="flex items-center gap-3">
+        {/* Mobile: Show logo */}
+        <div className="md:hidden">
+          <Logo size="sm" showText />
+        </div>
+        {/* Desktop: Show sidebar toggle */}
         <Button
           variant="ghost"
           size="icon"
           onClick={toggle}
-          className="h-8 w-8 text-admin-text-secondary hover:text-admin-text-primary hover:bg-admin-surface-hover"
+          className="hidden md:flex h-8 w-8 text-admin-text-secondary hover:text-admin-text-primary hover:bg-admin-surface-hover"
         >
           <Menu size={18} />
         </Button>
@@ -182,7 +188,16 @@ export const Topbar = () => {
 
       {/* Right: Theme + Chat + User */}
       <div className="flex items-center gap-1.5">
-        {/* Search trigger */}
+        {/* Mobile Search icon */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setSearchOpen(true)}
+          className="md:hidden h-8 w-8 text-admin-text-secondary hover:text-admin-text-primary hover:bg-admin-surface-hover"
+        >
+          <Search size={17} />
+        </Button>
+        {/* Desktop search trigger */}
         <button
           onClick={() => setSearchOpen(true)}
           className="hidden md:flex items-center gap-2 h-8 px-3 rounded-md bg-admin-bg border border-admin-border text-admin-text-muted hover:border-zeronix-blue/40 hover:text-admin-text-primary transition-colors"
