@@ -293,8 +293,8 @@ export const Enquiries = () => {
   return (
     <div className="space-y-4">
       {/* Search & Filter Top Bar */}
-      <div className="flex flex-col sm:flex-row gap-2 items-center">
-        <div className="relative flex-1 w-full">
+      <div className="space-y-2">
+        <div className="relative w-full">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-admin-text-muted" />
           <Input
             placeholder="Search by customer, email, company, or ID..."
@@ -304,29 +304,31 @@ export const Enquiries = () => {
             className="pl-9 h-[38px] bg-admin-surface border-admin-border text-admin-text-primary w-full"
           />
         </div>
-        <Button onClick={handleSearch} className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover h-[38px]">
-          Search
-        </Button>
-        <Button onClick={() => setAddOpen(true)} className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover h-[38px] font-medium">
-          <Plus size={16} className="mr-1" /> Add Enquiry
-        </Button>
-        <Button
-          variant="ghost"
-          onClick={() => setShowFilters(!showFilters)}
-          className={`h-[38px] text-sm font-medium border border-admin-border rounded-lg ${
-            hasActiveFilters
-              ? 'bg-zeronix-blue/10 text-zeronix-blue border-zeronix-blue/30'
-              : 'text-admin-text-secondary hover:bg-admin-surface-hover'
-          }`}
-        >
-          <Filter size={16} className="mr-1" />
-          Filters
-          {hasActiveFilters && (
-            <span className="ml-1 bg-zeronix-blue text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
-              {[filterStatus, filterPriority, filterSource].filter((f) => f !== 'all').length}
-            </span>
-          )}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleSearch} className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover h-[38px] flex-1 sm:flex-none">
+            Search
+          </Button>
+          <Button onClick={() => setAddOpen(true)} className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover h-[38px] font-medium flex-1 sm:flex-none">
+            <Plus size={16} className="mr-1" /> <span className="hidden sm:inline">Add Enquiry</span><span className="sm:hidden">Add</span>
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => setShowFilters(!showFilters)}
+            className={`h-[38px] text-sm font-medium border border-admin-border rounded-lg shrink-0 ${
+              hasActiveFilters
+                ? 'bg-zeronix-blue/10 text-zeronix-blue border-zeronix-blue/30'
+                : 'text-admin-text-secondary hover:bg-admin-surface-hover'
+            }`}
+          >
+            <Filter size={16} className="sm:mr-1" />
+            <span className="hidden sm:inline">Filters</span>
+            {hasActiveFilters && (
+              <span className="ml-1 bg-zeronix-blue text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+                {[filterStatus, filterPriority, filterSource].filter((f) => f !== 'all').length}
+              </span>
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Filters Panel */}

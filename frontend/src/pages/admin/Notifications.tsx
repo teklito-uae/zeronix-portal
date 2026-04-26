@@ -44,31 +44,31 @@ export const Notifications = () => {
     <div className="space-y-6">
       <SEO title="System Notifications" description="View and manage system alerts." />
       
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-zeronix-blue/10 rounded-lg">
+          <div className="p-2 bg-zeronix-blue/10 rounded-lg shrink-0">
             <Bell size={20} className="text-zeronix-blue" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-admin-text-primary tracking-tight">NOTIFICATIONS</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-admin-text-primary tracking-tight">NOTIFICATIONS</h2>
               {notifications?.unread_count > 0 && (
-                <span className="bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
+                <span className="bg-red-500 text-white text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-full leading-none">
                   {notifications.unread_count} NEW
                 </span>
               )}
             </div>
-            <p className="text-xs text-admin-text-muted font-medium">Stay updated with portal activities and system alerts.</p>
+            <p className="text-xs text-admin-text-muted font-medium hidden sm:block">Stay updated with portal activities and system alerts.</p>
           </div>
         </div>
         <Button 
           variant="outline" 
           size="sm" 
           onClick={() => markAllReadMutation.mutate()}
-          className="h-9 text-xs font-bold border-admin-border text-admin-text-primary hover:bg-admin-surface transition-all gap-2"
+          className="h-9 text-xs font-bold border-admin-border text-admin-text-primary hover:bg-admin-surface transition-all gap-2 shrink-0"
           disabled={!notifications?.notifications?.length}
         >
-          <MailOpen size={14} /> Mark All as Read
+          <MailOpen size={14} /> <span className="hidden sm:inline">Mark All as Read</span><span className="sm:hidden">Read All</span>
         </Button>
       </div>
 

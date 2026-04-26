@@ -118,21 +118,21 @@ export const Quotes = () => {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <FileText className="text-zeronix-blue" size={20} />
           <div>
             <h2 className="text-base font-semibold text-admin-text-primary">Quotations</h2>
-            <p className="text-xs text-admin-text-muted">Manage and track customer quotes.</p>
+            <p className="text-xs text-admin-text-muted hidden sm:block">Manage and track customer quotes.</p>
           </div>
         </div>
-        <Button onClick={() => navigate('/admin/quotes/create')} className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover h-9 rounded-md text-sm">
-          <Plus size={14} className="mr-1" /> Create Quote
+        <Button onClick={() => navigate('/admin/quotes/create')} className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover h-9 rounded-md text-sm shrink-0">
+          <Plus size={14} className="mr-1" /> <span className="hidden sm:inline">Create Quote</span><span className="sm:hidden">Create</span>
         </Button>
       </div>
 
-      <div className="bg-admin-surface border border-admin-border rounded-md p-4">
-        <div className="relative max-w-sm">
+      <div className="bg-admin-surface border border-admin-border rounded-md p-3 sm:p-4">
+        <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-admin-text-muted" size={14} />
           <Input
             placeholder="Search by quote # or customer…"

@@ -214,12 +214,9 @@ export const Topbar = () => {
             className="h-8 w-8 text-admin-text-secondary hover:text-admin-text-primary hover:bg-admin-surface-hover relative"
           >
             <Bell size={17} />
-            {user && (
-              <span className={cn(
-                "absolute top-1.5 right-1.5 h-3.5 w-3.5 text-[8px] font-black text-white flex items-center justify-center rounded-full border-2 border-admin-surface transition-transform",
-                (unreadNotifs?.length || 0) > 0 ? "bg-red-500 scale-110 shadow-sm" : "bg-admin-text-muted/30 scale-100"
-              )}>
-                {unreadNotifs?.length || 0}
+            {user && (unreadNotifs?.length || 0) > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 h-4 w-4 text-[8px] font-black text-white flex items-center justify-center rounded-full bg-red-500 border-2 border-admin-surface shadow-sm">
+                {unreadNotifs.length}
               </span>
             )}
           </Button>
