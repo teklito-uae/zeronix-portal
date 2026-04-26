@@ -64,8 +64,10 @@ export const Topbar = () => {
       return (await api.get(endpoint)).data;
     },
     enabled: !!user,
-    refetchInterval: 300000, // Poll every 5 minutes to reduce DB load
-    refetchOnWindowFocus: true, // Fetch immediately when user switches back to tab
+    refetchInterval: 600000, // Poll every 10 minutes to reduce DB load
+    staleTime: 600000, // Consider data fresh for 10 minutes
+    refetchOnWindowFocus: false, // Don't refetch when switching tabs
+    refetchOnMount: false, // Don't refetch every time the component remounts
   });
 
   const [lastNotifCount, setLastNotifCount] = useState(0);
