@@ -48,6 +48,42 @@ class DashboardController extends Controller
             ];
         }
 
+        // Daily Revenue (Last 30 Days)
+        $dailyRevenue = [];
+        for ($i = 29; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i);
+            $start = $date->copy()->startOfDay();
+            $end = $date->copy()->endOfDay();
+
+            $dailyRevenue[] = [
+                'date' => $date->toDateString(),
+                'bank' => (float) PaymentReceipt::where('payment_method', 'bank')->whereBetween('payment_date', [$start, $end])->sum('amount'),
+                'cash' => (float) PaymentReceipt::where('payment_method', 'cash')->whereBetween('payment_date', [$start, $end])->sum('amount'),
+            ];
+        }
+
+        // Daily Activity (Current Month)
+        $dailyActivity = [];
+        $daysInMonth = Carbon::now()->daysInMonth;
+        for ($i = 1; $i <= $daysInMonth; $i++) {
+            $date = Carbon::now()->day($i);
+            // Don't show future days in the chart if today is not the end of month
+            if ($date->isFuture() && !$date->isToday()) {
+                // optional: break or continue
+            }
+            
+            $start = $date->copy()->startOfDay();
+            $end = $date->copy()->endOfDay();
+
+            $dailyActivity[] = [
+                'day' => $i,
+                'name' => $date->format('d M'),
+                'enquiries' => Enquiry::whereBetween('created_at', [$start, $end])->count(),
+                'quotes' => Quote::whereBetween('created_at', [$start, $end])->count(),
+                'invoices' => Invoice::whereBetween('created_at', [$start, $end])->count(),
+            ];
+        }
+
         // Recent Activity
         $recentEnquiries = Enquiry::with(['customer', 'user'])->latest()->take(5)->get();
         $recentInvoices = Invoice::with('customer')->latest()->take(5)->get();
@@ -86,6 +122,8 @@ class DashboardController extends Controller
         return response()->json([
             'stats' => $stats,
             'chart_data' => $chartData,
+            'daily_revenue' => $dailyRevenue,
+            'daily_activity' => $dailyActivity,
             'recent_enquiries' => $recentEnquiries,
             'recent_invoices' => $recentInvoices,
             'recent_activities' => $recentActivities,

@@ -10,7 +10,7 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::with(['brand', 'category'])
+        $query = Product::with(['brand', 'category', 'supplierProducts.supplier'])
             ->withCount('supplierProducts');
 
         // Search
@@ -90,5 +90,28 @@ class ProductController extends Controller
     {
         $product->delete();
         return response()->json(['message' => 'Product deleted']);
+    }
+
+    public function bulkUpdate(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:products,id',
+            'brand_id' => 'nullable|exists:brands,id',
+            'category_id' => 'nullable|exists:categories,id',
+        ]);
+
+        $updateData = array_filter([
+            'brand_id' => $validated['brand_id'] ?? null,
+            'category_id' => $validated['category_id'] ?? null,
+        ], fn($val) => !is_null($val));
+
+        if (empty($updateData)) {
+            return response()->json(['message' => 'No update data provided'], 400);
+        }
+
+        Product::whereIn('id', $validated['ids'])->update($updateData);
+
+        return response()->json(['message' => 'Products updated successfully']);
     }
 }

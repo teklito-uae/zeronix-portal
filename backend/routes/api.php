@@ -123,6 +123,7 @@ Route::prefix('admin')->group(function () {
         // Products
         Route::get('/products', [ProductController::class, 'index']);
         Route::post('/products', [ProductController::class, 'store']);
+        Route::post('/products/bulk-update', [ProductController::class, 'bulkUpdate']);
         Route::get('/products/{product}', [ProductController::class, 'show']);
         Route::put('/products/{product}', [ProductController::class, 'update']);
         Route::delete('/products/{product}', [ProductController::class, 'destroy']);
