@@ -183,8 +183,8 @@ class DocumentController extends Controller
 
         // Prepare View URL
         $docNumber = $model->quote_number ?? $model->invoice_number;
-        $docType = $type === 'quote' ? 'quote' : 'invoice';
-        $viewUrl = url("/api/view/{$docType}/{$docNumber}");
+        $docType = $type === 'quote' ? 'quotes' : 'invoices';
+        $viewUrl = config('app.url') . "/portal/{$docType}/{$docNumber}";
 
         // Replace placeholders
         $replacements = [
