@@ -48,7 +48,7 @@ class QuoteMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            markdown: 'emails.quote',
+            view: 'emails.quote',
         );
     }
 
