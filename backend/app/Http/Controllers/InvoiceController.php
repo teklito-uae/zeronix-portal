@@ -17,9 +17,7 @@ class InvoiceController extends Controller
             ->withCount('items');
 
         // Data Scoping
-        if ($request->user() && $request->user()->role !== 'admin') {
-            $query->where('user_id', $request->user()->id);
-        }
+        $query->forUser($request->user());
 
         if ($request->filled('search')) {
             $s = $request->search;
@@ -36,7 +34,7 @@ class InvoiceController extends Controller
             $query->where('status', $request->status);
         }
 
-        $invoices = $query->latest()->paginate($request->get('per_page', 15));
+        $invoices = $query->latest()->paginate($request->get('per_page', config('zeronix.default_per_page', 15)));
 
         return response()->json([
             'data' => $invoices->items(),
@@ -133,24 +131,15 @@ class InvoiceController extends Controller
         }
     }
 
-    public function show(Request $request, $id)
+    public function show(Request $request, Invoice $invoice)
     {
-        $invoice = Invoice::with(['customer', 'items.product', 'user', 'quote'])->findOrFail($id);
-
-        if ($request->user() && $request->user()->role !== 'admin' && $invoice->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        return response()->json($invoice);
+        $this->authorize('view', $invoice);
+        return response()->json($invoice->load(['customer', 'items.product', 'user', 'quote']));
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, Invoice $invoice)
     {
-        $invoice = Invoice::findOrFail($id);
-
-        if ($request->user() && $request->user()->role !== 'admin' && $invoice->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('update', $invoice);
 
         $validated = $request->validate([
             'customer_id' => 'required|exists:customers,id',
@@ -224,20 +213,17 @@ class InvoiceController extends Controller
         }
     }
 
-    public function destroy(Request $request, $id)
+    public function destroy(Request $request, Invoice $invoice)
     {
-        $invoice = Invoice::findOrFail($id);
-
-        if ($request->user() && $request->user()->role !== 'admin' && $invoice->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
+        $this->authorize('delete', $invoice);
         $invoice->delete();
         return response()->json(['message' => 'Invoice deleted']);
     }
-    public function sendEmail(Request $request, $id)
+
+    public function sendEmail(Request $request, Invoice $invoice)
     {
-        $invoice = Invoice::with(['customer', 'items'])->findOrFail($id);
+        $this->authorize('view', $invoice);
+        $invoice->load(['customer', 'items']);
 
         if (!$invoice->customer->email) {
             return response()->json(['message' => 'Customer does not have an email address.'], 422);

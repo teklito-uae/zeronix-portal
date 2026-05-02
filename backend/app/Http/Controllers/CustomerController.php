@@ -11,12 +11,10 @@ class CustomerController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Customer::withCount(['quotes', 'invoices', 'enquiries']);
+        $query = Customer::with(['assigned_user'])->withCount(['quotes', 'invoices', 'enquiries']);
 
-        // Data Scoping: Salesmen see only their own customers
-        if ($request->user() && $request->user()->role !== 'admin') {
-            $query->where('user_id', $request->user()->id);
-        }
+        // Data Scoping
+        $query->forUser($request->user());
 
         if ($request->filled('search')) {
             $s = $request->get('search');
@@ -30,7 +28,7 @@ class CustomerController extends Controller
             });
         }
 
-        $customers = $query->latest()->paginate($request->get('per_page', 15));
+        $customers = $query->latest()->paginate($request->get('per_page', config('zeronix.default_per_page', 15)));
 
         return response()->json([
             'data' => $customers->items(),
@@ -60,20 +58,19 @@ class CustomerController extends Controller
             $validated['password'] = Hash::make('zeronix@123');
         }
 
-        $validated['user_id'] = $request->user()->id ?? null;
+        $validated['user_id'] = $request->user()->id;
 
         $customer = Customer::create($validated);
 
-        return response()->json($customer, 201);
+        return response()->json($customer->load('assigned_user'), 201);
     }
 
     public function show(Request $request, Customer $customer)
     {
-        if ($request->user() && $request->user()->role !== 'admin' && $customer->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('view', $customer);
 
         $customer->loadCount(['quotes', 'invoices', 'enquiries']);
+        $customer->total_volume = (float) $customer->invoices()->sum('total');
 
         return response()->json([
             'customer' => $customer,
@@ -85,9 +82,7 @@ class CustomerController extends Controller
 
     public function update(Request $request, Customer $customer)
     {
-        if ($request->user() && $request->user()->role !== 'admin' && $customer->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('update', $customer);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -97,19 +92,31 @@ class CustomerController extends Controller
             'address' => 'nullable|string',
             'trn' => 'nullable|string|max:50',
             'is_portal_active' => 'nullable|boolean',
+            'user_id' => 'nullable|exists:users,id',
         ]);
 
+        $oldUserId = $customer->user_id;
         $customer->update($validated);
 
-        return response()->json($customer);
+        // Notify new staff if assignment changed
+        if (isset($validated['user_id']) && $validated['user_id'] != $oldUserId) {
+            $staff = \App\Models\User::find($validated['user_id']);
+            if ($staff) {
+                $staff->notify(new \App\Notifications\SystemNotification([
+                    'title' => 'New Customer Assigned',
+                    'message' => "You have been assigned to customer: {$customer->name} ({$customer->company})",
+                    'type' => 'info',
+                    'action_url' => "/staff/customers/{$customer->id}"
+                ]));
+            }
+        }
+
+        return response()->json($customer->load('assigned_user'));
     }
 
     public function destroy(Request $request, Customer $customer)
     {
-        if ($request->user() && $request->user()->role !== 'admin' && $customer->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
+        $this->authorize('delete', $customer);
         $customer->delete();
         return response()->json(['message' => 'Customer deleted']);
     }

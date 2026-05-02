@@ -15,6 +15,13 @@ class PaymentReceiptController extends Controller
     {
         $query = PaymentReceipt::with(['customer', 'invoice']);
 
+        // Data Scoping: Salesmen see only receipts for their own customers
+        if ($request->user() && $request->user()->role !== 'admin') {
+            $query->whereHas('customer', function($q) use ($request) {
+                $q->where('user_id', $request->user()->id);
+            });
+        }
+
         if ($request->customer_id) {
             $query->where('customer_id', $request->customer_id);
         }
@@ -71,9 +78,17 @@ class PaymentReceiptController extends Controller
         return response()->json($receipt, 201);
     }
 
-    public function show(PaymentReceipt $paymentReceipt)
+    public function show(Request $request, PaymentReceipt $paymentReceipt)
     {
-        return $paymentReceipt->load(['customer', 'invoice']);
+        $paymentReceipt->load(['customer', 'invoice']);
+
+        if ($request->user() && $request->user()->role !== 'admin') {
+            if ($paymentReceipt->customer->user_id !== $request->user()->id) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+        }
+
+        return $paymentReceipt;
     }
 
     public function update(Request $request, PaymentReceipt $paymentReceipt)
@@ -101,6 +116,7 @@ class PaymentReceiptController extends Controller
     {
         try {
             $receipt = PaymentReceipt::with(['customer', 'invoice'])->findOrFail($id);
+            \App\Services\MailConfigService::applyUserSmtp(request()->user());
             
             $logoPath = public_path('images/logo.png');
             $logoBase64 = '';

@@ -3,15 +3,17 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+use App\Models\User;
 use App\Traits\LogsActivity;
-
+use App\Traits\HasUserScope;
 class Enquiry extends Model
 {
-    use LogsActivity;
-
+    use LogsActivity, HasUserScope;
+    protected $userScopeColumn = 'assigned_to';
     protected $fillable = [
         'customer_id',
         'user_id',
@@ -23,6 +25,8 @@ class Enquiry extends Model
         'cancellation_reason',
         'cancelled_at',
     ];
+
+
 
     public function customer(): BelongsTo
     {
@@ -42,5 +46,10 @@ class Enquiry extends Model
     public function items(): HasMany
     {
         return $this->hasMany(EnquiryItem::class);
+    }
+
+    public function quotes(): HasMany
+    {
+        return $this->hasMany(Quote::class);
     }
 }

@@ -5,9 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+use App\Traits\HasUserScope;
+
 class ActivityLog extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUserScope;
 
     protected $fillable = [
         'user_id',

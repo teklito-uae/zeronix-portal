@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 use App\Traits\LogsActivity;
+use App\Traits\HasUserScope;
 
 class Invoice extends Model
 {
-    use LogsActivity;
+    use LogsActivity, HasUserScope;
 
     protected $fillable = [
         'invoice_number',
