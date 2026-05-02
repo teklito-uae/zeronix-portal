@@ -87,3 +87,16 @@ export function useResourceMutation(resource: string, additionalQueryKeys: strin
 
   return { create, update, remove, bulkUpdate };
 }
+
+/**
+ * Hook for fetching public resources (unauthenticated)
+ */
+export function usePublicResourceList<_T>(resource: string, params: any) {
+  return useQuery({
+    queryKey: ['public', resource, params],
+    queryFn: async () => {
+      const res = await api.get(`/public/${resource}`, { params });
+      return res.data;
+    },
+  });
+}

@@ -128,4 +128,39 @@ class ProductController extends Controller
 
         return response()->json(['message' => 'Products updated successfully']);
     }
+
+    public function publicIndex(Request $request)
+    {
+        $query = Product::with(['brand', 'category'])
+            ->where('is_active', true);
+
+        // Search
+        if ($request->has('search')) {
+            $search = $request->get('search');
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('model_code', 'like', "%{$search}%");
+            });
+        }
+
+        // Filters
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->get('category_id'));
+        }
+
+        if ($request->filled('brand_id')) {
+            $query->where('brand_id', $request->get('brand_id'));
+        }
+
+        $products = $query->latest()
+            ->paginate($request->get('per_page', 20));
+
+        return response()->json([
+            'data' => $products->items(),
+            'total' => $products->total(),
+            'current_page' => $products->currentPage(),
+            'last_page' => $products->lastPage(),
+            'per_page' => $products->perPage(),
+        ]);
+    }
 }

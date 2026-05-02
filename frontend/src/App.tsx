@@ -36,6 +36,7 @@ import { CustomerInvoices } from './pages/customer/CustomerInvoices';
 import { CustomerChat } from './pages/customer/CustomerChat';
 import { CustomerProfile } from './pages/customer/CustomerProfile';
 import { CustomerNotifications } from './pages/customer/CustomerNotifications';
+import { PublicInventory } from './pages/public/Inventory';
 import { NotFound } from './pages/NotFound';
 
 const PortalRedirect = () => {
@@ -136,6 +137,7 @@ function App() {
       <Route path="/staff/login" element={<AdminLogin type="staff" />} />
       <Route path="/portal/login" element={<CustomerLogin />} />
       <Route path="/register" element={<CustomerRegister />} />
+      <Route path="/inventory" element={<PublicInventory />} />
 
       <Route path="/admin" element={<AdminRoute />}>
         {CoreRoutes()}
