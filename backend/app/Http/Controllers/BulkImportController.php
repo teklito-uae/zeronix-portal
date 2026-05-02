@@ -21,6 +21,7 @@ class BulkImportController extends Controller
             'products.*.price' => 'nullable|numeric',
             'products.*.currency' => 'string',
             'products.*.category_id' => 'nullable|exists:categories,id',
+            'products.*.brand_id' => 'nullable|exists:brands,id',
             'products.*.raw_text' => 'required|string',
             'products.*.specs' => 'nullable|array',
         ]);
@@ -45,13 +46,14 @@ class BulkImportController extends Controller
                 }
 
                 if (!$product) {
+                    $productName = Str::limit($item['name'], 255);
                     $product = \App\Models\Product::create([
-                        'name' => $item['name'],
-                        'model_code' => $item['model_code'],
+                        'name' => $productName,
+                        'model_code' => Str::limit($item['model_code'], 255),
                         'brand_id' => $item['brand_id'] ?? $this->detectBrand($item['name']),
                         'category_id' => $item['category_id'] ?? null,
                         'specs' => $item['specs'],
-                        'slug' => Str::slug($item['name']) . '-' . Str::random(5),
+                        'slug' => Str::slug(Str::limit($productName, 240)) . '-' . Str::random(5),
                     ]);
                 }
 
@@ -75,7 +77,7 @@ class BulkImportController extends Controller
                     $existing->update([
                         'product_id' => $product->id,
                         'category_id' => $item['category_id'] ?? $existing->category_id,
-                        'name' => $item['name'],
+                        'name' => Str::limit($item['name'], 255),
                         'price' => $item['price'],
                         'raw_text' => $item['raw_text'],
                         'specs' => $item['specs'],
@@ -94,8 +96,8 @@ class BulkImportController extends Controller
                         'supplier_id' => $supplierId,
                         'product_id' => $product->id,
                         'category_id' => $item['category_id'] ?? null,
-                        'name' => $item['name'],
-                        'model_code' => $item['model_code'],
+                        'name' => Str::limit($item['name'], 255),
+                        'model_code' => Str::limit($item['model_code'], 255),
                         'identifier_hash' => $item['identifier_hash'],
                         'price' => $item['price'],
                         'currency' => $item['currency'] ?? 'AED',
