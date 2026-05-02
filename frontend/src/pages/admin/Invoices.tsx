@@ -129,7 +129,6 @@ export const Invoices = () => {
       <ResourceListingPage<Invoice>
         resource="invoices"
         title="Invoices"
-        subtitle="Manage billing, payments, and financial tracking."
         icon={<Receipt size={20} />}
         columns={columns}
         onRowClick={(row) => {

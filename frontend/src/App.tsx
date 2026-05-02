@@ -15,7 +15,6 @@ import { CustomerProfile as AdminCustomerProfile } from './pages/admin/CustomerP
 import { Suppliers } from './pages/admin/Suppliers';
 import { SupplierProfile } from './pages/admin/SupplierProfile';
 import { Products } from './pages/admin/Products';
-import { ProductDetail } from './pages/admin/ProductDetail';
 import { Enquiries } from './pages/admin/Enquiries';
 import { Quotes } from './pages/admin/Quotes';
 import { QuoteDetail } from './pages/admin/QuoteDetail';
@@ -53,7 +52,6 @@ const CoreRoutes = () => (
     <Route path="suppliers" element={<Suppliers />} />
     <Route path="suppliers/:id" element={<SupplierProfile />} />
     <Route path="products" element={<Products />} />
-    <Route path="products/:id" element={<ProductDetail />} />
     <Route path="enquiries" element={<Enquiries />} />
     <Route path="quotes" element={<Quotes />} />
     <Route path="quotes/:id" element={<QuoteDetail />} />

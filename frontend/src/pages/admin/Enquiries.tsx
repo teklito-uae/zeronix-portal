@@ -329,38 +329,53 @@ export const Enquiries = () => {
   };
   return (
     <>
-      {/* Control Bar */}
-      <div className="flex items-center justify-between mb-4">
-    <h1 className="text-2xl font-bold text-admin-text-primary">Enquiries</h1>
-    <div className="flex gap-2">
-      <Button variant="outline" size="sm" onClick={() => setViewMode(viewMode === 'table' ? 'kanban' : 'table')}>
-        {viewMode === 'table' ? 'Kanban View' : 'Table View'}
-      </Button>
-      {viewMode === 'kanban' && (
-        <Button variant="secondary" size="sm" onClick={() => {
-          const name = prompt('Enter new stage name');
-          if (name) setStages([...stages, name.trim()]);
-        }}>
-          Add Stage
-        </Button>
-      )}
-    </div>
-  </div>
-
-  {
-    viewMode === 'table' ? (
-      <ResourceListingPage<Enquiry>
-        resource="enquiries"
-        title="Enquiry Hub"
-        subtitle={admin?.role === 'salesman' ? "Process your incoming leads and convert them to quotes." : "Process incoming leads, assign agents, and convert to quotes."}
-        icon={<MessageSquare size={20} />}
-        columns={columns}
-        onRowClick={(row) => { setSelectedId(row.id); setSheetOpen(true); }}
-        createLabel="Add Enquiry"
-        createPath="#" // Using modal
-        onCreateClick={() => setAddOpen(true)}
-        searchPlaceholder="Search leads by name, company, or ID..."
-        filters={[
+      {
+        viewMode === 'table' ? (
+          <ResourceListingPage<Enquiry>
+            resource="enquiries"
+            title="Enquiry Hub"
+            icon={<MessageSquare size={20} />}
+            columns={columns}
+            onRowClick={(row) => { setSelectedId(row.id); setSheetOpen(true); }}
+            createLabel="Add Enquiry"
+            createPath="#" // Using modal
+            onCreateClick={() => setAddOpen(true)}
+            searchPlaceholder="Search leads by name, company, or ID..."
+            headerActions={
+              <div className="flex items-center gap-1.5">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setViewMode('kanban')}
+                  className="h-10 px-3 text-admin-text-secondary border border-admin-border rounded-xl hover:bg-admin-surface-hover transition-all"
+                  title="Switch to Kanban"
+                >
+                  <div className="flex items-center gap-2">
+                    {viewMode === 'table' ? (
+                      <>
+                        <div className="h-4 w-4 grid grid-cols-2 gap-0.5 opacity-70">
+                          <div className="bg-current rounded-[1px]" />
+                          <div className="bg-current rounded-[1px]" />
+                          <div className="bg-current rounded-[1px]" />
+                          <div className="bg-current rounded-[1px]" />
+                        </div>
+                        <span className="hidden sm:inline text-[10px] font-black uppercase tracking-widest">Kanban</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="h-4 w-4 flex flex-col gap-0.5 opacity-70">
+                          <div className="h-1 w-full bg-current rounded-[1px]" />
+                          <div className="h-1 w-full bg-current rounded-[1px]" />
+                          <div className="h-1 w-full bg-current rounded-[1px]" />
+                        </div>
+                        <span className="hidden sm:inline text-[10px] font-black uppercase tracking-widest">Table</span>
+                      </>
+                    )}
+                  </div>
+                </Button>
+              </div>
+            }
+            filters={[
           {
             name: 'status',
             label: 'Status',
@@ -397,16 +412,66 @@ export const Enquiries = () => {
           }
         ]}
       />
-    ) : (
-      <KanbanBoard
-        enquiries={enquiries}
-        stages={stages}
-        onCardMove={(cardId, newStage) => {
-          update.mutate({ id: cardId, data: { status: newStage } });
-        }}
-        onCardClick={(cardId) => { setSelectedId(cardId); setSheetOpen(true); }}
-      />)
-  }
+        ) : (
+          <div className="space-y-4">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1 group">
+                   <h2 className="text-sm font-black uppercase tracking-widest text-admin-text-primary ml-2">Pipeline View</h2>
+                </div>
+                
+                <div className="flex items-center gap-1.5">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setViewMode('table')}
+                    className="h-10 px-3 text-admin-text-secondary border border-admin-border rounded-xl hover:bg-admin-surface-hover transition-all"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 flex flex-col gap-0.5 opacity-70">
+                        <div className="h-1 w-full bg-current rounded-[1px]" />
+                        <div className="h-1 w-full bg-current rounded-[1px]" />
+                        <div className="h-1 w-full bg-current rounded-[1px]" />
+                      </div>
+                      <span className="hidden sm:inline text-[10px] font-black uppercase tracking-widest">Table View</span>
+                    </div>
+                  </Button>
+
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => {
+                      const name = prompt('Enter new stage name');
+                      if (name) setStages([...stages, name.trim()]);
+                    }}
+                    className="h-10 px-3 text-zeronix-blue bg-zeronix-blue/5 border border-zeronix-blue/10 rounded-xl hover:bg-zeronix-blue/10 transition-all shrink-0"
+                  >
+                    <Plus size={16} className="sm:mr-2" />
+                    <span className="hidden sm:inline text-[10px] font-black uppercase tracking-widest">Add Stage</span>
+                  </Button>
+
+                  <Button 
+                    onClick={() => setAddOpen(true)}
+                    className="h-10 px-3 sm:px-6 bg-zeronix-blue text-white rounded-xl font-black shadow-lg shadow-zeronix-blue/20 shrink-0"
+                  >
+                    <Plus size={18} className="sm:mr-2" />
+                    <span className="hidden sm:inline text-[10px] font-black uppercase tracking-widest">Add Enquiry</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <KanbanBoard
+              enquiries={enquiries}
+              stages={stages}
+              onCardMove={(cardId, newStage) => {
+                update.mutate({ id: cardId, data: { status: newStage } });
+              }}
+              onCardClick={(cardId) => { setSelectedId(cardId); setSheetOpen(true); }}
+            />
+          </div>
+        )
+      }
 
   <Dialog open={sheetOpen} onOpenChange={setSheetOpen}>
     <DialogContent className="sm:max-w-lg bg-admin-surface border-admin-border p-0 overflow-hidden shadow-2xl rounded-3xl">
@@ -544,68 +609,68 @@ export const Enquiries = () => {
     </DialogContent>
   </Dialog>
 
-  {/* Add Enquiry Dialog */ }
+  {/* Add Enquiry Dialog */}
   <Dialog open={addOpen} onOpenChange={setAddOpen}>
-    <DialogContent className="bg-admin-surface border-admin-border sm:max-w-lg rounded-3xl shadow-2xl overflow-hidden p-0">
-      <div className="bg-admin-bg/30 p-6 border-b border-admin-border">
+    <DialogContent className="bg-admin-surface border-admin-border w-[95vw] sm:max-w-lg rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden p-0 max-h-[90vh] overflow-y-auto">
+      <div className="bg-admin-bg/30 p-4 sm:p-6 border-b border-admin-border">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-black text-admin-text-primary flex items-center gap-2">
-            <Plus size={24} className="text-zeronix-blue" />
+          <DialogTitle className="text-lg sm:text-xl font-black text-admin-text-primary flex items-center gap-2">
+            <Plus size={20} className="text-zeronix-blue" />
             NEW LEAD
           </DialogTitle>
-          <DialogDescription className="text-xs font-bold text-admin-text-muted uppercase tracking-widest">
+          <DialogDescription className="text-[10px] font-bold text-admin-text-muted uppercase tracking-wider mt-1">
             Capture manual enquiries from calls or external emails.
           </DialogDescription>
         </DialogHeader>
       </div>
 
-      <div className="p-6 space-y-8">
+      <div className="p-4 sm:p-6 space-y-6 sm:space-y-8">
         {/* SECTION 1: CONTACT INFO */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-lg bg-zeronix-blue/10 flex items-center justify-center">
-                <UserIcon size={14} className="text-zeronix-blue" />
+              <div className="h-5 w-5 rounded-lg bg-zeronix-blue/10 flex items-center justify-center">
+                <UserIcon size={12} className="text-zeronix-blue" />
               </div>
-              <h4 className="text-[11px] font-black uppercase tracking-widest text-admin-text-primary">Lead Origin</h4>
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-admin-text-primary">Lead Origin</h4>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsNewCustomer(!isNewCustomer)}
-              className="h-7 px-3 text-[10px] font-black bg-zeronix-blue/10 text-zeronix-blue hover:bg-zeronix-blue/20 rounded-full transition-all"
+              className="h-7 px-3 text-[9px] font-black bg-zeronix-blue/10 text-zeronix-blue hover:bg-zeronix-blue/20 rounded-full transition-all w-fit"
             >
               {isNewCustomer ? 'CHOOSE EXISTING CLIENT' : 'ADD AS NEW LEAD'}
             </Button>
           </div>
 
           {isNewCustomer ? (
-            <div className="grid grid-cols-2 gap-4 p-5 bg-admin-bg/50 rounded-2xl border border-admin-border border-dashed">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-admin-bg/50 rounded-2xl border border-admin-border border-dashed">
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-black text-admin-text-muted uppercase tracking-tighter">Full Name *</Label>
-                <Input value={addForm.customer_name} onChange={e => setAddForm({ ...addForm, customer_name: e.target.value })} className="h-10 text-sm bg-admin-surface border-admin-border rounded-xl focus:ring-zeronix-blue/10" placeholder="John Doe" />
+                <Input value={addForm.customer_name} onChange={e => setAddForm({ ...addForm, customer_name: e.target.value })} className="h-10 text-xs bg-admin-surface border-admin-border rounded-xl focus:ring-zeronix-blue/10" placeholder="John Doe" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-black text-admin-text-muted uppercase tracking-tighter">Email *</Label>
-                <Input type="email" value={addForm.customer_email} onChange={e => setAddForm({ ...addForm, customer_email: e.target.value })} className="h-10 text-sm bg-admin-surface border-admin-border rounded-xl focus:ring-zeronix-blue/10" placeholder="john@example.com" />
+                <Input type="email" value={addForm.customer_email} onChange={e => setAddForm({ ...addForm, customer_email: e.target.value })} className="h-10 text-xs bg-admin-surface border-admin-border rounded-xl focus:ring-zeronix-blue/10" placeholder="john@example.com" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-black text-admin-text-muted uppercase tracking-tighter">Company</Label>
-                <Input value={addForm.customer_company} onChange={e => setAddForm({ ...addForm, customer_company: e.target.value })} className="h-10 text-sm bg-admin-surface border-admin-border rounded-xl focus:ring-zeronix-blue/10" placeholder="Acme Corp" />
+                <Input value={addForm.customer_company} onChange={e => setAddForm({ ...addForm, customer_company: e.target.value })} className="h-10 text-xs bg-admin-surface border-admin-border rounded-xl focus:ring-zeronix-blue/10" placeholder="Acme Corp" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-black text-admin-text-muted uppercase tracking-tighter">Phone</Label>
-                <Input value={addForm.customer_phone} onChange={e => setAddForm({ ...addForm, customer_phone: e.target.value })} className="h-10 text-sm bg-admin-surface border-admin-border rounded-xl focus:ring-zeronix-blue/10" placeholder="+971..." />
+                <Input value={addForm.customer_phone} onChange={e => setAddForm({ ...addForm, customer_phone: e.target.value })} className="h-10 text-xs bg-admin-surface border-admin-border rounded-xl focus:ring-zeronix-blue/10" placeholder="+971..." />
               </div>
             </div>
           ) : (
             <Select value={addForm.customer_id} onValueChange={(v) => setAddForm({ ...addForm, customer_id: v })}>
-              <SelectTrigger className="h-12 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl font-bold shadow-sm">
-                <SelectValue placeholder="Search existing client profiles..." />
+              <SelectTrigger className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl font-bold shadow-sm text-xs">
+                <SelectValue placeholder="Search client profiles..." />
               </SelectTrigger>
-              <SelectContent className="bg-admin-surface border-admin-border rounded-xl max-h-[300px]">
+              <SelectContent className="bg-admin-surface border-admin-border rounded-xl max-h-[250px]">
                 {customersData.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)} className="font-medium text-sm">
+                  <SelectItem key={c.id} value={String(c.id)} className="font-medium text-xs">
                     {c.name} {c.company ? `— ${c.company}` : ''}
                   </SelectItem>
                 ))}
@@ -619,22 +684,22 @@ export const Enquiries = () => {
         {/* SECTION 2: ENQUIRY DETAILS */}
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded-lg bg-purple-500/10 flex items-center justify-center">
-              <MessageSquare size={14} className="text-purple-500" />
+            <div className="h-5 w-5 rounded-lg bg-purple-500/10 flex items-center justify-center">
+              <MessageSquare size={12} className="text-purple-500" />
             </div>
-            <h4 className="text-[11px] font-black uppercase tracking-widest text-admin-text-primary">Enquiry Details</h4>
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-admin-text-primary">Enquiry Details</h4>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-[10px] font-black text-admin-text-muted uppercase tracking-tighter">Channel Source</Label>
               <Select value={addForm.source} onValueChange={(v) => setAddForm({ ...addForm, source: v })}>
-                <SelectTrigger className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl font-bold">
+                <SelectTrigger className="h-10 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl font-bold text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-admin-surface border-admin-border rounded-xl">
                   {['portal', 'email', 'phone', 'whatsapp', 'referral', 'chat'].map(s => (
-                    <SelectItem key={s} value={s} className="capitalize font-medium text-sm">{s}</SelectItem>
+                    <SelectItem key={s} value={s} className="capitalize font-medium text-xs">{s}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -642,12 +707,12 @@ export const Enquiries = () => {
             <div className="space-y-1.5">
               <Label className="text-[10px] font-black text-admin-text-muted uppercase tracking-tighter">Initial Priority</Label>
               <Select value={addForm.priority} onValueChange={(v) => setAddForm({ ...addForm, priority: v })}>
-                <SelectTrigger className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl font-bold">
+                <SelectTrigger className="h-10 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl font-bold text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-admin-surface border-admin-border rounded-xl">
                   {['normal', 'high', 'urgent'].map(p => (
-                    <SelectItem key={p} value={p} className="capitalize font-medium text-sm">{p}</SelectItem>
+                    <SelectItem key={p} value={p} className="capitalize font-medium text-xs">{p}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -659,16 +724,16 @@ export const Enquiries = () => {
             <Textarea
               value={addForm.notes}
               onChange={(e) => setAddForm({ ...addForm, notes: e.target.value })}
-              className="bg-admin-bg border-admin-border text-admin-text-primary rounded-2xl resize-none min-h-[120px] text-sm font-medium focus:ring-zeronix-blue/10"
-              placeholder="Describe what the client is looking for in detail..."
+              className="bg-admin-bg border-admin-border text-admin-text-primary rounded-2xl resize-none min-h-[100px] text-xs font-medium focus:ring-zeronix-blue/10"
+              placeholder="Describe requirements..."
             />
           </div>
         </div>
       </div>
 
-      <div className="p-6 pt-2">
-        <DialogFooter className="gap-2">
-          <Button variant="ghost" onClick={() => setAddOpen(false)} className="rounded-xl font-bold">CANCEL</Button>
+      <div className="p-4 sm:p-6 pt-2">
+        <DialogFooter className="flex flex-col sm:flex-row gap-2">
+          <Button variant="ghost" onClick={() => setAddOpen(false)} className="rounded-xl font-bold text-xs order-2 sm:order-1 w-full sm:w-auto">CANCEL</Button>
           <Button
             onClick={() => {
               const payload: any = { ...addForm };
@@ -690,14 +755,14 @@ export const Enquiries = () => {
               });
             }}
             disabled={create.isPending || (isNewCustomer ? (!addForm.customer_name || !addForm.customer_email) : !addForm.customer_id)}
-            className="flex-1 bg-zeronix-blue text-white hover:bg-zeronix-blue-hover h-12 rounded-xl font-black shadow-lg shadow-zeronix-blue/20"
+            className="flex-1 bg-zeronix-blue text-white hover:bg-zeronix-blue-hover h-11 sm:h-12 rounded-xl font-black shadow-lg shadow-zeronix-blue/20 order-1 sm:order-2 w-full sm:w-auto"
           >
             {create.isPending ? <Loader2 className="animate-spin" /> : 'REGISTER ENQUIRY'}
           </Button>
         </DialogFooter>
       </div>
-        </DialogContent>
-      </Dialog>
+    </DialogContent>
+  </Dialog>
     </>
   );
 };

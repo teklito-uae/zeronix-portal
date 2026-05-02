@@ -149,7 +149,6 @@ export const Suppliers = () => {
       <ResourceListingPage<Supplier>
         resource="suppliers"
         title="Supplier Network"
-        subtitle="Manage your global sourcing partners and supply chain efficiency."
         icon={<Building2 size={20} />}
         columns={columns}
         onRowClick={(row) => navigate(`${getBasePath()}/suppliers/${row.id}`)}

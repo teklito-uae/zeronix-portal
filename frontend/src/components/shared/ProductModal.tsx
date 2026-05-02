@@ -27,7 +27,7 @@ interface ProductModalProps {
  */
 export const ProductModal = ({ isOpen, onClose, editingProduct, brands, categories }: ProductModalProps) => {
   const [form, setForm] = useState({
-    name: '', model_code: '', brand_id: '', category_id: '', description: '',
+    name: '', model_code: '', brand_id: '', category_id: '', description: '', price: '',
   });
   const [specs, setSpecs] = useState<{ key: string; value: string }[]>([]);
 
@@ -41,6 +41,7 @@ export const ProductModal = ({ isOpen, onClose, editingProduct, brands, categori
         brand_id: String(editingProduct.brand_id || ''),
         category_id: String(editingProduct.category_id || ''),
         description: editingProduct.description || '',
+        price: String(editingProduct.price || ''),
       });
       setSpecs(
         editingProduct.specs
@@ -48,7 +49,7 @@ export const ProductModal = ({ isOpen, onClose, editingProduct, brands, categori
           : [{ key: '', value: '' }]
       );
     } else {
-      setForm({ name: '', model_code: '', brand_id: '', category_id: '', description: '' });
+      setForm({ name: '', model_code: '', brand_id: '', category_id: '', description: '', price: '' });
       setSpecs([{ key: '', value: '' }]);
     }
   }, [editingProduct, isOpen]);
@@ -59,6 +60,7 @@ export const ProductModal = ({ isOpen, onClose, editingProduct, brands, categori
       ...form,
       brand_id: form.brand_id ? Number(form.brand_id) : null,
       category_id: form.category_id ? Number(form.category_id) : null,
+      price: form.price ? Number(form.price) : 0,
       specs: specsObj,
     };
 
@@ -100,6 +102,17 @@ export const ProductModal = ({ isOpen, onClose, editingProduct, brands, categori
               onChange={e => setForm({ ...form, model_code: e.target.value })} 
               className="h-11 bg-admin-bg border-admin-border text-admin-text-primary font-mono rounded-xl focus:ring-zeronix-blue/10" 
               placeholder="e.g. 9G2H5ET" 
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Base Price (AED)</Label>
+            <Input 
+              type="number"
+              value={form.price} 
+              onChange={e => setForm({ ...form, price: e.target.value })} 
+              className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl focus:ring-zeronix-blue/10 font-mono" 
+              placeholder="0.00" 
             />
           </div>
 
@@ -191,12 +204,12 @@ export const ProductModal = ({ isOpen, onClose, editingProduct, brands, categori
           </div>
         </div>
 
-        <DialogFooter className="mt-6 gap-2">
-          <Button variant="ghost" onClick={onClose} className="text-admin-text-secondary rounded-xl">Cancel</Button>
+        <DialogFooter className="mt-6 flex flex-col sm:flex-row gap-2">
+          <Button variant="ghost" onClick={onClose} className="w-full sm:w-auto text-admin-text-secondary rounded-xl order-2 sm:order-1">Cancel</Button>
           <Button 
             onClick={handleSave} 
             disabled={!form.name || create.isPending || update.isPending} 
-            className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover min-w-[120px] rounded-xl font-bold shadow-lg shadow-zeronix-blue/20"
+            className="w-full sm:w-auto bg-zeronix-blue text-white hover:bg-zeronix-blue-hover min-w-[120px] rounded-xl font-bold shadow-lg shadow-zeronix-blue/20 order-1 sm:order-2"
           >
             {(create.isPending || update.isPending) ? <Loader2 className="h-4 w-4 animate-spin" /> : (editingProduct ? 'Update Product' : 'Add Product')}
           </Button>

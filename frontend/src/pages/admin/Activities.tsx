@@ -114,7 +114,6 @@ export const Activities = () => {
     <ResourceListingPage<ActivityLog>
       resource="activities"
       title="Audit Logs"
-      subtitle="Complete traceability of all administrative actions and system events."
       icon={<ActivityIcon size={20} />}
       columns={columns}
       searchPlaceholder="Search logs by description or user..."

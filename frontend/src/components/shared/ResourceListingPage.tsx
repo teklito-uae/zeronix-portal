@@ -12,8 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Search, Loader2, Filter, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Plus, Search, Loader2, X } from 'lucide-react';
 import { SEO } from './SEO';
 
 interface FilterConfig {
@@ -26,7 +25,6 @@ interface FilterConfig {
 interface ResourceListingPageProps<T> {
   resource: string;
   title: string;
-  subtitle?: string;
   icon: React.ReactNode;
   columns: ColumnDef<T>[];
   onRowClick?: (row: T) => void;
@@ -38,12 +36,12 @@ interface ResourceListingPageProps<T> {
   selectedIds?: number[];
   setSelectedIds?: (ids: number[]) => void;
   onCreateClick?: () => void;
+  headerActions?: React.ReactNode;
 }
 
 export function ResourceListingPage<T extends { id: number }>({
   resource,
   title,
-  subtitle,
   icon,
   columns,
   onRowClick,
@@ -55,13 +53,13 @@ export function ResourceListingPage<T extends { id: number }>({
   selectedIds = [],
   setSelectedIds,
   onCreateClick,
+  headerActions,
 }: ResourceListingPageProps<T>) {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
-  const [showFilters, setShowFilters] = useState(false);
 
   // Sync search input with debounce
   useEffect(() => {
@@ -102,26 +100,7 @@ export function ResourceListingPage<T extends { id: number }>({
     <div className="space-y-4 animate-in fade-in duration-200">
       <SEO title={title} />
 
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-zeronix-blue/10 rounded-xl text-zeronix-blue">
-            {icon}
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-admin-text-primary tracking-tight">{title}</h2>
-            {subtitle && <p className="text-xs text-admin-text-muted mt-0.5">{subtitle}</p>}
-          </div>
-        </div>
-        {createPath && (
-          <Button
-            onClick={() => onCreateClick ? onCreateClick() : navigate(createPath)}
-            className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover h-10 px-4 rounded-xl font-medium shadow-sm transition-all active:scale-95"
-          >
-            <Plus size={18} className="mr-1.5" /> {createLabel}
-          </Button>
-        )}
-      </div>
+      {/* Page Header Removed as requested */}
 
       {/* Bulk Actions Bar */}
       {selectedIds.length > 0 && onBulkUpdate && (
@@ -149,7 +128,7 @@ export function ResourceListingPage<T extends { id: number }>({
         </div>
       )}
 
-      {/* Search & Filters */}
+      {/* Compact Search & Action Bar */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <div className="relative flex-1 group">
@@ -158,46 +137,33 @@ export function ResourceListingPage<T extends { id: number }>({
               placeholder={searchPlaceholder}
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
-              className="pl-10 h-11 bg-admin-surface border-admin-border text-admin-text-primary rounded-xl focus:ring-zeronix-blue/10 transition-all shadow-sm"
+              className="pl-10 h-10 bg-admin-surface border-admin-border text-admin-text-primary rounded-xl focus:ring-zeronix-blue/10 transition-all shadow-sm w-full text-sm"
             />
           </div>
-          {filters.length > 0 && (
+
+          {headerActions && <div className="shrink-0">{headerActions}</div>}
+
+          {createPath && (
             <Button
-              variant="outline"
-              onClick={() => setShowFilters(!showFilters)}
-              className={cn(
-                "h-11 px-4 rounded-xl border-admin-border transition-all",
-                showFilters || Object.values(activeFilters).some(v => v !== '')
-                  ? "bg-zeronix-blue/5 border-zeronix-blue text-zeronix-blue"
-                  : "bg-admin-surface text-admin-text-secondary"
-              )}
+              onClick={() => onCreateClick ? onCreateClick() : navigate(createPath)}
+              className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover h-10 px-3 sm:px-6 rounded-xl font-bold shadow-lg shadow-zeronix-blue/20 transition-all active:scale-95 shrink-0"
             >
-              <Filter size={16} className="mr-2" />
-              Filters
-              {Object.values(activeFilters).filter(v => v !== '').length > 0 && (
-                <span className="ml-2 w-5 h-5 rounded-full bg-zeronix-blue text-white text-[10px] flex items-center justify-center font-bold">
-                  {Object.values(activeFilters).filter(v => v !== '').length}
-                </span>
-              )}
-            </Button>
-          )}
-          {hasActiveFilters && (
-            <Button variant="ghost" onClick={clearFilters} className="h-11 px-4 text-admin-text-muted hover:text-danger hover:bg-danger/5 rounded-xl">
-              <X size={16} className="mr-1" /> Clear
+              <Plus size={18} className="sm:mr-2" />
+              <span className="hidden sm:inline">{createLabel}</span>
             </Button>
           )}
         </div>
 
-        {showFilters && filters.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-admin-surface border border-admin-border rounded-xl animate-in slide-in-from-top-2 duration-200 shadow-sm">
+        {/* Filter Row - Scrollable on mobile */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+          <div className="flex items-center gap-2 shrink-0">
             {filters.map((f) => (
-              <div key={f.name} className="space-y-1.5">
-                <label className="text-[11px] font-bold text-admin-text-muted uppercase tracking-wider ml-1">{f.label}</label>
+              <div key={f.name} className="w-[140px] sm:w-40">
                 <Select
                   value={activeFilters[f.name] || 'all'}
                   onValueChange={v => handleFilterChange(f.name, v)}
                 >
-                  <SelectTrigger className="h-10 bg-admin-bg border-admin-border text-sm rounded-lg focus:ring-zeronix-blue/10">
+                  <SelectTrigger className="h-9 bg-admin-surface/50 border-admin-border text-[10px] font-bold uppercase tracking-wider rounded-lg focus:ring-zeronix-blue/10">
                     <SelectValue placeholder={f.placeholder} />
                   </SelectTrigger>
                   <SelectContent className="bg-admin-surface border-admin-border rounded-xl shadow-xl">
@@ -210,7 +176,17 @@ export function ResourceListingPage<T extends { id: number }>({
               </div>
             ))}
           </div>
-        )}
+          
+          {hasActiveFilters && (
+            <Button 
+              variant="ghost" 
+              onClick={clearFilters} 
+              className="h-9 px-3 text-[10px] font-bold uppercase tracking-widest text-admin-text-muted hover:text-danger hover:bg-danger/5 rounded-lg shrink-0"
+            >
+              <X size={14} className="mr-1" /> Reset
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Table Section */}

@@ -44,6 +44,12 @@
     --admin-text-primary: #0F1629;
     --admin-text-secondary: #4A5568;
     --admin-text-muted: #94A3B8;
+
+    /* Shadcn UI Overrides */
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
   }
 
   .dark {
@@ -55,6 +61,12 @@
     --admin-text-primary: #F0F4FF;
     --admin-text-secondary: #7A9BB5;
     --admin-text-muted: #3D5468;
+
+    /* Shadcn UI Overrides for Dark Mode */
+    --popover: 213 32% 14%;
+    --popover-foreground: 210 40% 98%;
+    --accent: 213 32% 20%;
+    --accent-foreground: 210 40% 98%;
   }
 }
 

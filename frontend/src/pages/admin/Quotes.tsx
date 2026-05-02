@@ -112,7 +112,6 @@ export const Quotes = () => {
     <ResourceListingPage<Quote>
       resource="quotes"
       title="Quotations"
-      subtitle="Issue and track professional estimates for your clients."
       icon={<FileText size={20} />}
       columns={columns}
       onRowClick={(row) => navigate(`${getBasePath()}/quotes/${row.id}`)}

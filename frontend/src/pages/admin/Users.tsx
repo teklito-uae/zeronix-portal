@@ -169,7 +169,6 @@ export const Users = () => {
       <ResourceListingPage<User>
         resource="users"
         title="Access Management"
-        subtitle="Control administrative privileges and team member security."
         icon={<UserCog size={20} />}
         columns={columns}
         createLabel="Onboard User"

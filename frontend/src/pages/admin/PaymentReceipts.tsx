@@ -112,7 +112,6 @@ export const PaymentReceipts = () => {
     <ResourceListingPage<PaymentReceipt>
       resource="payment-receipts"
       title="Payment Settlements"
-      subtitle="Comprehensive log of all incoming funds and electronic receipts."
       icon={<Receipt size={20} />}
       columns={columns}
       searchPlaceholder="Search by receipt ID, customer or invoice ref..."

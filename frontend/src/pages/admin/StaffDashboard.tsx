@@ -1,7 +1,6 @@
 import { getBasePath } from '@/hooks/useBasePath';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/axios';
-import { useAuthStore } from '@/store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, FileText, Receipt, TrendingUp, Activity,
@@ -23,7 +22,6 @@ import { timeAgo } from '@/lib/utils';
 
 export const StaffDashboard = () => {
   const navigate = useNavigate();
-  const admin = useAuthStore(state => state.admin);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin-dashboard'], // Shares cache but backend scopes by role
@@ -61,23 +59,7 @@ export const StaffDashboard = () => {
 
   return (
     <div className="space-y-6 pb-10">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-admin-text-primary">
-            Pipeline Overview
-          </h1>
-          <p className="text-admin-text-muted mt-1 font-medium">
-            Welcome back, <span className="text-zeronix-blue font-bold">{admin?.name}</span>. Here's your sales performance today.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="bg-admin-surface border border-admin-border px-4 py-2 rounded-2xl flex items-center gap-3 shadow-sm">
-            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-bold text-admin-text-primary uppercase tracking-wider">Live System Status</span>
-          </div>
-        </div>
-      </div>
+      {/* Header Section Removed */}
 
       {/* Primary KPI Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

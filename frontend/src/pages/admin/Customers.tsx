@@ -15,7 +15,7 @@ import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import { ActionGroup } from '@/components/shared/ActionGroup';
 
 import type { Customer, User } from '@/types';
-import { Users, Mail, Phone, Building2, Loader2, User as UserIcon } from 'lucide-react';
+import { Users, Mail, Phone, Building2, Loader2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -191,7 +191,6 @@ export const Customers = () => {
       <ResourceListingPage<Customer>
         resource="customers"
         title="Client Directory"
-        subtitle="Manage customer profiles, portal access, and trade history."
         icon={<Users size={20} />}
         columns={columns}
         onRowClick={(row) => navigate(`${getBasePath()}/customers/${row.id}`)}
@@ -201,14 +200,6 @@ export const Customers = () => {
         searchPlaceholder="Search by name, company, email, phone..."
       />
 
-      {/* Manual Button for Add (Floating on Mobile) */}
-      <div className="fixed bottom-8 right-8 z-50 lg:hidden">
-        <Button onClick={openAdd} className="h-14 w-14 rounded-full bg-zeronix-blue shadow-xl text-white">
-          <UserIcon size={24} />
-        </Button>
-      </div>
-
-      {/* Add / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="bg-admin-surface border-admin-border sm:max-w-xl rounded-2xl shadow-2xl">
           <DialogHeader>
