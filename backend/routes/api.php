@@ -95,6 +95,11 @@ Route::middleware('throttle:public')->group(function () {
     Route::get('/admin/quotes/{id}/view', [DocumentController::class, 'previewQuote']);
     Route::get('/admin/receipts/{id}/download', [DocumentController::class, 'downloadReceipt']);
     Route::get('/admin/receipts/{id}/view', [DocumentController::class, 'previewReceipt']);
+
+    // Public Inventory
+    Route::get('/public/products', [ProductController::class, 'publicIndex']);
+    Route::get('/public/categories', [CategoryController::class, 'index']);
+    Route::get('/public/brands', [BrandController::class, 'index']);
 });
 
 // Common routes for both Admin and Staff (using getBasePath() on frontend)
