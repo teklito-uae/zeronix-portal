@@ -31,6 +31,18 @@ class ProductController extends Controller
             $query->where('brand_id', $request->get('brand_id'));
         }
 
+        if ($request->boolean('in_stock')) {
+            $query->has('supplierProducts');
+        }
+
+        if ($request->filled('min_price')) {
+            $query->where('price', '>=', $request->get('min_price'));
+        }
+
+        if ($request->filled('max_price')) {
+            $query->where('price', '<=', $request->get('max_price'));
+        }
+
         $products = $query->latest()
             ->paginate($request->get('per_page', config('zeronix.default_per_page', 10)));
 
@@ -51,6 +63,7 @@ class ProductController extends Controller
             'brand_id' => 'nullable|exists:brands,id',
             'category_id' => 'nullable|exists:categories,id',
             'description' => 'nullable|string',
+            'price' => 'nullable|numeric',
             'specs' => 'nullable|array',
         ]);
 
@@ -74,11 +87,12 @@ class ProductController extends Controller
     public function update(Request $request, Product $product)
     {
         $validated = $request->validate([
-            'name' => 'required|string',
+            'name' => 'sometimes|required|string',
             'model_code' => 'nullable|string',
             'brand_id' => 'nullable|exists:brands,id',
             'category_id' => 'nullable|exists:categories,id',
             'description' => 'nullable|string',
+            'price' => 'nullable|numeric',
             'specs' => 'nullable|array',
         ]);
 
