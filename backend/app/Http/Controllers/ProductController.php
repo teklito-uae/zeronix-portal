@@ -32,7 +32,7 @@ class ProductController extends Controller
         }
 
         $products = $query->latest()
-            ->paginate($request->get('per_page', 10));
+            ->paginate($request->get('per_page', config('zeronix.default_per_page', 10)));
 
         return response()->json([
             'data' => $products->items(),

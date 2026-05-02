@@ -10,10 +10,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 use App\Traits\LogsActivity;
+use App\Traits\HasUserScope;
 
 class Customer extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, LogsActivity;
+    use HasApiTokens, HasFactory, Notifiable, LogsActivity, HasUserScope;
 
     protected $fillable = [
         'customer_code',
@@ -67,7 +68,7 @@ class Customer extends Authenticatable
         return $this->hasMany(Enquiry::class);
     }
 
-    public function assignedUser()
+    public function assigned_user()
     {
         return $this->belongsTo(User::class, 'user_id');
     }

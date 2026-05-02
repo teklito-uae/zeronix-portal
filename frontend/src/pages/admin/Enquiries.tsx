@@ -1,6 +1,5 @@
 import { getBasePath } from '@/hooks/useBasePath';
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -13,14 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  CommandDialog,
-  CommandInput,
-  CommandList,
-  CommandEmpty,
-  CommandGroup,
-  CommandItem,
-} from '@/components/ui/command';
+
 import {
   Dialog,
   DialogContent,
@@ -38,7 +30,7 @@ import { toast } from 'sonner';
 import api from '@/lib/axios';
 import { timeAgo } from '@/lib/utils';
 import type { Enquiry, Customer, User as UserType } from '@/types';
-import { MessageSquare, Building2, FileText, Loader2, Plus, User as UserIcon } from 'lucide-react';
+import { MessageSquare, Building2, Loader2, Plus, User as UserIcon } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
@@ -49,7 +41,7 @@ import { ActionGroup } from '@/components/shared/ActionGroup';
  * Refactored to use the standardized State-Driven architecture.
  */
 export const Enquiries = () => {
-  const navigate = useNavigate();
+
   const queryClient = useQueryClient();
   const admin = useAuthStore(state => state.admin);
 
@@ -416,105 +408,141 @@ export const Enquiries = () => {
       />)
   }
 
-  {/* Detail Command Dialog */ }
-  <CommandDialog open={sheetOpen} onOpenChange={setSheetOpen}>
-    {isEnquiryLoading ? (
-      <div className="flex justify-center items-center p-12">
-        <Loader2 className="animate-spin text-zeronix-blue" size={40} />
-      </div>
-    ) : selectedEnquiry && (
-      <div className="flex flex-col w-full">
-        <div className="p-5 bg-admin-bg/30 border-b border-admin-border flex justify-between items-start">
-          <div>
-            <h2 className="text-xl font-black text-admin-text-primary flex items-center gap-2">
-              <span className="text-zeronix-blue">ENQ</span>
-              <span className="opacity-30">/</span>
-              <span>{String(selectedEnquiry.id).padStart(3, '0')}</span>
-            </h2>
-            <p className="text-sm font-bold text-admin-text-primary mt-1">{selectedEnquiry.customer?.name || 'Manual Lead'}</p>
-            {selectedEnquiry.customer?.company && (
-              <p className="text-xs font-bold text-admin-text-muted flex items-center gap-1.5 mt-1">
-                <Building2 size={12} /> {selectedEnquiry.customer.company}
-              </p>
-            )}
+  <Dialog open={sheetOpen} onOpenChange={setSheetOpen}>
+    <DialogContent className="sm:max-w-lg bg-admin-surface border-admin-border p-0 overflow-hidden shadow-2xl rounded-3xl">
+      {isEnquiryLoading ? (
+        <div className="flex justify-center items-center w-full h-80">
+          <Loader2 className="animate-spin text-zeronix-blue" size={40} />
+        </div>
+      ) : selectedEnquiry && (
+        <div className="flex flex-col h-full max-h-[85vh]">
+          {/* Premium Glass Header */}
+          <div className="p-5 pb-4 border-b border-admin-border bg-admin-bg/40 backdrop-blur-md sticky top-0 z-20">
+            <DialogHeader>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-zeronix-blue/10 flex items-center justify-center border border-zeronix-blue/20">
+                    <MessageSquare size={20} className="text-zeronix-blue" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-xl font-black text-admin-text-primary flex items-center gap-2">
+                      <span className="text-zeronix-blue">ENQ</span>
+                      <span className="opacity-30">/</span>
+                      <span>{String(selectedEnquiry.id).padStart(3, '0')}</span>
+                    </DialogTitle>
+                    <DialogDescription className="text-[10px] font-black text-admin-text-muted uppercase tracking-widest">
+                      Lead Management Console
+                    </DialogDescription>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                   <StatusBadge status={selectedEnquiry.status} />
+                </div>
+              </div>
+            </DialogHeader>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <StatusBadge status={selectedEnquiry.status} />
-            <StatusBadge status={selectedEnquiry.priority} />
+
+          <div className="flex-1 p-5 space-y-6 overflow-y-auto">
+            {/* Core Workflow Controls */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2 text-admin-text-muted mb-1">
+                <div className="h-1 w-3 bg-zeronix-blue rounded-full" />
+                <h4 className="text-[10px] font-black uppercase tracking-widest">Workflow & Priority</h4>
+              </div>
+              <div className="grid grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Current Status</Label>
+                  <Select value={selectedEnquiry.status} onValueChange={(v) => {
+                    update.mutate({ id: selectedId!, data: { status: v as any } });
+                    toast.success(`Status updated to ${v.replace('_', ' ')}`);
+                  }}>
+                    <SelectTrigger className="h-12 bg-admin-bg/50 border-admin-border text-admin-text-primary rounded-xl font-bold hover:border-zeronix-blue/30 transition-all">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-admin-surface border-admin-border rounded-xl">
+                      {['new', 'in_progress', 'quoted', 'delivered', 'closed', 'won', 'lost', 'cancelled'].map(s => (
+                        <SelectItem key={s} value={s} className="capitalize font-bold text-sm">{s.replace('_', ' ')}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Urgency Level</Label>
+                  <Select value={selectedEnquiry.priority} onValueChange={(v) => {
+                    update.mutate({ id: selectedId!, data: { priority: v as any } });
+                    toast.success(`Priority updated to ${v}`);
+                  }}>
+                    <SelectTrigger className="h-12 bg-admin-bg/50 border-admin-border text-admin-text-primary rounded-xl font-bold hover:border-zeronix-blue/30 transition-all">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-admin-surface border-admin-border rounded-xl">
+                      {['normal', 'high', 'urgent'].map(p => (
+                        <SelectItem key={p} value={p} className="capitalize font-bold text-sm">{p}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </section>
+
+            {/* Customer Details Segment */}
+            <section className="space-y-3">
+               <div className="flex items-center gap-2 text-admin-text-muted mb-1">
+                <div className="h-1 w-3 bg-purple-500 rounded-full" />
+                <h4 className="text-[10px] font-black uppercase tracking-widest">Client Identification</h4>
+              </div>
+              <div className="bg-admin-bg/30 border border-admin-border rounded-2xl p-5 flex items-center gap-5">
+                <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-zeronix-blue/20 to-purple-500/20 flex items-center justify-center text-admin-text-primary text-xl font-black border border-white/5">
+                  {selectedEnquiry.customer?.name?.[0] || 'U'}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-black text-admin-text-primary text-lg">{selectedEnquiry.customer?.name || 'Manual Lead'}</p>
+                  <div className="flex items-center gap-3 mt-1">
+                    <p className="text-xs font-bold text-admin-text-muted flex items-center gap-1.5">
+                      <Building2 size={13} className="text-zeronix-blue" /> {selectedEnquiry.customer?.company || 'Personal Account'}
+                    </p>
+                    <div className="h-1 w-1 bg-admin-border rounded-full" />
+                    <p className="text-xs font-bold text-admin-text-muted">
+                      Source: <span className="text-admin-text-primary capitalize">{selectedEnquiry.source}</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+
+
+            {/* Operational Notes Segment */}
+            <section className="space-y-3 pb-2">
+              <div className="flex items-center gap-2 text-admin-text-muted mb-1">
+                <div className="h-1 w-3 bg-green-500 rounded-full" />
+                <h4 className="text-[10px] font-black uppercase tracking-widest">Internal Collaboration</h4>
+              </div>
+              <div className="space-y-3">
+                <Textarea
+                  defaultValue={selectedEnquiry.notes || ''}
+                  id="enquiry-notes"
+                  className="bg-admin-bg/30 border-admin-border text-admin-text-primary focus:border-zeronix-blue focus:ring-zeronix-blue/5 rounded-2xl min-h-[140px] resize-none text-sm font-medium p-4"
+                  placeholder="Type internal notes, quality assessments, or follow-up details..."
+                />
+                <Button
+                  onClick={() => {
+                    const notes = (document.getElementById('enquiry-notes') as HTMLTextAreaElement).value;
+                    update.mutate({ id: selectedId!, data: { notes } });
+                    toast.success('Internal notes updated successfully');
+                  }}
+                  disabled={update.isPending}
+                  className="w-full bg-admin-surface border border-admin-border text-admin-text-primary hover:bg-admin-bg/50 h-11 rounded-xl font-black text-xs tracking-widest shadow-sm"
+                >
+                  {update.isPending ? <Loader2 className="animate-spin" size={16} /> : 'UPDATE INTERNAL LOG'}
+                </Button>
+              </div>
+            </section>
           </div>
         </div>
-
-        <CommandInput placeholder="Type a command or search actions..." className="h-12 text-sm border-none focus:ring-0" />
-        <CommandList className="max-h-[400px]">
-          <CommandEmpty>No matching actions found.</CommandEmpty>
-          
-          <CommandGroup heading="Actions">
-            <CommandItem onSelect={() => {
-              setSheetOpen(false);
-              navigate(`${getBasePath()}/quotes/create`, { state: { enquiryId: selectedEnquiry.id, customerId: selectedEnquiry.customer_id } });
-            }}>
-              <FileText className="mr-2 h-4 w-4 text-zeronix-blue" />
-              <span className="font-bold text-sm">Generate Quotation</span>
-            </CommandItem>
-            {selectedEnquiry.customer_id && (
-              <CommandItem onSelect={() => {
-                setSheetOpen(false);
-                navigate(`${getBasePath()}/customers/${selectedEnquiry.customer_id}`);
-              }}>
-                <UserIcon className="mr-2 h-4 w-4 text-purple-500" />
-                <span className="font-bold text-sm">View Client Profile</span>
-              </CommandItem>
-            )}
-          </CommandGroup>
-          
-          <CommandGroup heading="Change Status">
-            {['new', 'in_progress', 'quoted', 'won', 'lost', 'closed'].map(s => (
-              <CommandItem key={`status-${s}`} value={`status ${s}`} onSelect={() => {
-                update.mutate({ id: selectedId!, data: { status: s as any } });
-                setSheetOpen(false);
-              }}>
-                <div className={`w-2 h-2 rounded-full mr-2 ${selectedEnquiry.status === s ? 'bg-zeronix-blue' : 'bg-admin-border'}`} />
-                <span className="capitalize text-sm font-medium">Mark as {s.replace('_', ' ')}</span>
-              </CommandItem>
-            ))}
-          </CommandGroup>
-          
-          <CommandGroup heading="Change Priority">
-            {['normal', 'high', 'urgent'].map(p => (
-              <CommandItem key={`priority-${p}`} value={`priority ${p}`} onSelect={() => {
-                update.mutate({ id: selectedId!, data: { priority: p as any } });
-                setSheetOpen(false);
-              }}>
-                <div className={`w-2 h-2 rounded-full mr-2 ${selectedEnquiry.priority === p ? 'bg-zeronix-blue' : 'bg-admin-border'}`} />
-                <span className="capitalize text-sm font-medium">Mark as {p}</span>
-              </CommandItem>
-            ))}
-          </CommandGroup>
-
-          <CommandGroup heading="Line Items">
-            {selectedEnquiry.items?.length > 0 ? selectedEnquiry.items.map((item: any) => (
-              <CommandItem key={`item-${item.id}`} value={`item ${item.product?.name || item.description}`} className="justify-between cursor-default">
-                <span className="font-bold text-admin-text-primary text-xs">{item.product?.name || item.description || 'Custom Item'}</span>
-                <span className="font-black text-zeronix-blue text-[10px] bg-zeronix-blue/10 px-2 py-0.5 rounded uppercase">Qty: {item.quantity}</span>
-              </CommandItem>
-            )) : (
-              <div className="p-4 text-xs font-bold italic text-admin-text-muted text-center border-t border-admin-border/50">
-                No products listed for this enquiry.
-              </div>
-            )}
-          </CommandGroup>
-          
-          {selectedEnquiry.notes && (
-            <CommandGroup heading="Internal Notes">
-              <div className="p-3 mx-2 mb-2 bg-admin-bg/50 border border-admin-border rounded-lg text-xs font-medium text-admin-text-primary whitespace-pre-wrap">
-                {selectedEnquiry.notes}
-              </div>
-            </CommandGroup>
-          )}
-        </CommandList>
-      </div>
-    )}
-  </CommandDialog>
+      )}
+    </DialogContent>
+  </Dialog>
 
   {/* Add Enquiry Dialog */ }
   <Dialog open={addOpen} onOpenChange={setAddOpen}>

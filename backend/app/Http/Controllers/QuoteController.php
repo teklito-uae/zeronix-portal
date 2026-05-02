@@ -16,9 +16,7 @@ class QuoteController extends Controller
             ->withCount('items');
 
         // Data Scoping
-        if ($request->user() && $request->user()->role !== 'admin') {
-            $query->where('user_id', $request->user()->id);
-        }
+        $query->forUser($request->user());
 
         if ($request->filled('search')) {
             $s = $request->search;
@@ -35,7 +33,7 @@ class QuoteController extends Controller
             $query->where('status', $request->status);
         }
 
-        $quotes = $query->latest()->paginate($request->get('per_page', 15));
+        $quotes = $query->latest()->paginate($request->get('per_page', config('zeronix.default_per_page', 15)));
 
         return response()->json([
             'data' => $quotes->items(),
@@ -129,24 +127,15 @@ class QuoteController extends Controller
         }
     }
 
-    public function show(Request $request, $id)
+    public function show(Request $request, Quote $quote)
     {
-        $quote = Quote::with(['customer', 'items.product', 'user'])->findOrFail($id);
-
-        if ($request->user() && $request->user()->role !== 'admin' && $quote->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        return response()->json($quote);
+        $this->authorize('view', $quote);
+        return response()->json($quote->load(['customer', 'items.product', 'user']));
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, Quote $quote)
     {
-        $quote = Quote::findOrFail($id);
-
-        if ($request->user() && $request->user()->role !== 'admin' && $quote->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('update', $quote);
 
         $validated = $request->validate([
             'customer_id' => 'required|exists:customers,id',
@@ -184,7 +173,7 @@ class QuoteController extends Controller
                 'status' => $validated['status'] ?? $quote->status,
             ]);
 
-            // Sync items (Delete old ones and create new ones for simplicity or update existing)
+            // Sync items
             $quote->items()->delete();
             foreach ($validated['items'] as $item) {
                 $itemSubtotal = $item['quantity'] * $item['unit_price'];
@@ -222,20 +211,17 @@ class QuoteController extends Controller
         }
     }
 
-    public function destroy(Request $request, $id)
+    public function destroy(Request $request, Quote $quote)
     {
-        $quote = Quote::findOrFail($id);
-
-        if ($request->user() && $request->user()->role !== 'admin' && $quote->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
+        $this->authorize('delete', $quote);
         $quote->delete();
         return response()->json(['message' => 'Quote deleted']);
     }
-    public function sendEmail(Request $request, $id)
+
+    public function sendEmail(Request $request, Quote $quote)
     {
-        $quote = Quote::with(['customer', 'items'])->findOrFail($id);
+        $this->authorize('view', $quote);
+        $quote->load(['customer', 'items']);
 
         if (!$quote->customer->email) {
             return response()->json(['message' => 'Customer does not have an email address.'], 422);

@@ -97,28 +97,76 @@ Route::middleware('throttle:public')->group(function () {
     Route::get('/admin/receipts/{id}/view', [DocumentController::class, 'previewReceipt']);
 });
 
+// Common routes for both Admin and Staff (using getBasePath() on frontend)
+foreach (['admin', 'staff'] as $prefix) {
+    Route::prefix($prefix)->middleware('auth:sanctum')->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'index']);
+        
+        // Enquiries
+        Route::get('/enquiries', [EnquiryController::class, 'index']);
+        Route::post('/enquiries', [EnquiryController::class, 'store']);
+        Route::get('/enquiries/{enquiry}', [EnquiryController::class, 'show']);
+        Route::put('/enquiries/{enquiry}', [EnquiryController::class, 'update']);
+        Route::delete('/enquiries/{enquiry}', [EnquiryController::class, 'destroy']);
+        Route::put('/enquiries/{enquiry}/assign', [EnquiryController::class, 'assign']);
+
+        // Customers
+        Route::get('/customers', [CustomerController::class, 'index']);
+        Route::post('/customers', [CustomerController::class, 'store']);
+        Route::get('/customers/{customer}', [CustomerController::class, 'show']);
+        Route::put('/customers/{customer}', [CustomerController::class, 'update']);
+        Route::delete('/customers/{customer}', [CustomerController::class, 'destroy']);
+        Route::post('/customers/{customer}/register-portal', [CustomerController::class, 'registerPortal']);
+
+        // Quotes
+        Route::get('/quotes', [QuoteController::class, 'index']);
+        Route::post('/quotes', [QuoteController::class, 'store']);
+        Route::get('/quotes/{quote}', [QuoteController::class, 'show']);
+        Route::put('/quotes/{quote}', [QuoteController::class, 'update']);
+        Route::delete('/quotes/{quote}', [QuoteController::class, 'destroy']);
+        Route::post('/quotes/{quote}/send-email', [QuoteController::class, 'sendEmail']);
+
+        // Invoices
+        Route::get('/invoices', [InvoiceController::class, 'index']);
+        Route::post('/invoices', [InvoiceController::class, 'store']);
+        Route::get('/invoices/{invoice}', [InvoiceController::class, 'show']);
+        Route::put('/invoices/{invoice}', [InvoiceController::class, 'update']);
+        Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy']);
+        Route::post('/invoices/{invoice}/send-email', [InvoiceController::class, 'sendEmail']);
+
+        // Products
+        Route::get('/products', [ProductController::class, 'index']);
+        Route::get('/products/{product}', [ProductController::class, 'show']);
+        Route::get('/categories', [CategoryController::class, 'index']);
+        Route::get('/brands', [BrandController::class, 'index']);
+        Route::get('/users', [UserController::class, 'index']);
+
+        // Notifications
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::get('/notifications/unread', [NotificationController::class, 'unread']);
+        Route::post('/notifications/mark-read', [NotificationController::class, 'markAsRead']);
+        Route::post('/notifications/{id}/mark-read', [NotificationController::class, 'markOneAsRead']);
+        
+        // Chat
+        Route::get('/chat/rooms', [AdminChatController::class, 'index']);
+        Route::get('/chat/rooms/{id}/messages', [AdminChatController::class, 'show']);
+        Route::post('/chat/rooms/{id}/messages', [AdminChatController::class, 'store']);
+        Route::post('/chat/rooms/{id}/read', [AdminChatController::class, 'markAsRead']);
+    });
+}
+
 // Admin Auth Routes
 Route::prefix('admin')->group(function () {
     Route::post('/login', [AdminAuthController::class, 'login']);
     
     Route::middleware('auth:sanctum')->group(function () {
+        // Dashboard (Legacy/Direct)
         Route::get('/dashboard', [DashboardController::class, 'index']);
         Route::post('/logout', [AdminAuthController::class, 'logout']);
         Route::get('/user', [AdminAuthController::class, 'user']);
         
-        // Brands
-        Route::get('/brands', [BrandController::class, 'index']);
-        Route::post('/brands', [BrandController::class, 'store']);
-        
-        // Suppliers
-        Route::get('/suppliers', [SupplierController::class, 'index']);
-        Route::post('/suppliers', [SupplierController::class, 'store']);
-        Route::get('/suppliers/{supplier}', [SupplierController::class, 'show']);
-        Route::put('/suppliers/{supplier}', [SupplierController::class, 'update']);
-        Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy']);
-        
         // Categories
-        Route::get('/categories', [CategoryController::class, 'index']);
+        // Handled by shared loop
         
         // Products
         Route::get('/products', [ProductController::class, 'index']);
@@ -134,49 +182,17 @@ Route::prefix('admin')->group(function () {
         // Supplier Product Management
         Route::put('/supplier-products/{id}', [SupplierProductController::class, 'update']);
         
-        // Customers
-        Route::get('/customers', [CustomerController::class, 'index']);
-        Route::post('/customers', [CustomerController::class, 'store']);
-        Route::get('/customers/{customer}', [CustomerController::class, 'show']);
-        Route::put('/customers/{customer}', [CustomerController::class, 'update']);
-        Route::delete('/customers/{customer}', [CustomerController::class, 'destroy']);
-        Route::post('/customers/{customer}/register-portal', [CustomerController::class, 'registerPortal']);
-
-        // Enquiries
-        Route::get('/enquiries', [EnquiryController::class, 'index']);
-        Route::post('/enquiries', [EnquiryController::class, 'store']);
-        Route::get('/enquiries/{id}', [EnquiryController::class, 'show']);
-        Route::put('/enquiries/{id}', [EnquiryController::class, 'update']);
-        Route::delete('/enquiries/{id}', [EnquiryController::class, 'destroy']);
-        Route::put('/enquiries/{id}/assign', [EnquiryController::class, 'assign']);
-
         // Users / Team
-        Route::get('/users', [UserController::class, 'index']);
+        // Index handled by shared loop
         Route::post('/users', [UserController::class, 'store']);
-        Route::get('/users/{id}', [UserController::class, 'show']);
-        Route::put('/users/{id}', [UserController::class, 'update']);
-        Route::delete('/users/{id}', [UserController::class, 'destroy']);
+        Route::get('/users/{user}', [UserController::class, 'show']);
+        Route::put('/users/{user}', [UserController::class, 'update']);
+        Route::delete('/users/{user}', [UserController::class, 'destroy']);
         Route::put('/user/smtp', [UserController::class, 'updateSmtpSettings']);
         Route::post('/user/test-email', [UserController::class, 'sendTestEmail']);
 
         // Activity Logs
         Route::get('/activities', [ActivityController::class, 'index']);
-
-        // Quotes
-        Route::get('/quotes', [QuoteController::class, 'index']);
-        Route::post('/quotes', [QuoteController::class, 'store']);
-        Route::get('/quotes/{id}', [QuoteController::class, 'show']);
-        Route::put('/quotes/{id}', [QuoteController::class, 'update']);
-        Route::delete('/quotes/{id}', [QuoteController::class, 'destroy']);
-        Route::post('/quotes/{id}/send-email', [QuoteController::class, 'sendEmail']);
-
-        // Invoices
-        Route::get('/invoices', [InvoiceController::class, 'index']);
-        Route::post('/invoices', [InvoiceController::class, 'store']);
-        Route::get('/invoices/{id}', [InvoiceController::class, 'show']);
-        Route::put('/invoices/{id}', [InvoiceController::class, 'update']);
-        Route::delete('/invoices/{id}', [InvoiceController::class, 'destroy']);
-        Route::post('/invoices/{id}/send-email', [InvoiceController::class, 'sendEmail']);
 
         // Payment Receipts
         Route::post('/payment-receipts/{id}/send-email', [PaymentReceiptController::class, 'sendEmail']);
@@ -189,15 +205,9 @@ Route::prefix('admin')->group(function () {
         Route::get('/templates/type/{type}', [TemplateController::class, 'getByType']);
 
         // Notifications
-        Route::get('/notifications', [NotificationController::class, 'index']);
-        Route::get('/notifications/unread', [NotificationController::class, 'unread']);
-        Route::post('/notifications/mark-read', [NotificationController::class, 'markAsRead']);
-        Route::post('/notifications/{id}/mark-read', [NotificationController::class, 'markOneAsRead']);
+        // Moved to shared loop
         
         // Chat
-        Route::get('/chat/rooms', [AdminChatController::class, 'index']);
-        Route::get('/chat/rooms/{id}/messages', [AdminChatController::class, 'show']);
-        Route::post('/chat/rooms/{id}/messages', [AdminChatController::class, 'store']);
-        Route::post('/chat/rooms/{id}/read', [AdminChatController::class, 'markAsRead']);
+        // Moved to shared loop
     });
 });

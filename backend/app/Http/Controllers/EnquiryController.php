@@ -14,9 +14,7 @@ class EnquiryController extends Controller
         $query = Enquiry::with(['customer', 'user', 'assignedUser'])->withCount('items');
 
         // Data Scoping
-        if ($request->user() && $request->user()->role !== 'admin') {
-            $query->where('user_id', $request->user()->id);
-        }
+        $query->forUser($request->user());
 
         if ($request->filled('search')) {
             $s = $request->search;
@@ -41,7 +39,7 @@ class EnquiryController extends Controller
             $query->where('source', $request->source);
         }
 
-        $enquiries = $query->latest()->paginate($request->get('per_page', 15));
+        $enquiries = $query->latest()->paginate($request->get('per_page', config('zeronix.default_per_page', 15)));
 
         return response()->json([
             'data' => $enquiries->items(),
@@ -92,6 +90,7 @@ class EnquiryController extends Controller
             $enquiry = Enquiry::create([
                 'customer_id' => $customerId,
                 'user_id' => $request->user()->id ?? null,
+                'assigned_to' => $request->user()->role === 'salesman' ? $request->user()->id : null,
                 'source' => $validated['source'] ?? 'portal',
                 'priority' => $validated['priority'] ?? 'normal',
                 'status' => $validated['status'] ?? 'new',
@@ -119,24 +118,15 @@ class EnquiryController extends Controller
         }
     }
 
-    public function show(Request $request, $id)
+    public function show(Request $request, Enquiry $enquiry)
     {
-        $enquiry = Enquiry::with(['customer', 'items.product', 'user', 'assignedUser'])->findOrFail($id);
-
-        if ($request->user() && $request->user()->role !== 'admin' && $enquiry->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        return response()->json($enquiry);
+        $this->authorize('view', $enquiry);
+        return response()->json($enquiry->load(['customer', 'items.product', 'user', 'assignedUser']));
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, Enquiry $enquiry)
     {
-        $enquiry = Enquiry::findOrFail($id);
-
-        if ($request->user() && $request->user()->role !== 'admin' && $enquiry->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('update', $enquiry);
 
         $validated = $request->validate([
             'status' => 'nullable|string',
@@ -145,7 +135,7 @@ class EnquiryController extends Controller
             'cancellation_reason' => 'required_if:status,cancelled|string|nullable',
         ]);
 
-        if ($validated['status'] === 'cancelled' && $enquiry->status !== 'cancelled') {
+        if (isset($validated['status']) && $validated['status'] === 'cancelled' && $enquiry->status !== 'cancelled') {
             $enquiry->cancelled_at = now();
         }
 
@@ -154,14 +144,9 @@ class EnquiryController extends Controller
         return response()->json($enquiry);
     }
 
-    public function destroy(Request $request, $id)
+    public function destroy(Request $request, Enquiry $enquiry)
     {
-        $enquiry = Enquiry::findOrFail($id);
-
-        if ($request->user() && $request->user()->role !== 'admin' && $enquiry->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
+        $this->authorize('delete', $enquiry);
         $enquiry->delete();
         return response()->json(['message' => 'Enquiry deleted']);
     }

@@ -26,7 +26,7 @@ class UserController extends Controller
             $query->where('role', $request->role);
         }
 
-        $users = $query->latest()->paginate($request->get('per_page', 15));
+        $users = $query->latest()->paginate($request->get('per_page', config('zeronix.default_per_page', 15)));
 
         return response()->json([
             'data' => $users->items(),
@@ -57,15 +57,15 @@ class UserController extends Controller
         return response()->json($user, 201);
     }
 
-    public function show($id)
+    public function show(Request $request, User $user)
     {
-        $user = User::findOrFail($id);
+        $this->authorize('view', $user);
         return response()->json($user);
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, User $user)
     {
-        $user = User::findOrFail($id);
+        $this->authorize('update', $user);
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -88,15 +88,9 @@ class UserController extends Controller
         return response()->json($user);
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, User $user)
     {
-        $user = User::findOrFail($id);
-        
-        // Prevent deleting oneself
-        if (request()->user() && request()->user()->id === $user->id) {
-            return response()->json(['message' => 'Cannot delete yourself'], 403);
-        }
-
+        $this->authorize('delete', $user);
         $user->delete();
         return response()->json(['message' => 'User deleted successfully']);
     }
