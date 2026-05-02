@@ -200,6 +200,7 @@ return array(
     'Cron\\MinutesField' => $vendorDir . '/dragonmantank/cron-expression/src/Cron/MinutesField.php',
     'Cron\\MonthField' => $vendorDir . '/dragonmantank/cron-expression/src/Cron/MonthField.php',
     'Database\\Factories\\UserFactory' => $baseDir . '/database/factories/UserFactory.php',
+    'Database\\Seeders\\AlRafaProductSeeder' => $baseDir . '/database/seeders/AlRafaProductSeeder.php',
     'Database\\Seeders\\DatabaseSeeder' => $baseDir . '/database/seeders/DatabaseSeeder.php',
     'Database\\Seeders\\DummyDataSeeder' => $baseDir . '/database/seeders/DummyDataSeeder.php',
     'Database\\Seeders\\TemplateSeeder' => $baseDir . '/database/seeders/TemplateSeeder.php',
