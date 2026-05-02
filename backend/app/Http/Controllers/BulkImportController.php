@@ -46,14 +46,14 @@ class BulkImportController extends Controller
                 }
 
                 if (!$product) {
-                    $productName = Str::limit($item['name'], 255);
+                    $productName = Str::limit($item['name'], 191, '');
                     $product = \App\Models\Product::create([
                         'name' => $productName,
-                        'model_code' => Str::limit($item['model_code'], 255),
+                        'model_code' => Str::limit($item['model_code'], 191, ''),
                         'brand_id' => $item['brand_id'] ?? $this->detectBrand($item['name']),
                         'category_id' => $item['category_id'] ?? null,
                         'specs' => $item['specs'],
-                        'slug' => Str::slug(Str::limit($productName, 240)) . '-' . Str::random(5),
+                        'slug' => Str::slug(Str::limit($productName, 180, '')) . '-' . Str::random(5),
                     ]);
                 }
 
@@ -77,7 +77,7 @@ class BulkImportController extends Controller
                     $existing->update([
                         'product_id' => $product->id,
                         'category_id' => $item['category_id'] ?? $existing->category_id,
-                        'name' => Str::limit($item['name'], 255),
+                        'name' => Str::limit($item['name'], 191, ''),
                         'price' => $item['price'],
                         'raw_text' => $item['raw_text'],
                         'specs' => $item['specs'],
@@ -96,8 +96,8 @@ class BulkImportController extends Controller
                         'supplier_id' => $supplierId,
                         'product_id' => $product->id,
                         'category_id' => $item['category_id'] ?? null,
-                        'name' => Str::limit($item['name'], 255),
-                        'model_code' => Str::limit($item['model_code'], 255),
+                        'name' => Str::limit($item['name'], 191, ''),
+                        'model_code' => Str::limit($item['model_code'], 191, ''),
                         'identifier_hash' => $item['identifier_hash'],
                         'price' => $item['price'],
                         'currency' => $item['currency'] ?? 'AED',
