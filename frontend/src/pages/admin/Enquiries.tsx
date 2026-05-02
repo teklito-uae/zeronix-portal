@@ -14,12 +14,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet';
+  CommandDialog,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from '@/components/ui/command';
 import {
   Dialog,
   DialogContent,
@@ -37,7 +38,7 @@ import { toast } from 'sonner';
 import api from '@/lib/axios';
 import { timeAgo } from '@/lib/utils';
 import type { Enquiry, Customer, User as UserType } from '@/types';
-import { MessageSquare, Building2, Mail, Phone, FileText, Package, Loader2, Plus, XCircle, User as UserIcon } from 'lucide-react';
+import { MessageSquare, Building2, FileText, Loader2, Plus, User as UserIcon } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
@@ -415,200 +416,105 @@ export const Enquiries = () => {
       />)
   }
 
-  {/* Detail Sheet */ }
-  <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-    <SheetContent side="right" className="w-full sm:max-w-xl bg-admin-surface border-l border-admin-border overflow-y-auto rounded-l-3xl shadow-2xl p-0">
-      {isEnquiryLoading ? (
-        <div className="flex justify-center items-center h-full">
-          <Loader2 className="animate-spin text-zeronix-blue" size={40} />
-        </div>
-      ) : selectedEnquiry && (
-        <div className="flex flex-col h-full">
-          <div className="p-6 pb-4 border-b border-admin-border bg-admin-bg/30">
-            <SheetHeader className="pb-0">
-              <div className="flex items-center justify-between">
-                <SheetTitle className="text-2xl font-black text-admin-text-primary flex items-center gap-2">
-                  <span className="text-zeronix-blue">ENQ</span>
-                  <span className="opacity-30">/</span>
-                  <span>{String(selectedEnquiry.id).padStart(3, '0')}</span>
-                </SheetTitle>
-                <StatusBadge status={selectedEnquiry.status} className="h-6 px-3 text-[10px]" />
-              </div>
-              <SheetDescription className="text-xs font-medium text-admin-text-muted mt-1 uppercase tracking-widest">
-                Lead Management & Lifecycle Tracking
-              </SheetDescription>
-            </SheetHeader>
+  {/* Detail Command Dialog */ }
+  <CommandDialog open={sheetOpen} onOpenChange={setSheetOpen}>
+    {isEnquiryLoading ? (
+      <div className="flex justify-center items-center p-12">
+        <Loader2 className="animate-spin text-zeronix-blue" size={40} />
+      </div>
+    ) : selectedEnquiry && (
+      <div className="flex flex-col w-full">
+        <div className="p-5 bg-admin-bg/30 border-b border-admin-border flex justify-between items-start">
+          <div>
+            <h2 className="text-xl font-black text-admin-text-primary flex items-center gap-2">
+              <span className="text-zeronix-blue">ENQ</span>
+              <span className="opacity-30">/</span>
+              <span>{String(selectedEnquiry.id).padStart(3, '0')}</span>
+            </h2>
+            <p className="text-sm font-bold text-admin-text-primary mt-1">{selectedEnquiry.customer?.name || 'Manual Lead'}</p>
+            {selectedEnquiry.customer?.company && (
+              <p className="text-xs font-bold text-admin-text-muted flex items-center gap-1.5 mt-1">
+                <Building2 size={12} /> {selectedEnquiry.customer.company}
+              </p>
+            )}
           </div>
+          <div className="flex flex-col items-end gap-2">
+            <StatusBadge status={selectedEnquiry.status} />
+            <StatusBadge status={selectedEnquiry.priority} />
+          </div>
+        </div>
 
-          <div className="flex-1 p-6 space-y-8">
-            {/* Status & Priority Controls */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Workflow Status</Label>
-                <Select value={selectedEnquiry.status} onValueChange={(v) => update.mutate({ id: selectedId!, data: { status: v as any } })}>
-                  <SelectTrigger className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl font-bold">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-admin-surface border-admin-border rounded-xl">
-                    {['new', 'in_progress', 'quoted', 'delivered', 'closed', 'won', 'lost', 'cancelled'].map(s => (
-                      <SelectItem key={s} value={s} className="capitalize font-medium">{s.replace('_', ' ')}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Lead Priority</Label>
-                <Select value={selectedEnquiry.priority} onValueChange={(v) => update.mutate({ id: selectedId!, data: { priority: v as any } })}>
-                  <SelectTrigger className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl font-bold">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-admin-surface border-admin-border rounded-xl">
-                    {['normal', 'high', 'urgent'].map(p => (
-                      <SelectItem key={p} value={p} className="capitalize font-medium">{p}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+        <CommandInput placeholder="Type a command or search actions..." className="h-12 text-sm border-none focus:ring-0" />
+        <CommandList className="max-h-[400px]">
+          <CommandEmpty>No matching actions found.</CommandEmpty>
+          
+          <CommandGroup heading="Actions">
+            <CommandItem onSelect={() => {
+              setSheetOpen(false);
+              navigate(`${getBasePath()}/quotes/create`, { state: { enquiryId: selectedEnquiry.id, customerId: selectedEnquiry.customer_id } });
+            }}>
+              <FileText className="mr-2 h-4 w-4 text-zeronix-blue" />
+              <span className="font-bold text-sm">Generate Quotation</span>
+            </CommandItem>
+            {selectedEnquiry.customer_id && (
+              <CommandItem onSelect={() => {
+                setSheetOpen(false);
+                navigate(`${getBasePath()}/customers/${selectedEnquiry.customer_id}`);
+              }}>
+                <UserIcon className="mr-2 h-4 w-4 text-purple-500" />
+                <span className="font-bold text-sm">View Client Profile</span>
+              </CommandItem>
+            )}
+          </CommandGroup>
+          
+          <CommandGroup heading="Change Status">
+            {['new', 'in_progress', 'quoted', 'won', 'lost', 'closed'].map(s => (
+              <CommandItem key={`status-${s}`} value={`status ${s}`} onSelect={() => {
+                update.mutate({ id: selectedId!, data: { status: s as any } });
+                setSheetOpen(false);
+              }}>
+                <div className={`w-2 h-2 rounded-full mr-2 ${selectedEnquiry.status === s ? 'bg-zeronix-blue' : 'bg-admin-border'}`} />
+                <span className="capitalize text-sm font-medium">Mark as {s.replace('_', ' ')}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+          
+          <CommandGroup heading="Change Priority">
+            {['normal', 'high', 'urgent'].map(p => (
+              <CommandItem key={`priority-${p}`} value={`priority ${p}`} onSelect={() => {
+                update.mutate({ id: selectedId!, data: { priority: p as any } });
+                setSheetOpen(false);
+              }}>
+                <div className={`w-2 h-2 rounded-full mr-2 ${selectedEnquiry.priority === p ? 'bg-zeronix-blue' : 'bg-admin-border'}`} />
+                <span className="capitalize text-sm font-medium">Mark as {p}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
 
-            {selectedEnquiry.status === 'cancelled' && (
-              <div className="p-4 bg-red-500/5 border border-red-500/10 rounded-2xl space-y-3">
-                <Label className="text-red-600 text-[10px] uppercase font-black tracking-widest flex items-center gap-1.5 ml-1">
-                  <XCircle size={14} /> Cancellation Justification
-                </Label>
-                <Textarea
-                  defaultValue={selectedEnquiry.cancellation_reason || ''}
-                  id="cancellation-reason"
-                  placeholder="Why was this lead cancelled?"
-                  className="bg-white border-red-100 text-sm min-h-[100px] focus:ring-red-100 rounded-xl resize-none"
-                />
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    const reason = (document.getElementById('cancellation-reason') as HTMLTextAreaElement).value;
-                    if (!reason) {
-                      toast.error('Reason required');
-                      return;
-                    }
-                    update.mutate({ id: selectedId!, data: { status: 'cancelled', cancellation_reason: reason } });
-                  }}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold h-9 rounded-xl"
-                >
-                  Update Reason
-                </Button>
+          <CommandGroup heading="Line Items">
+            {selectedEnquiry.items?.length > 0 ? selectedEnquiry.items.map((item: any) => (
+              <CommandItem key={`item-${item.id}`} value={`item ${item.product?.name || item.description}`} className="justify-between cursor-default">
+                <span className="font-bold text-admin-text-primary text-xs">{item.product?.name || item.description || 'Custom Item'}</span>
+                <span className="font-black text-zeronix-blue text-[10px] bg-zeronix-blue/10 px-2 py-0.5 rounded uppercase">Qty: {item.quantity}</span>
+              </CommandItem>
+            )) : (
+              <div className="p-4 text-xs font-bold italic text-admin-text-muted text-center border-t border-admin-border/50">
+                No products listed for this enquiry.
               </div>
             )}
-
-            <Separator className="bg-admin-border/50" />
-
-            {/* Customer Info Card */}
-            <div className="space-y-4">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Client Profile</h4>
-              <div
-                className="bg-admin-bg border border-admin-border rounded-2xl p-5 space-y-4 cursor-pointer hover:border-zeronix-blue/40 hover:shadow-lg hover:shadow-zeronix-blue/5 transition-all group"
-                onClick={() => navigate(`${getBasePath()}/customers/${selectedEnquiry.customer_id}`)}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-2xl bg-zeronix-blue/10 flex items-center justify-center text-zeronix-blue text-lg font-black group-hover:scale-110 transition-transform">
-                    {selectedEnquiry.customer?.name?.[0]}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-black text-admin-text-primary text-base">{selectedEnquiry.customer?.name}</p>
-                    <p className="text-xs font-bold text-admin-text-muted flex items-center gap-1.5 mt-0.5">
-                      <Building2 size={12} /> {selectedEnquiry.customer?.company || 'Personal Account'}
-                    </p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 gap-2.5 pt-2 border-t border-admin-border/50">
-                  <p className="text-xs font-bold text-admin-text-secondary flex items-center gap-2.5">
-                    <Mail size={14} className="text-admin-text-muted opacity-60" />
-                    {selectedEnquiry.customer?.email}
-                  </p>
-                  {selectedEnquiry.customer?.phone && (
-                    <p className="text-xs font-bold text-admin-text-secondary flex items-center gap-2.5">
-                      <Phone size={14} className="text-admin-text-muted opacity-60" />
-                      {selectedEnquiry.customer.phone}
-                    </p>
-                  )}
-                </div>
+          </CommandGroup>
+          
+          {selectedEnquiry.notes && (
+            <CommandGroup heading="Internal Notes">
+              <div className="p-3 mx-2 mb-2 bg-admin-bg/50 border border-admin-border rounded-lg text-xs font-medium text-admin-text-primary whitespace-pre-wrap">
+                {selectedEnquiry.notes}
               </div>
-            </div>
-
-            <Separator className="bg-admin-border/50" />
-
-            {/* Items Section */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between ml-1">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted">Line Items</h4>
-                <Badge variant="secondary" className="h-5 px-2 text-[9px] font-black bg-admin-bg border border-admin-border">
-                  {selectedEnquiry.items?.length || 0} TOTAL
-                </Badge>
-              </div>
-              <div className="space-y-2.5">
-                {selectedEnquiry.items?.length > 0 ? (
-                  selectedEnquiry.items.map((item: any) => (
-                    <div key={item.id} className="flex items-center gap-4 p-4 bg-admin-bg border border-admin-border rounded-2xl">
-                      <div className="h-10 w-10 rounded-xl bg-white border border-admin-border flex items-center justify-center flex-shrink-0">
-                        <Package size={20} className="text-admin-text-muted opacity-40" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-black text-admin-text-primary truncate">
-                          {item.product?.name || item.description || 'Custom Item'}
-                        </p>
-                        {item.product?.part_number && (
-                          <p className="text-[10px] font-mono font-bold text-zeronix-blue mt-0.5">{item.product.part_number}</p>
-                        )}
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-[10px] font-black text-admin-text-muted uppercase tracking-tighter">Quantity</p>
-                        <p className="text-sm font-black text-admin-text-primary">{item.quantity}</p>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="p-8 text-center bg-admin-bg border border-dashed border-admin-border rounded-2xl">
-                    <p className="text-xs font-bold text-admin-text-muted italic">No products listed for this enquiry.</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <Separator className="bg-admin-border/50" />
-
-            {/* Internal Notes */}
-            <div className="space-y-3">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Internal Log / Notes</h4>
-              <Textarea
-                defaultValue={selectedEnquiry.notes || ''}
-                id="enquiry-notes"
-                className="bg-admin-bg border-admin-border text-admin-text-primary focus:border-zeronix-blue rounded-2xl min-h-[120px] resize-none text-sm font-medium"
-                placeholder="Document client discussions, lead quality, or internal task updates..."
-              />
-              <Button
-                onClick={() => {
-                  const notes = (document.getElementById('enquiry-notes') as HTMLTextAreaElement).value;
-                  update.mutate({ id: selectedId!, data: { notes } });
-                }}
-                disabled={update.isPending}
-                className="w-full bg-admin-bg border border-admin-border text-admin-text-primary hover:bg-admin-bg/50 h-10 rounded-xl font-bold text-xs"
-              >
-                {update.isPending ? <Loader2 className="animate-spin" size={16} /> : 'SYNC NOTES'}
-              </Button>
-            </div>
-          </div>
-
-          <div className="p-6 bg-admin-surface border-t border-admin-border">
-            <Button
-              onClick={() => navigate(`${getBasePath()}/quotes/create`, { state: { enquiryId: selectedEnquiry.id, customerId: selectedEnquiry.customer_id } })}
-              className="w-full bg-zeronix-blue text-white hover:bg-zeronix-blue-hover h-14 rounded-2xl font-black text-sm shadow-xl shadow-zeronix-blue/20 flex items-center justify-center gap-2"
-            >
-              <FileText size={18} /> GENERATE QUOTATION
-            </Button>
-          </div>
-        </div>
-      )}
-    </SheetContent>
-  </Sheet>
+            </CommandGroup>
+          )}
+        </CommandList>
+      </div>
+    )}
+  </CommandDialog>
 
   {/* Add Enquiry Dialog */ }
   <Dialog open={addOpen} onOpenChange={setAddOpen}>
