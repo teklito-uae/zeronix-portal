@@ -141,6 +141,13 @@ foreach (['admin', 'staff'] as $prefix) {
         Route::get('/brands', [BrandController::class, 'index']);
         Route::get('/users', [UserController::class, 'index']);
 
+        // Suppliers
+        Route::get('/suppliers', [SupplierController::class, 'index']);
+        Route::post('/suppliers', [SupplierController::class, 'store']);
+        Route::get('/suppliers/{supplier}', [SupplierController::class, 'show']);
+        Route::put('/suppliers/{supplier}', [SupplierController::class, 'update']);
+        Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy']);
+
         // Notifications
         Route::get('/notifications', [NotificationController::class, 'index']);
         Route::get('/notifications/unread', [NotificationController::class, 'unread']);
