@@ -162,10 +162,10 @@ export const BulkImport = () => {
             <div className="space-y-2">
               <label className="text-sm font-semibold text-admin-text-primary">1. Select Supplier</label>
               <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
-                <SelectTrigger className="bg-admin-bg border-admin-border h-11">
+                <SelectTrigger className="bg-admin-bg border-admin-border h-11 text-admin-text-primary">
                   <SelectValue placeholder={loadingSuppliers ? "Loading..." : "Choose Supplier"} />
                 </SelectTrigger>
-                <SelectContent className="bg-admin-surface border-admin-border">
+                <SelectContent className="bg-admin-surface border-admin-border text-admin-text-primary">
                   {suppliers?.map((s: any) => (
                     <SelectItem key={s.id} value={s.id.toString()} className="hover:bg-admin-surface-hover cursor-pointer">{s.name}</SelectItem>
                   ))}
@@ -176,10 +176,10 @@ export const BulkImport = () => {
             <div className="space-y-2">
               <label className="text-sm font-semibold text-admin-text-primary">2. Select Category</label>
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="bg-admin-bg border-admin-border h-11">
+                <SelectTrigger className="bg-admin-bg border-admin-border h-11 text-admin-text-primary">
                   <SelectValue placeholder={loadingCategories ? "Loading..." : "Choose Category"} />
                 </SelectTrigger>
-                <SelectContent className="bg-admin-surface border-admin-border">
+                <SelectContent className="bg-admin-surface border-admin-border text-admin-text-primary">
                   {categories?.map((c: any) => (
                     <SelectItem key={c.id} value={c.id.toString()} className="hover:bg-admin-surface-hover cursor-pointer">{c.name}</SelectItem>
                   ))}

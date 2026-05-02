@@ -1,3 +1,4 @@
+import { getBasePath } from '@/hooks/useBasePath';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -13,9 +14,14 @@ import { useResourceMutation } from '@/hooks/useApi';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import { ActionGroup } from '@/components/shared/ActionGroup';
 
-import type { Customer } from '@/types';
-import { Users, Mail, Phone, Building2, Loader2, User } from 'lucide-react';
+import type { Customer, User } from '@/types';
+import { Users, Mail, Phone, Building2, Loader2, User as UserIcon } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import { useResourceList } from '@/hooks/useApi';
+import { useAuthStore } from '@/store/useAuthStore';
 
 /**
  * Customers Module
@@ -32,8 +38,12 @@ export const Customers = () => {
 
   // Form States
   const [form, setForm] = useState({ 
-    name: '', company: '', email: '', phone: '', address: '', trn: '', is_portal_active: true 
+    name: '', company: '', email: '', phone: '', address: '', trn: '', is_portal_active: true, user_id: '' 
   });
+
+  const { admin: currentUser } = useAuthStore();
+  const { data: staffData } = useResourceList<User>('users', { per_page: 100 });
+  const staffMembers = (staffData?.data || []).filter((u: any) => u.role !== 'customer');
 
   // CRUD State Hooks
   const { create, update, remove } = useResourceMutation('customers');
@@ -41,7 +51,10 @@ export const Customers = () => {
   // Handlers
   const openAdd = () => {
     setEditingCustomer(null);
-    setForm({ name: '', company: '', email: '', phone: '', address: '', trn: '', is_portal_active: true });
+    setForm({ 
+      name: '', company: '', email: '', phone: '', address: '', trn: '', 
+      is_portal_active: true, user_id: currentUser?.id?.toString() || '' 
+    });
     setDialogOpen(true);
   };
 
@@ -55,6 +68,7 @@ export const Customers = () => {
       address: customer.address || '',
       trn: customer.trn || '',
       is_portal_active: customer.is_portal_active ?? true,
+      user_id: customer.user_id?.toString() || '',
     });
     setDialogOpen(true);
   };
@@ -131,6 +145,26 @@ export const Customers = () => {
       ),
     },
     {
+      accessorKey: 'assignedUser',
+      header: 'Added By',
+      cell: ({ row }) => {
+        const user = row.original.assigned_user;
+        // If no user assigned, it means it's an unassigned lead or managed by Admin
+        if (!user) return <span className="text-admin-text-secondary text-[11px] font-bold">Admin</span>;
+        
+        return (
+          <div className="flex items-center gap-1.5">
+            <div className="h-4 w-4 rounded-full bg-zeronix-blue/10 flex items-center justify-center text-[8px] font-bold text-zeronix-blue">
+              {user.name[0]}
+            </div>
+            <span className="text-[11px] font-medium text-admin-text-secondary">
+              {user.role === 'admin' ? 'Admin' : user.name}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
       accessorKey: 'quotes_count',
       header: 'Activity',
       cell: ({ row }) => (
@@ -146,7 +180,7 @@ export const Customers = () => {
         <ActionGroup
           onEdit={() => openEdit(row.original)}
           onDelete={() => { setDeletingId(row.original.id); setDeleteOpen(true); }}
-          onView={() => navigate(`/admin/customers/${row.original.id}`)}
+          onView={() => navigate(`${getBasePath()}/customers/${row.original.id}`)}
         />
       ),
     },
@@ -160,16 +194,17 @@ export const Customers = () => {
         subtitle="Manage customer profiles, portal access, and trade history."
         icon={<Users size={20} />}
         columns={columns}
-        onRowClick={(row) => navigate(`/admin/customers/${row.id}`)}
+        onRowClick={(row) => navigate(`${getBasePath()}/customers/${row.id}`)}
         createLabel="Add Customer"
         createPath="#" // Using modal instead
+        onCreateClick={openAdd}
         searchPlaceholder="Search by name, company, email, phone..."
       />
 
       {/* Manual Button for Add (Floating on Mobile) */}
       <div className="fixed bottom-8 right-8 z-50 lg:hidden">
         <Button onClick={openAdd} className="h-14 w-14 rounded-full bg-zeronix-blue shadow-xl text-white">
-          <User size={24} />
+          <UserIcon size={24} />
         </Button>
       </div>
 
@@ -251,9 +286,29 @@ export const Customers = () => {
                 onChange={e => setForm({ ...form, address: e.target.value })} 
                 className="bg-admin-bg border-admin-border text-admin-text-primary rounded-xl resize-none" 
                 placeholder="Unit, Building, Street, City..." 
-                rows={3} 
+                rows={2} 
               />
             </div>
+            {currentUser?.role === 'admin' && (
+              <div className="md:col-span-2 space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Assign to Staff</Label>
+                <Select 
+                  value={form.user_id} 
+                  onValueChange={val => setForm({ ...form, user_id: val })}
+                >
+                  <SelectTrigger className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl">
+                    <SelectValue placeholder="Select staff member" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-admin-surface border-admin-border text-admin-text-primary">
+                    {staffMembers.map((staff: any) => (
+                      <SelectItem key={staff.id} value={staff.id.toString()}>
+                        {staff.name} ({staff.role})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           <DialogFooter className="gap-2">

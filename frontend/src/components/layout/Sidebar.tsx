@@ -35,43 +35,43 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const adminNavGroups: NavGroup[] = [
+const getAdminNavGroups = (basePath: string): NavGroup[] => [
   {
     label: 'Overview',
     items: [
-      { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} />, path: '/admin/dashboard' },
+      { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} />, path: `${basePath}/dashboard` },
     ],
   },
   {
     label: 'Management',
     items: [
-      { id: 'customers', label: 'Customers', icon: <Users size={18} />, path: '/admin/customers' },
-      { id: 'suppliers', label: 'Suppliers', icon: <Truck size={18} />, path: '/admin/suppliers' },
-      { id: 'products', label: 'Products', icon: <Package size={18} />, path: '/admin/products' },
-      { id: 'users', label: 'Team', icon: <Users size={18} />, path: '/admin/users', adminOnly: true },
-      { id: 'bulk-import', label: 'Bulk Import', icon: <Upload size={18} />, path: '/admin/bulk-import', adminOnly: true },
+      { id: 'customers', label: 'Customers', icon: <Users size={18} />, path: `${basePath}/customers` },
+      { id: 'suppliers', label: 'Suppliers', icon: <Truck size={18} />, path: `${basePath}/suppliers` },
+      { id: 'products', label: 'Products', icon: <Package size={18} />, path: `${basePath}/products` },
+      { id: 'users', label: 'Team', icon: <Users size={18} />, path: `${basePath}/users`, adminOnly: true },
+      { id: 'bulk-import', label: 'Bulk Import', icon: <Upload size={18} />, path: `${basePath}/bulk-import`, adminOnly: true },
     ],
   },
   {
     label: 'Operations',
     items: [
-      { id: 'enquiries', label: 'Enquiries', icon: <MessageSquareText size={18} />, path: '/admin/enquiries' },
-      { id: 'quotes', label: 'Quotes', icon: <FileText size={18} />, path: '/admin/quotes' },
-      { id: 'invoices', label: 'Invoices', icon: <Receipt size={18} />, path: '/admin/invoices' },
-      { id: 'receipts', label: 'Payment Receipts', icon: <Receipt size={18} />, path: '/admin/payment-receipts' },
+      { id: 'enquiries', label: 'Enquiries', icon: <MessageSquareText size={18} />, path: `${basePath}/enquiries` },
+      { id: 'quotes', label: 'Quotes', icon: <FileText size={18} />, path: `${basePath}/quotes` },
+      { id: 'invoices', label: 'Invoices', icon: <Receipt size={18} />, path: `${basePath}/invoices` },
+      { id: 'receipts', label: 'Payment Receipts', icon: <Receipt size={18} />, path: `${basePath}/payment-receipts` },
     ],
   },
   {
     label: 'Communication',
     items: [
-      { id: 'chat', label: 'Chat', icon: <MessageCircle size={18} />, path: '/admin/chat' },
+      { id: 'chat', label: 'Chat', icon: <MessageCircle size={18} />, path: `${basePath}/chat` },
     ],
   },
   {
     label: 'System',
     items: [
-      { id: 'activities', label: 'Activities', icon: <Activity size={18} />, path: '/admin/activities', adminOnly: true },
-      { id: 'settings', label: 'Settings', icon: <Settings size={18} />, path: '/admin/settings' },
+      { id: 'activities', label: 'Activities', icon: <Activity size={18} />, path: `${basePath}/activities`, adminOnly: true },
+      { id: 'settings', label: 'Settings', icon: <Settings size={18} />, path: `${basePath}/settings` },
     ],
   },
 ];
@@ -116,9 +116,11 @@ export const Sidebar = () => {
   // Filter groups based on permissions
   const filterAdminGroups = () => {
     if (!adminUser) return [];
-    if (adminUser.role === 'admin') return adminNavGroups;
+    const basePath = adminUser.role === 'salesman' ? '/staff' : '/admin';
+    const groups = getAdminNavGroups(basePath);
+    if (adminUser.role === 'admin') return groups;
 
-    return adminNavGroups.map(group => ({
+    return groups.map(group => ({
       ...group,
       items: group.items.filter(item => {
         if (item.adminOnly) return false;

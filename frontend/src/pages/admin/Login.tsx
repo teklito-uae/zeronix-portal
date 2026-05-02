@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2 } from 'lucide-react';
 import api from '@/lib/axios';
 
-export const AdminLogin = () => {
+export const AdminLogin = ({ type = 'admin' }: { type?: 'admin' | 'staff' }) => {
   const setAdmin = useAuthStore((state) => state.setAdmin);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -26,8 +26,25 @@ export const AdminLogin = () => {
       const response = await api.post('/admin/login', { email, password });
       const { user, token } = response.data;
       
+      // Strict role enforcement
+      if (type === 'admin' && user.role !== 'admin') {
+        setError('This portal is restricted to administrators. Please use the Staff login page.');
+        setLoading(false);
+        return;
+      }
+
+      if (type === 'staff' && user.role === 'admin') {
+        setError('Administrators must log in through the Admin portal.');
+        setLoading(false);
+        return;
+      }
+
       setAdmin(user, token);
-      navigate('/admin/dashboard');
+      if (type === 'staff') {
+        navigate('/staff/dashboard');
+      } else {
+        navigate('/admin/dashboard');
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Invalid credentials or server error.');
     } finally {
@@ -43,9 +60,11 @@ export const AdminLogin = () => {
       
       <Card className="w-full max-w-md bg-slate-900 border-slate-800 shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-700">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center text-white">Admin Access</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center text-white">
+            {type === 'staff' ? 'Staff Portal' : 'Admin Access'}
+          </CardTitle>
           <CardDescription className="text-center text-slate-400">
-            Secure login for Zeronix administrators
+            {type === 'staff' ? 'Secure login for sales team' : 'Secure login for Zeronix administrators'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -82,7 +101,7 @@ export const AdminLogin = () => {
             </div>
             <Button 
               type="submit" 
-              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-12 text-base transition-all active:scale-[0.98]"
+              className={`w-full ${type === 'staff' ? 'bg-zeronix-blue hover:bg-zeronix-blue-hover' : 'bg-emerald-600 hover:bg-emerald-500'} text-white font-bold h-12 text-base transition-all active:scale-[0.98]`}
               disabled={loading}
             >
               {loading ? (
@@ -91,7 +110,7 @@ export const AdminLogin = () => {
                   Verifying...
                 </>
               ) : (
-                'Sign In to Dashboard'
+                type === 'staff' ? 'Sign In as Staff' : 'Sign In as Admin'
               )}
             </Button>
           </form>

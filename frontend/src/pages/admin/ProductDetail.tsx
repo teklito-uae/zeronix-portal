@@ -1,3 +1,4 @@
+import { getBasePath } from '@/hooks/useBasePath';
 import { useParams } from 'react-router-dom';
 import { useBreadcrumb } from '@/hooks/useBreadcrumb';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -26,7 +27,7 @@ export const ProductDetail = () => {
   const suppliers = productData?.suppliers || [];
 
   useBreadcrumb([
-    { label: 'Inventory', href: '/admin/products' },
+    { label: 'Inventory', href: `${getBasePath()}/products` },
     { label: product?.name || 'Loading…' },
   ]);
 

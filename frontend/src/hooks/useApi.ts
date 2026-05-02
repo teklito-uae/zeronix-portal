@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
+import { getBasePath } from './useBasePath';
 
 /**
  * Hook for fetching a paginated list of resources
@@ -11,7 +12,7 @@ export function useResourceList<_T>(resource: string, params: any) {
   return useQuery({
     queryKey: [resource, params],
     queryFn: async () => {
-      const res = await api.get(`/admin/${resource}`, { params });
+      const res = await api.get(`${getBasePath()}/${resource}`, { params });
       return res.data;
     },
   });
@@ -25,7 +26,7 @@ export function useResourceDetail<_T>(resource: string, id: string | number | un
     queryKey: [resource, id],
     queryFn: async () => {
       if (!id) return null;
-      const res = await api.get(`/admin/${resource}/${id}`);
+      const res = await api.get(`${getBasePath()}/${resource}/${id}`);
       return res.data;
     },
     enabled: !!id,
@@ -35,14 +36,19 @@ export function useResourceDetail<_T>(resource: string, id: string | number | un
 /**
  * Hook for CRUD operations
  */
-export function useResourceMutation(resource: string) {
+export function useResourceMutation(resource: string, additionalQueryKeys: string[][] = []) {
   const queryClient = useQueryClient();
+  const baseKeys = [[resource], ['admin-dashboard'], ...additionalQueryKeys];
+
+  const invalidateAll = () => {
+    baseKeys.forEach(key => queryClient.invalidateQueries({ queryKey: key }));
+  };
 
   // Create
   const create = useMutation({
-    mutationFn: (data: any) => api.post(`/admin/${resource}`, data),
+    mutationFn: (data: any) => api.post(`${getBasePath()}/${resource}`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [resource] });
+      invalidateAll();
       toast.success(`${resource.charAt(0).toUpperCase() + resource.slice(1)} created`);
     },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Create failed'),
@@ -51,9 +57,9 @@ export function useResourceMutation(resource: string) {
   // Update
   const update = useMutation({
     mutationFn: ({ id, data }: { id: number | string; data: any }) => 
-      api.put(`/admin/${resource}/${id}`, data),
+      api.put(`${getBasePath()}/${resource}/${id}`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [resource] });
+      invalidateAll();
       toast.success(`${resource.charAt(0).toUpperCase() + resource.slice(1)} updated`);
     },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Update failed'),
@@ -61,9 +67,9 @@ export function useResourceMutation(resource: string) {
 
   // Delete
   const remove = useMutation({
-    mutationFn: (id: number | string) => api.delete(`/admin/${resource}/${id}`),
+    mutationFn: (id: number | string) => api.delete(`${getBasePath()}/${resource}/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [resource] });
+      invalidateAll();
       toast.success(`${resource.charAt(0).toUpperCase() + resource.slice(1)} deleted`);
     },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Delete failed'),
@@ -71,9 +77,9 @@ export function useResourceMutation(resource: string) {
 
   // Bulk Update
   const bulkUpdate = useMutation({
-    mutationFn: (data: any) => api.post(`/admin/${resource}/bulk-update`, data),
+    mutationFn: (data: any) => api.post(`${getBasePath()}/${resource}/bulk-update`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [resource] });
+      invalidateAll();
       toast.success('Bulk update successful');
     },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Bulk update failed'),

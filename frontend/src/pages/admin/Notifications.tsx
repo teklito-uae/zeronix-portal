@@ -1,3 +1,4 @@
+import { getBasePath } from '@/hooks/useBasePath';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import { Button } from '@/components/ui/button';
@@ -13,18 +14,18 @@ export const Notifications = () => {
   
   const { data: notifications, isLoading } = useQuery({
     queryKey: ['admin-notifications'],
-    queryFn: async () => (await api.get('/admin/notifications')).data
+    queryFn: async () => (await api.get(`${getBasePath()}/notifications`)).data
   });
 
   const markReadMutation = useMutation({
-    mutationFn: (id: string) => api.post(`/admin/notifications/${id}/mark-read`),
+    mutationFn: (id: string) => api.post(`${getBasePath()}/notifications/${id}/mark-read`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-notifications'] });
     }
   });
 
   const markAllReadMutation = useMutation({
-    mutationFn: () => api.post('/admin/notifications/mark-read'),
+    mutationFn: () => api.post(`${getBasePath()}/notifications/mark-read`),
     onSuccess: () => {
       toast.success('All notifications marked as read');
       queryClient.invalidateQueries({ queryKey: ['admin-notifications'] });

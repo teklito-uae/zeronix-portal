@@ -1,3 +1,4 @@
+import { getBasePath } from '@/hooks/useBasePath';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBreadcrumb } from '@/hooks/useBreadcrumb';
@@ -60,7 +61,7 @@ export const DocumentEditor = ({ type, id, isNew }: DocumentEditorProps) => {
   });
 
   const listLabel = type === 'quote' ? 'Quotes' : 'Invoices';
-  const listHref = `/admin/${type}s`;
+  const listHref = `${getBasePath()}/${type}s`;
   const docLabel = isNew
     ? `New ${listLabel.slice(0, -1)}`
     : (docData[`${type}_number`] || `#${id}`);
@@ -140,7 +141,8 @@ export const DocumentEditor = ({ type, id, isNew }: DocumentEditorProps) => {
         toast.success(`Records updated for ${docLabel}.`);
       }
       queryClient.invalidateQueries({ queryKey: [type === 'quote' ? 'quotes' : 'invoices'] });
-      navigate(`/admin/${type}s`);
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      navigate(`${getBasePath()}/${type}s`);
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Transaction failed. Please verify all fields.');
     } finally {
@@ -154,7 +156,7 @@ export const DocumentEditor = ({ type, id, isNew }: DocumentEditorProps) => {
       const payload = { customer_id: docData.customer_id, quote_id: docData.id, date: new Date().toISOString().split('T')[0], items: items.map(i => ({ ...i })) };
       const res = await api.post('/admin/invoices', payload);
       toast.success('Successfully converted to commercial invoice.');
-      navigate(`/admin/invoices/${res.data.id}`);
+      navigate(`${getBasePath()}/invoices/${res.data.id}`);
     } catch {
       toast.error('Conversion process interrupted.');
     } finally {
@@ -179,7 +181,7 @@ export const DocumentEditor = ({ type, id, isNew }: DocumentEditorProps) => {
           <Button 
             variant="outline" 
             size="icon" 
-            onClick={() => navigate(`/admin/${type}s`)} 
+            onClick={() => navigate(`${getBasePath()}/${type}s`)} 
             className="rounded-2xl border-admin-border h-11 w-11 hover:bg-admin-surface-hover shadow-sm transition-all active:scale-95"
           >
             <ArrowLeft size={20} />

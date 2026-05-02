@@ -16,16 +16,35 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   admin: null,
   customer: null,
-  adminToken: localStorage.getItem('zeronix_admin_token'),
+  adminToken: typeof window !== 'undefined' 
+    ? (window.location.pathname.startsWith('/staff') 
+        ? (localStorage.getItem('zeronix_staff_token') || localStorage.getItem('zeronix_admin_token'))
+        : (localStorage.getItem('zeronix_admin_token') || localStorage.getItem('zeronix_staff_token')))
+    : null,
   customerToken: localStorage.getItem('zeronix_customer_portal_token'),
-  isLoading: !!(localStorage.getItem('zeronix_admin_token') || localStorage.getItem('zeronix_customer_portal_token')),
+  isLoading: typeof window !== 'undefined' && !!(
+    localStorage.getItem('zeronix_admin_token') || 
+    localStorage.getItem('zeronix_staff_token') || 
+    localStorage.getItem('zeronix_customer_portal_token')
+  ),
   
   setAdmin: (admin, token) => {
-    if (token) localStorage.setItem('zeronix_admin_token', token);
-    if (admin === null && !token) localStorage.removeItem('zeronix_admin_token');
+    if (admin) {
+      const key = admin.role === 'admin' ? 'zeronix_admin_token' : 'zeronix_staff_token';
+      const otherKey = admin.role === 'admin' ? 'zeronix_staff_token' : 'zeronix_admin_token';
+      
+      if (token) {
+        localStorage.setItem(key, token);
+        localStorage.removeItem(otherKey); // Ensure no old session from other role persists
+      }
+    } else {
+      localStorage.removeItem('zeronix_admin_token');
+      localStorage.removeItem('zeronix_staff_token');
+    }
+
     set({ 
       admin, 
-      adminToken: token || (admin ? localStorage.getItem('zeronix_admin_token') : null), 
+      adminToken: token || (admin ? (localStorage.getItem('zeronix_admin_token') || localStorage.getItem('zeronix_staff_token')) : null), 
       isLoading: false 
     });
   },
@@ -45,12 +64,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: (role) => {
     if (role === 'admin') {
       localStorage.removeItem('zeronix_admin_token');
+      localStorage.removeItem('zeronix_staff_token');
       set({ admin: null, adminToken: null });
     } else if (role === 'customer') {
       localStorage.removeItem('zeronix_customer_portal_token');
       set({ customer: null, customerToken: null });
     } else {
       localStorage.removeItem('zeronix_admin_token');
+      localStorage.removeItem('zeronix_staff_token');
       localStorage.removeItem('zeronix_customer_portal_token');
       set({ admin: null, adminToken: null, customer: null, customerToken: null });
     }

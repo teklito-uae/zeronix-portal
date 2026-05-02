@@ -1,3 +1,4 @@
+import { getBasePath } from '@/hooks/useBasePath';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
@@ -34,19 +35,19 @@ function pushRecent(label: string, href: string) {
 }
 
 // ── Static nav ─────────────────────────────────────────────────────────────────
-const NAV_ITEMS: ResultItem[] = [
-  { id: 'nav-dash',  label: 'Dashboard',        href: '/admin/dashboard',        icon: <LayoutDashboard size={14} />, group: 'Navigation' },
-  { id: 'nav-cust',  label: 'Customers',         href: '/admin/customers',         icon: <Users size={14} />,           group: 'Navigation' },
-  { id: 'nav-supp',  label: 'Suppliers',          href: '/admin/suppliers',          icon: <Truck size={14} />,           group: 'Navigation' },
-  { id: 'nav-prod',  label: 'Products',           href: '/admin/products',           icon: <Package size={14} />,         group: 'Navigation' },
-  { id: 'nav-enq',   label: 'Enquiries',          href: '/admin/enquiries',          icon: <MessageSquare size={14} />,   group: 'Navigation' },
-  { id: 'nav-qt',    label: 'Quotes',             href: '/admin/quotes',             icon: <FileText size={14} />,        group: 'Navigation' },
-  { id: 'nav-inv',   label: 'Invoices',           href: '/admin/invoices',           icon: <Receipt size={14} />,         group: 'Navigation' },
-  { id: 'nav-pay',   label: 'Payment Receipts',   href: '/admin/payment-receipts',   icon: <CreditCard size={14} />,      group: 'Navigation' },
-  { id: 'nav-usr',   label: 'Users',              href: '/admin/users',              icon: <User size={14} />,            group: 'Navigation' },
-  { id: 'nav-act',   label: 'Activities',         href: '/admin/activities',         icon: <Activity size={14} />,        group: 'Navigation' },
-  { id: 'nav-set',   label: 'Settings',           href: '/admin/settings',           icon: <Settings size={14} />,        group: 'Navigation' },
-  { id: 'nav-bulk',  label: 'Bulk Import',        href: '/admin/bulk-import',        icon: <Import size={14} />,          group: 'Navigation' },
+const getNavItems = (): ResultItem[] => [
+  { id: 'nav-dash',  label: 'Dashboard',        href: `${getBasePath()}/dashboard`,        icon: <LayoutDashboard size={14} />, group: 'Navigation' },
+  { id: 'nav-cust',  label: 'Customers',         href: `${getBasePath()}/customers`,         icon: <Users size={14} />,           group: 'Navigation' },
+  { id: 'nav-supp',  label: 'Suppliers',          href: `${getBasePath()}/suppliers`,          icon: <Truck size={14} />,           group: 'Navigation' },
+  { id: 'nav-prod',  label: 'Products',           href: `${getBasePath()}/products`,           icon: <Package size={14} />,         group: 'Navigation' },
+  { id: 'nav-enq',   label: 'Enquiries',          href: `${getBasePath()}/enquiries`,          icon: <MessageSquare size={14} />,   group: 'Navigation' },
+  { id: 'nav-qt',    label: 'Quotes',             href: `${getBasePath()}/quotes`,             icon: <FileText size={14} />,        group: 'Navigation' },
+  { id: 'nav-inv',   label: 'Invoices',           href: `${getBasePath()}/invoices`,           icon: <Receipt size={14} />,         group: 'Navigation' },
+  { id: 'nav-pay',   label: 'Payment Receipts',   href: `${getBasePath()}/payment-receipts`,   icon: <CreditCard size={14} />,      group: 'Navigation' },
+  { id: 'nav-usr',   label: 'Users',              href: `${getBasePath()}/users`,              icon: <User size={14} />,            group: 'Navigation' },
+  { id: 'nav-act',   label: 'Activities',         href: `${getBasePath()}/activities`,         icon: <Activity size={14} />,        group: 'Navigation' },
+  { id: 'nav-set',   label: 'Settings',           href: `${getBasePath()}/settings`,           icon: <Settings size={14} />,        group: 'Navigation' },
+  { id: 'nav-bulk',  label: 'Bulk Import',        href: `${getBasePath()}/bulk-import`,        icon: <Import size={14} />,          group: 'Navigation' },
 ];
 
 // ── Component ──────────────────────────────────────────────────────────────────
@@ -79,18 +80,19 @@ export const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
   const doSearch = useCallback(async (q: string) => {
     if (q.trim().length < 2) { setResults([]); return; }
 
-    const navMatches = NAV_ITEMS.filter((item) =>
+    const navItems = getNavItems();
+    const navMatches = navItems.filter((item) =>
       item.label.toLowerCase().includes(q.toLowerCase())
     );
 
     setIsSearching(true);
     try {
       const [customers, suppliers, products, quotes, invoices] = await Promise.allSettled([
-        api.get('/admin/customers', { params: { search: q, per_page: 5 } }),
-        api.get('/admin/suppliers',  { params: { search: q, per_page: 5 } }),
-        api.get('/admin/products',   { params: { search: q, per_page: 5 } }),
-        api.get('/admin/quotes',     { params: { search: q, per_page: 5 } }),
-        api.get('/admin/invoices',   { params: { search: q, per_page: 5 } }),
+        api.get(`${getBasePath()}/customers`, { params: { search: q, per_page: 5 } }),
+        api.get(`${getBasePath()}/suppliers`,  { params: { search: q, per_page: 5 } }),
+        api.get(`${getBasePath()}/products`,   { params: { search: q, per_page: 5 } }),
+        api.get(`${getBasePath()}/quotes`,     { params: { search: q, per_page: 5 } }),
+        api.get(`${getBasePath()}/invoices`,   { params: { search: q, per_page: 5 } }),
       ]);
 
       const items: ResultItem[] = [...navMatches];
@@ -98,31 +100,31 @@ export const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
       if (customers.status === 'fulfilled') {
         (customers.value.data.data ?? customers.value.data ?? []).forEach((c: any) => items.push({
           id: `c-${c.id}`, label: c.name, sublabel: c.company || c.email,
-          href: `/admin/customers/${c.id}`, icon: <Users size={14} />, group: 'Customers',
+          href: `${getBasePath()}/customers/${c.id}`, icon: <Users size={14} />, group: 'Customers',
         }));
       }
       if (suppliers.status === 'fulfilled') {
         (suppliers.value.data.data ?? suppliers.value.data ?? []).forEach((s: any) => items.push({
           id: `s-${s.id}`, label: s.name, sublabel: s.email,
-          href: `/admin/suppliers/${s.id}`, icon: <Truck size={14} />, group: 'Suppliers',
+          href: `${getBasePath()}/suppliers/${s.id}`, icon: <Truck size={14} />, group: 'Suppliers',
         }));
       }
       if (products.status === 'fulfilled') {
         (products.value.data.data ?? products.value.data ?? []).forEach((p: any) => items.push({
           id: `p-${p.id}`, label: p.name, sublabel: p.model_code,
-          href: `/admin/products/${p.id}`, icon: <Package size={14} />, group: 'Products',
+          href: `${getBasePath()}/products/${p.id}`, icon: <Package size={14} />, group: 'Products',
         }));
       }
       if (quotes.status === 'fulfilled') {
         (quotes.value.data.data ?? []).forEach((q: any) => items.push({
           id: `qt-${q.id}`, label: q.quote_number, sublabel: q.customer?.name,
-          href: `/admin/quotes/${q.id}`, icon: <FileText size={14} />, group: 'Quotes',
+          href: `${getBasePath()}/quotes/${q.id}`, icon: <FileText size={14} />, group: 'Quotes',
         }));
       }
       if (invoices.status === 'fulfilled') {
         (invoices.value.data.data ?? []).forEach((inv: any) => items.push({
           id: `inv-${inv.id}`, label: inv.invoice_number, sublabel: inv.customer?.name,
-          href: `/admin/invoices/${inv.id}`, icon: <Receipt size={14} />, group: 'Invoices',
+          href: `${getBasePath()}/invoices/${inv.id}`, icon: <Receipt size={14} />, group: 'Invoices',
         }));
       }
 
@@ -161,10 +163,8 @@ export const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        {/* Backdrop */}
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
 
-        {/* Modal — always centered */}
         <DialogPrimitive.Content
           className={cn(
             "fixed left-1/2 top-1/2 z-50 w-full max-w-xl -translate-x-1/2 -translate-y-1/2",
@@ -179,7 +179,6 @@ export const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
           <DialogPrimitive.Title className="sr-only">Global Search</DialogPrimitive.Title>
 
           <CommandPrimitive shouldFilter={false} className="flex flex-col">
-            {/* Input */}
             <div className="flex items-center gap-2 px-4 h-12 border-b border-admin-border">
               {isSearching
                 ? <Loader2 size={15} className="text-admin-text-muted shrink-0 animate-spin" />
@@ -202,17 +201,13 @@ export const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
               </div>
             </div>
 
-            {/* Results */}
             <CommandPrimitive.List className="overflow-y-auto max-h-[400px] py-1">
-
-              {/* Empty */}
               {showEmpty && (
                 <div className="py-10 text-center text-sm text-admin-text-muted">
                   No results for "<span className="text-admin-text-primary font-medium">{query}</span>"
                 </div>
               )}
 
-              {/* Recent */}
               {showRecent && recent.length > 0 && (
                 <CommandPrimitive.Group>
                   <div className="flex items-center gap-1.5 px-4 py-2 text-[11px] font-medium text-admin-text-muted uppercase tracking-wider">
@@ -233,7 +228,6 @@ export const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
                 </CommandPrimitive.Group>
               )}
 
-              {/* Quick nav (idle) */}
               {showRecent && (
                 <>
                   {recent.length > 0 && <div className="mx-4 my-1 h-px bg-admin-border" />}
@@ -242,7 +236,7 @@ export const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
                       Quick Navigate
                     </div>
                     <div className="grid grid-cols-2 gap-1 px-2 pb-2">
-                      {NAV_ITEMS.map((item) => (
+                      {getNavItems().map((item) => (
                         <CommandPrimitive.Item
                           key={item.id}
                           value={item.id}
@@ -258,7 +252,6 @@ export const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
                 </>
               )}
 
-              {/* Search results grouped */}
               {!showRecent && Object.entries(grouped).map(([group, items], gi) => (
                 <React.Fragment key={group}>
                   {gi > 0 && <div className="mx-4 my-1 h-px bg-admin-border" />}
@@ -289,7 +282,6 @@ export const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
               ))}
             </CommandPrimitive.List>
 
-            {/* Footer */}
             <div className="border-t border-admin-border px-4 py-2 flex items-center gap-4 text-[11px] text-admin-text-muted bg-admin-bg/50">
               <span className="flex items-center gap-1">
                 <kbd className="px-1 py-0.5 rounded border border-admin-border bg-admin-bg text-[10px]">↑↓</kbd> Navigate

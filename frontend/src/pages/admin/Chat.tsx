@@ -1,3 +1,4 @@
+import { getBasePath } from '@/hooks/useBasePath';
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
@@ -22,7 +23,7 @@ export const Chat = () => {
   const { data: rooms = [], isLoading: loadingRooms } = useQuery({
     queryKey: ['admin-chat-rooms'],
     queryFn: async () => {
-      const res = await api.get('/admin/chat/rooms');
+      const res = await api.get(`${getBasePath()}/chat/rooms`);
       return res.data as ChatRoom[];
     },
     refetchInterval: 10000, // Poll every 10s for new rooms/badges
@@ -32,7 +33,7 @@ export const Chat = () => {
   const { data: roomData, isLoading: loadingMessages } = useQuery({
     queryKey: ['admin-chat-messages', activeRoomId],
     queryFn: async () => {
-      const res = await api.get(`/admin/chat/rooms/${activeRoomId}/messages`);
+      const res = await api.get(`${getBasePath()}/chat/rooms/${activeRoomId}/messages`);
       return res.data as { conversation: ChatRoom, messages: ChatMessage[] };
     },
     enabled: !!activeRoomId,
@@ -51,7 +52,7 @@ export const Chat = () => {
   // Mark as Read Mutation
   const markAsReadMutation = useMutation({
     mutationFn: async (roomId: number) => {
-      await api.post(`/admin/chat/rooms/${roomId}/read`);
+      await api.post(`${getBasePath()}/chat/rooms/${roomId}/read`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-chat-rooms'] });
@@ -68,7 +69,7 @@ export const Chat = () => {
   // Send Message Mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (messageText: string) => {
-      const res = await api.post(`/admin/chat/rooms/${activeRoomId}/messages`, { message: messageText });
+      const res = await api.post(`${getBasePath()}/chat/rooms/${activeRoomId}/messages`, { message: messageText });
       return res.data as ChatMessage;
     },
     onSuccess: (newMsg) => {

@@ -1,3 +1,4 @@
+import { getBasePath } from '@/hooks/useBasePath';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -137,7 +138,7 @@ export const Suppliers = () => {
       cell: ({ row }) => (
         <ActionGroup
           onEdit={() => openEdit(row.original)}
-          onView={() => navigate(`/admin/suppliers/${row.original.id}`)}
+          onView={() => navigate(`${getBasePath()}/suppliers/${row.original.id}`)}
         />
       ),
     },
@@ -151,7 +152,7 @@ export const Suppliers = () => {
         subtitle="Manage your global sourcing partners and supply chain efficiency."
         icon={<Building2 size={20} />}
         columns={columns}
-        onRowClick={(row) => navigate(`/admin/suppliers/${row.id}`)}
+        onRowClick={(row) => navigate(`${getBasePath()}/suppliers/${row.id}`)}
         createLabel="Add Partner"
         createPath="#"
         onCreateClick={openAdd}

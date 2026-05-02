@@ -6,7 +6,7 @@ import Pusher from 'pusher-js';
 
 export const getEchoInstance = (type: 'admin' | 'customer') => {
   const token = type === 'admin' 
-    ? localStorage.getItem('zeronix_admin_token') 
+    ? (localStorage.getItem('zeronix_admin_token') || localStorage.getItem('zeronix_staff_token')) 
     : localStorage.getItem('zeronix_customer_portal_token');
 
   return new Echo({

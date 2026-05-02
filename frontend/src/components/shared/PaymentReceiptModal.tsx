@@ -58,6 +58,7 @@ export const PaymentReceiptModal = ({ isOpen, onClose, invoice }: PaymentReceipt
       toast.success('Payment recorded');
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['payment-receipts'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
       onClose();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to record payment');

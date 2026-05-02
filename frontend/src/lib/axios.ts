@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { queryClient } from './queryClient';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
@@ -19,10 +20,21 @@ api.interceptors.request.use((config) => {
   if (isCustomerRoute) {
     token = localStorage.getItem('zeronix_customer_portal_token');
   } else if (isAdminRoute) {
-    token = localStorage.getItem('zeronix_admin_token');
+    const isStaffPath = window.location.pathname.startsWith('/staff');
+    const adminToken = localStorage.getItem('zeronix_admin_token');
+    const staffToken = localStorage.getItem('zeronix_staff_token');
+    
+    // Prioritize the token matching the current UI path
+    if (isStaffPath) {
+      token = staffToken || adminToken;
+    } else {
+      token = adminToken || staffToken;
+    }
   } else {
-    // Fallback to any token found if route is ambiguous
-    token = localStorage.getItem('zeronix_admin_token') || localStorage.getItem('zeronix_customer_portal_token');
+    // Fallback for ambiguous routes
+    token = localStorage.getItem('zeronix_admin_token') || 
+            localStorage.getItem('zeronix_staff_token') || 
+            localStorage.getItem('zeronix_customer_portal_token');
   }
 
   if (token && config.headers) {
@@ -34,8 +46,6 @@ api.interceptors.request.use((config) => {
 });
 
 // Response interceptor to trigger notification checks on any admin API activity
-import { queryClient } from './queryClient';
-
 api.interceptors.response.use((response) => {
   const url = response.config.url || '';
   

@@ -1,3 +1,4 @@
+import { getBasePath } from '@/hooks/useBasePath';
 import { useSidebarStore } from '@/store/useSidebarStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -60,7 +61,7 @@ export const Topbar = () => {
   const { data: unreadNotifs } = useQuery({
     queryKey: ['unread-notifications', isCustomer ? 'customer' : 'admin'],
     queryFn: async () => {
-      const endpoint = isCustomer ? '/customer/notifications/unread' : '/admin/notifications/unread';
+      const endpoint = isCustomer ? '/customer/notifications/unread' : `${getBasePath()}/notifications/unread`;
       return (await api.get(endpoint)).data;
     },
     enabled: !!user,
@@ -75,7 +76,7 @@ export const Topbar = () => {
   useEffect(() => {
     if (unreadNotifs && unreadNotifs.length > lastNotifCount) {
       const newNotif = unreadNotifs[0];
-      const notifUrl = isCustomer ? `/portal/${companySlug}/notifications` : '/admin/notifications';
+      const notifUrl = isCustomer ? `/portal/${companySlug}/notifications` : `${getBasePath()}/notifications`;
       
       toast(newNotif.data?.title || 'New Notification', {
         description: newNotif.data?.message || 'You have a new message.',
@@ -121,7 +122,7 @@ export const Topbar = () => {
         return baseParts.map((seg, i) => {
           const href = isCustomer
             ? `/portal/${companySlug}/${baseParts.slice(0, i + 1).join('/')}`
-            : `/admin/${baseParts.slice(0, i + 1).join('/')}`;
+            : `${getBasePath()}/${baseParts.slice(0, i + 1).join('/')}`;
           return {
             label: routeLabels[seg] ?? (seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, ' ')),
             href: i < baseParts.length - 1 ? href : undefined, // last segment is current page — no link
@@ -134,7 +135,7 @@ export const Topbar = () => {
   const handleLogout = () => {
     logout(isCustomer ? 'customer' : 'admin');
     toast.success('Logged out successfully');
-    navigate(isCustomer ? '/portal/login' : '/admin/login');
+    navigate(isCustomer ? '/portal/login' : `${getBasePath()}/login`);
   };
 
   return (
@@ -158,7 +159,7 @@ export const Topbar = () => {
         <nav className="hidden sm:flex items-center gap-1 text-sm">
           {/* Home icon */}
           <Link
-            to={isCustomer ? `/portal/${companySlug}/dashboard` : '/admin/dashboard'}
+            to={isCustomer ? `/portal/${companySlug}/dashboard` : `${getBasePath()}/dashboard`}
             className="text-admin-text-muted hover:text-admin-text-primary transition-colors"
           >
             <Home size={13} />
@@ -208,7 +209,7 @@ export const Topbar = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate(isCustomer ? `/portal/${companySlug}/notifications` : '/admin/notifications')}
+            onClick={() => navigate(isCustomer ? `/portal/${companySlug}/notifications` : `${getBasePath()}/notifications`)}
             className="h-8 w-8 text-admin-text-secondary hover:text-admin-text-primary hover:bg-admin-surface-hover relative"
           >
             <Bell size={17} />

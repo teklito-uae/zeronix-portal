@@ -1,9 +1,12 @@
+import { getBasePath } from '@/hooks/useBasePath';
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import { SEO } from '@/components/shared/SEO';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/store/useAuthStore';
+import { StaffDashboard } from './StaffDashboard';
 import {
   FileText, MessageSquare, TrendingUp, Building2, Banknote,
   Loader2, Package, Receipt, Users, Activity,
@@ -54,11 +57,16 @@ const chartConfig = {
 // ── Main ──────────────────────────────────────────────────────────────────────
 export const Dashboard = () => {
   const navigate = useNavigate();
+  const admin = useAuthStore(state => state.admin);
   const [activeChart, setActiveChart] = useState<"bank" | "cash">("bank");
+
+  if (admin?.role === 'salesman') {
+    return <StaffDashboard />;
+  }
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin-dashboard'],
-    queryFn: async () => (await api.get('/admin/dashboard')).data,
+    queryFn: async () => (await api.get(`${getBasePath()}/dashboard`)).data,
     refetchInterval: 60_000,
   });
 
@@ -103,18 +111,18 @@ export const Dashboard = () => {
 
       {/* Row 1 — Financial KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard title="Bank Received" value={fmt(stats.total_bank_received)} icon={<Building2 size={15} className="text-indigo-500" />} iconBg="bg-indigo-500/10" href="/admin/payment-receipts" />
-        <StatCard title="Cash Received" value={fmt(stats.total_cash_received)} icon={<Banknote size={15} className="text-emerald-500" />} iconBg="bg-emerald-500/10" href="/admin/payment-receipts" />
-        <StatCard title="Total Invoiced" value={fmt(stats.total_invoiced)} subtitle={`${pct}% collected`} icon={<Receipt size={15} className="text-zeronix-blue" />} iconBg="bg-zeronix-blue/10" href="/admin/invoices" />
-        <StatCard title="Pending Quotes" value={stats.pending_quotes} subtitle="Awaiting action" icon={<FileText size={15} className="text-amber-500" />} iconBg="bg-amber-500/10" href="/admin/quotes" />
+        <StatCard title="Bank Received" value={fmt(stats.total_bank_received)} icon={<Building2 size={15} className="text-indigo-500" />} iconBg="bg-indigo-500/10" href={`${getBasePath()}/payment-receipts`} />
+        <StatCard title="Cash Received" value={fmt(stats.total_cash_received)} icon={<Banknote size={15} className="text-emerald-500" />} iconBg="bg-emerald-500/10" href={`${getBasePath()}/payment-receipts`} />
+        <StatCard title="Total Invoiced" value={fmt(stats.total_invoiced)} subtitle={`${pct}% collected`} icon={<Receipt size={15} className="text-zeronix-blue" />} iconBg="bg-zeronix-blue/10" href={`${getBasePath()}/invoices`} />
+        <StatCard title="Pending Quotes" value={stats.pending_quotes} subtitle="Awaiting action" icon={<FileText size={15} className="text-amber-500" />} iconBg="bg-amber-500/10" href={`${getBasePath()}/quotes`} />
       </div>
 
       {/* Row 2 — People & Ops KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard title="Enquiries" value={stats.total_enquiries} icon={<MessageSquare size={15} className="text-purple-500" />} iconBg="bg-purple-500/10" href="/admin/enquiries" />
-        <StatCard title="Customers" value={stats.active_customers} icon={<Users size={15} className="text-cyan-500" />} iconBg="bg-cyan-500/10" href="/admin/customers" />
-        <StatCard title="Team Members" value={`${stats.active_users ?? 0} / ${stats.total_users ?? 0}`} subtitle="Active users" icon={<User size={15} className="text-rose-500" />} iconBg="bg-rose-500/10" href="/admin/users" />
-        <StatCard title="Products" value={stats.total_products} icon={<Package size={15} className="text-orange-500" />} iconBg="bg-orange-500/10" href="/admin/products" />
+        <StatCard title="Enquiries" value={stats.total_enquiries} icon={<MessageSquare size={15} className="text-purple-500" />} iconBg="bg-purple-500/10" href={`${getBasePath()}/enquiries`} />
+        <StatCard title="Customers" value={stats.active_customers} icon={<Users size={15} className="text-cyan-500" />} iconBg="bg-cyan-500/10" href={`${getBasePath()}/customers`} />
+        <StatCard title="Team Members" value={`${stats.active_users ?? 0} / ${stats.total_users ?? 0}`} subtitle="Active users" icon={<User size={15} className="text-rose-500" />} iconBg="bg-rose-500/10" href={`${getBasePath()}/users`} />
+        <StatCard title="Products" value={stats.total_products} icon={<Package size={15} className="text-orange-500" />} iconBg="bg-orange-500/10" href={`${getBasePath()}/products`} />
       </div>
 
       {/* Row 3 — Financial Analytics */}
@@ -323,7 +331,7 @@ export const Dashboard = () => {
             icon={<MessageSquare size={13} className="text-purple-500" />}
             title="Recent Enquiries"
             action={
-              <button onClick={() => navigate('/admin/enquiries')} className="text-[11px] text-zeronix-blue hover:underline flex items-center gap-0.5">
+              <button onClick={() => navigate(`${getBasePath()}/enquiries`)} className="text-[11px] text-zeronix-blue hover:underline flex items-center gap-0.5">
                 View all <ArrowRight size={10} />
               </button>
             }
@@ -332,7 +340,7 @@ export const Dashboard = () => {
             {(recent_enquiries || []).slice(0, 6).map((enq: any) => (
               <div
                 key={enq.id}
-                onClick={() => navigate('/admin/enquiries')}
+                onClick={() => navigate(`${getBasePath()}/enquiries`)}
                 className="flex items-center justify-between px-4 py-2.5 hover:bg-admin-surface-hover cursor-pointer transition-colors"
               >
                 <div>
@@ -354,7 +362,7 @@ export const Dashboard = () => {
             icon={<Receipt size={13} className="text-zeronix-blue" />}
             title="Recent Invoices"
             action={
-              <button onClick={() => navigate('/admin/invoices')} className="text-[11px] text-zeronix-blue hover:underline flex items-center gap-0.5">
+              <button onClick={() => navigate(`${getBasePath()}/invoices`)} className="text-[11px] text-zeronix-blue hover:underline flex items-center gap-0.5">
                 View all <ArrowRight size={10} />
               </button>
             }
@@ -363,7 +371,7 @@ export const Dashboard = () => {
             {(recent_invoices || []).slice(0, 6).map((inv: any) => (
               <div
                 key={inv.id}
-                onClick={() => navigate(`/admin/invoices/${inv.id}`)}
+                onClick={() => navigate(`${getBasePath()}/invoices/${inv.id}`)}
                 className="flex items-center justify-between px-4 py-2.5 hover:bg-admin-surface-hover cursor-pointer transition-colors"
               >
                 <div>
@@ -390,7 +398,7 @@ export const Dashboard = () => {
             icon={<Activity size={13} className="text-amber-500" />}
             title="Recent Activity"
             action={
-              <button onClick={() => navigate('/admin/activities')} className="text-[11px] text-zeronix-blue hover:underline flex items-center gap-0.5">
+              <button onClick={() => navigate(`${getBasePath()}/activities`)} className="text-[11px] text-zeronix-blue hover:underline flex items-center gap-0.5">
                 Full log <ArrowRight size={10} />
               </button>
             }

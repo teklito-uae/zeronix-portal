@@ -1,3 +1,4 @@
+import { getBasePath } from '@/hooks/useBasePath';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -123,7 +124,7 @@ export const SupplierProfile = () => {
       cell: ({ row }) => (
         <ActionGroup
           onEdit={() => openEdit(row.original)}
-          onView={() => navigate(`/admin/products/${row.original.product_id}`)}
+          onView={() => navigate(`${getBasePath()}/products/${row.original.product_id}`)}
         />
       ),
     },

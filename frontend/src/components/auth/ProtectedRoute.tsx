@@ -6,21 +6,29 @@ export const AdminRoute = () => {
   const location = useLocation();
   
   if (isLoading) return null;
-  if (!admin) return <Navigate to="/admin/login" replace />;
+  if (!admin) {
+    const isStaffPath = location.pathname.startsWith('/staff');
+    return <Navigate to={isStaffPath ? "/staff/login" : "/admin/login"} replace />;
+  }
+
+  // Enforce Route Segregation
+  const isStaffPath = location.pathname.startsWith('/staff');
+  if (isStaffPath && admin.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
+  if (!isStaffPath && admin.role !== 'admin') return <Navigate to="/staff/dashboard" replace />;
 
   // Permission Check for Salesmen
   if (admin.role !== 'admin') {
-    const path = location.pathname.split('/')[2]; // /admin/customers -> customers
+    const path = location.pathname.split('/')[2]; // /staff/customers -> customers
     
-    const publicModules = ['dashboard', 'settings', 'chat', 'profile'];
+    const publicModules = ['dashboard', 'settings', 'chat', 'profile', 'notifications'];
     const adminOnlyModules = ['users', 'bulk-import', 'activities'];
 
     if (path && !publicModules.includes(path)) {
         if (adminOnlyModules.includes(path)) {
-            return <Navigate to="/admin/dashboard" replace />;
+            return <Navigate to="/staff/dashboard" replace />;
         }
         if (admin.permissions && !admin.permissions.includes(path)) {
-            return <Navigate to="/admin/dashboard" replace />;
+            return <Navigate to="/staff/dashboard" replace />;
         }
     }
   }

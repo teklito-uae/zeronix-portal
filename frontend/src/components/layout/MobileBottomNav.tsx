@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import { getBasePath } from '@/hooks/useBasePath';
 
 import { Separator } from '@/components/ui/separator';
 import {
@@ -35,11 +36,11 @@ interface NavGroup {
 }
 
 // Primary bottom tabs — the 4 most used + Menu hamburger
-const adminPrimaryTabs = [
-  { id: 'dashboard', label: 'Home', icon: LayoutDashboard, path: '/admin/dashboard' },
-  { id: 'enquiries', label: 'Enquiries', icon: MessageSquareText, path: '/admin/enquiries' },
-  { id: 'quotes', label: 'Quotes', icon: FileText, path: '/admin/quotes' },
-  { id: 'chat', label: 'Chat', icon: MessageCircle, path: '/admin/chat' },
+const getAdminPrimaryTabs = (basePath: string) => [
+  { id: 'dashboard', label: 'Home', icon: LayoutDashboard, path: `${basePath}/dashboard` },
+  { id: 'enquiries', label: 'Enquiries', icon: MessageSquareText, path: `${basePath}/enquiries` },
+  { id: 'quotes', label: 'Quotes', icon: FileText, path: `${basePath}/quotes` },
+  { id: 'chat', label: 'Chat', icon: MessageCircle, path: `${basePath}/chat` },
 ];
 
 const getCustomerPrimaryTabs = (slug: string) => [
@@ -50,43 +51,43 @@ const getCustomerPrimaryTabs = (slug: string) => [
 ];
 
 // Full grouped navigation for the drawer
-const adminDrawerGroups: NavGroup[] = [
+const getAdminDrawerGroups = (basePath: string): NavGroup[] => [
   {
     label: 'Overview',
     items: [
-      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
+      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: `${basePath}/dashboard` },
     ],
   },
   {
     label: 'Management',
     items: [
-      { id: 'customers', label: 'Customers', icon: Users, path: '/admin/customers' },
-      { id: 'suppliers', label: 'Suppliers', icon: Truck, path: '/admin/suppliers' },
-      { id: 'products', label: 'Products', icon: Package, path: '/admin/products' },
-      { id: 'users', label: 'Team', icon: Users, path: '/admin/users', adminOnly: true },
-      { id: 'bulk-import', label: 'Bulk Import', icon: Upload, path: '/admin/bulk-import', adminOnly: true },
+      { id: 'customers', label: 'Customers', icon: Users, path: `${basePath}/customers` },
+      { id: 'suppliers', label: 'Suppliers', icon: Truck, path: `${basePath}/suppliers` },
+      { id: 'products', label: 'Products', icon: Package, path: `${basePath}/products` },
+      { id: 'users', label: 'Team', icon: Users, path: `${basePath}/users`, adminOnly: true },
+      { id: 'bulk-import', label: 'Bulk Import', icon: Upload, path: `${basePath}/bulk-import`, adminOnly: true },
     ],
   },
   {
     label: 'Operations',
     items: [
-      { id: 'enquiries', label: 'Enquiries', icon: MessageSquareText, path: '/admin/enquiries' },
-      { id: 'quotes', label: 'Quotes', icon: FileText, path: '/admin/quotes' },
-      { id: 'invoices', label: 'Invoices', icon: Receipt, path: '/admin/invoices' },
-      { id: 'receipts', label: 'Payment Receipts', icon: Receipt, path: '/admin/payment-receipts' },
+      { id: 'enquiries', label: 'Enquiries', icon: MessageSquareText, path: `${basePath}/enquiries` },
+      { id: 'quotes', label: 'Quotes', icon: FileText, path: `${basePath}/quotes` },
+      { id: 'invoices', label: 'Invoices', icon: Receipt, path: `${basePath}/invoices` },
+      { id: 'receipts', label: 'Payment Receipts', icon: Receipt, path: `${basePath}/payment-receipts` },
     ],
   },
   {
     label: 'Communication',
     items: [
-      { id: 'chat', label: 'Chat', icon: MessageCircle, path: '/admin/chat' },
+      { id: 'chat', label: 'Chat', icon: MessageCircle, path: `${basePath}/chat` },
     ],
   },
   {
     label: 'System',
     items: [
-      { id: 'activities', label: 'Activities', icon: Activity, path: '/admin/activities', adminOnly: true },
-      { id: 'settings', label: 'Settings', icon: Settings, path: '/admin/settings' },
+      { id: 'activities', label: 'Activities', icon: Activity, path: `${basePath}/activities`, adminOnly: true },
+      { id: 'settings', label: 'Settings', icon: Settings, path: `${basePath}/settings` },
     ],
   },
 ];
@@ -125,8 +126,9 @@ export const MobileBottomNav = ({ isVisible = true }: { isVisible?: boolean }) =
   const parts = location.pathname.split('/');
   const companySlug = isCustomer && parts.length > 2 ? parts[2] : 'company';
 
-  const primaryTabs = isCustomer ? getCustomerPrimaryTabs(companySlug) : adminPrimaryTabs;
-  const drawerGroups = isCustomer ? getCustomerDrawerGroups(companySlug) : adminDrawerGroups;
+  const basePath = getBasePath();
+  const primaryTabs = isCustomer ? getCustomerPrimaryTabs(companySlug) : getAdminPrimaryTabs(basePath);
+  const drawerGroups = isCustomer ? getCustomerDrawerGroups(companySlug) : getAdminDrawerGroups(basePath);
 
   // Filter admin-only items based on role
   const filteredGroups = drawerGroups.map(group => ({

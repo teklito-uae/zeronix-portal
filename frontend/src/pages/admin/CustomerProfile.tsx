@@ -1,6 +1,8 @@
+import { getBasePath } from '@/hooks/useBasePath';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useBreadcrumb } from '@/hooks/useBreadcrumb';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import api from '@/lib/axios';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -9,36 +11,69 @@ import { DataTable } from '@/components/shared/DataTable';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { timeAgo } from '@/lib/utils';
 import { toast } from 'sonner';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { useResourceMutation } from '@/hooks/useApi';
+
 import type { ColumnDef } from '@tanstack/react-table';
 import type { Enquiry, Quote, Invoice } from '@/types';
-import { Mail, Phone, Building2, Calendar, FileText, MessageSquare, Receipt, Loader2, MapPin, ShieldCheck, User as UserIcon, Wallet, ArrowUpRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Mail, Phone, Building2, Calendar, FileText, MessageSquare, Receipt, Loader2, MapPin, ShieldCheck, User as UserIcon, Wallet, ArrowUpRight, Edit } from 'lucide-react';
 
-/**
- * Customer Relationship Management View
- * High-fidelity profile dashboard for administrative oversight.
- */
+
 export const CustomerProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [form, setForm] = useState({ 
+    name: '', company: '', email: '', phone: '', address: '', trn: '', is_portal_active: true 
+  });
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['customer', id],
-    queryFn: async () => (await api.get(`/admin/customers/${id}`)).data,
+    queryFn: async () => (await api.get(`${getBasePath()}/customers/${id}`)).data,
     enabled: !!id,
   });
 
+  useEffect(() => {
+    if (data?.customer) {
+      const c = data.customer;
+      setForm({
+        name: c.name,
+        company: c.company || '',
+        email: c.email,
+        phone: c.phone || '',
+        address: c.address || '',
+        trn: c.trn || '',
+        is_portal_active: c.is_portal_active ?? true
+      });
+    }
+  }, [data]);
+
   useBreadcrumb([
-    { label: 'Client Registry', href: '/admin/customers' },
+    { label: 'Client Registry', href: `${getBasePath()}/customers` },
     { label: data?.customer?.name || 'Identity Profile' },
   ]);
 
+  const { update } = useResourceMutation('customers');
+
+  const handleUpdate = async () => {
+    await update.mutateAsync({ id: Number(id), data: form });
+    queryClient.invalidateQueries({ queryKey: ['customer', id] });
+    setEditOpen(false);
+    toast.success('Profile updated successfully');
+  };
+
   const registerPortalMutation = useMutation({
-    mutationFn: async () => api.post(`/admin/customers/${id}/register-portal`),
+    mutationFn: async () => api.post(`${getBasePath()}/customers/${id}/register-portal`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customer', id] });
-      toast.success('Client registered for portal access. Welcome protocol initiated.');
+      toast.success('Client registered for portal access.');
     },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Access registration failure.'),
   });
@@ -52,13 +87,7 @@ export const CustomerProfile = () => {
     );
   }
 
-  if (error || !data) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 bg-admin-surface border border-dashed border-admin-border rounded-2xl">
-        <p className="text-sm font-bold text-admin-text-muted uppercase tracking-wider">Client Identity Not Found</p>
-      </div>
-    );
-  }
+  if (error || !data) return null;
 
   const { customer, enquiries, quotes, invoices } = data;
 
@@ -81,11 +110,6 @@ export const CustomerProfile = () => {
       accessorKey: 'priority',
       header: 'Criticality',
       cell: ({ row }) => <StatusBadge status={row.original.priority} />,
-    },
-    {
-      accessorKey: 'items_count',
-      header: 'Volume',
-      cell: ({ row }) => <span className="text-xs font-bold text-admin-text-primary uppercase tracking-wider">{row.original.items?.length || 0} ITEMS</span>,
     },
     {
       accessorKey: 'created_at',
@@ -122,15 +146,6 @@ export const CustomerProfile = () => {
         </span>
       ),
     },
-    {
-      accessorKey: 'created_at',
-      header: 'Issued',
-      cell: ({ row }) => (
-        <span className="text-admin-text-muted text-[10px] font-bold uppercase tracking-wider">
-          {row.original.created_at ? timeAgo(row.original.created_at) : '—'}
-        </span>
-      ),
-    },
   ];
 
   const invoiceColumns: ColumnDef<Invoice>[] = [
@@ -157,18 +172,6 @@ export const CustomerProfile = () => {
         </span>
       ),
     },
-    {
-      accessorKey: 'due_date',
-      header: 'Deadline',
-      cell: ({ row }) => (
-        <span className={cn(
-          "text-[10px] font-bold uppercase tracking-wider",
-          row.original.status === 'overdue' ? 'text-red-600 bg-red-500/5 px-2 py-0.5 rounded border border-red-500/10' : 'text-admin-text-muted'
-        )}>
-          {row.original.due_date ? new Date(row.original.due_date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '—'}
-        </span>
-      ),
-    },
   ];
 
   return (
@@ -184,10 +187,8 @@ export const CustomerProfile = () => {
                <div>
                   <div className="flex items-center gap-2.5">
                     <h1 className="text-2xl font-bold text-admin-text-primary tracking-tight uppercase">{customer.name}</h1>
-                    {customer.is_portal_active ? (
+                    {customer.is_portal_active && (
                       <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
-                    ) : (
-                      <span className="h-2 w-2 rounded-full bg-slate-400 opacity-40" />
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-4 mt-1.5">
@@ -197,19 +198,17 @@ export const CustomerProfile = () => {
                      <div className="flex items-center gap-1.5 text-xs font-bold text-admin-text-secondary">
                         <Building2 size={14} className="text-zeronix-blue" /> {customer.company || 'Private Entity'}
                      </div>
-                     {customer.is_portal_active ? (
-                        <div className="flex items-center gap-1.5 text-[9px] font-bold text-emerald-600 uppercase tracking-wider bg-emerald-500/5 px-2 py-0.5 rounded border border-emerald-500/10">
-                           <ShieldCheck size={12} /> Portal Access Active
-                        </div>
-                     ) : (
-                        <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider bg-slate-500/5 px-2 py-0.5 rounded border border-slate-500/10">
-                           Portal Inactive
-                        </div>
-                     )}
                   </div>
                </div>
             </div>
             <div className="flex gap-2">
+               <Button 
+                 variant="outline" 
+                 onClick={() => setEditOpen(true)}
+                 className="h-10 rounded-xl border-admin-border text-xs font-bold gap-2 shadow-sm px-5"
+               >
+                 <Edit size={16} /> Edit Profile
+               </Button>
                {!customer.is_portal_active ? (
                  <Button 
                    onClick={() => registerPortalMutation.mutate()} 
@@ -226,22 +225,20 @@ export const CustomerProfile = () => {
                    disabled={registerPortalMutation.isPending}
                    className="h-10 rounded-xl border-admin-border text-xs font-bold gap-2 shadow-sm"
                  >
-                   <ArrowUpRight size={16} /> Resend Protocol
+                   <ArrowUpRight size={16} /> Resend Access
                  </Button>
                )}
             </div>
          </div>
       </div>
 
-      {/* KPI Intelligence Dashboard */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
          <StatCard title="Enquiry Stream" value={customer.enquiries_count || 0} icon={<MessageSquare size={16} className="text-purple-500" />} iconBg="bg-purple-500/10" />
          <StatCard title="Issued Quotes" value={customer.quotes_count || 0} icon={<FileText size={16} className="text-amber-500" />} iconBg="bg-amber-500/10" />
          <StatCard title="Financial Ledger" value={customer.invoices_count || 0} icon={<Receipt size={16} className="text-zeronix-blue" />} iconBg="bg-zeronix-blue/10" />
-         <StatCard title="Total Volume" value="1.2M AED" icon={<Wallet size={16} className="text-emerald-500" />} iconBg="bg-emerald-500/10" />
+         <StatCard title="Total Volume" value={`${(customer.total_volume || 0).toLocaleString()} AED`} icon={<Wallet size={16} className="text-emerald-500" />} iconBg="bg-emerald-500/10" />
       </div>
 
-      {/* Ecosystem Tabs */}
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="bg-admin-surface border border-admin-border rounded-lg p-1 h-10 w-full max-w-lg shadow-sm">
           <TabsTrigger value="overview" className="flex-1 rounded-md text-[11px] font-semibold uppercase tracking-wider data-[state=active]:bg-zeronix-blue data-[state=active]:text-white">Profile</TabsTrigger>
@@ -250,15 +247,15 @@ export const CustomerProfile = () => {
           <TabsTrigger value="chat" className="flex-1 rounded-md text-[11px] font-semibold uppercase tracking-wider data-[state=active]:bg-zeronix-blue data-[state=active]:text-white">Chat</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="animate-in fade-in slide-in-from-top-2 duration-300">
+        <TabsContent value="overview">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 bg-admin-surface border border-admin-border rounded-2xl p-6 shadow-sm space-y-6">
               <div className="flex items-center gap-2 text-xs font-bold text-admin-text-primary uppercase tracking-wider border-b border-admin-border pb-4">
                  <UserIcon size={16} className="text-zeronix-blue" /> Identity Specifications
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-4 p-4 rounded-xl bg-admin-bg border border-admin-border group">
-                   <div className="h-10 w-10 rounded-lg bg-zeronix-blue/10 flex items-center justify-center text-zeronix-blue group-hover:bg-zeronix-blue group-hover:text-white transition-all">
+                <div className="flex items-center gap-4 p-4 rounded-xl bg-admin-bg border border-admin-border">
+                   <div className="h-10 w-10 rounded-lg bg-zeronix-blue/10 flex items-center justify-center text-zeronix-blue">
                     <Mail size={18} />
                   </div>
                   <div>
@@ -266,17 +263,17 @@ export const CustomerProfile = () => {
                     <p className="text-sm font-bold text-admin-text-primary">{customer.email}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 p-4 rounded-xl bg-admin-bg border border-admin-border group">
-                   <div className="h-10 w-10 rounded-lg bg-zeronix-blue/10 flex items-center justify-center text-zeronix-blue group-hover:bg-zeronix-blue group-hover:text-white transition-all">
+                <div className="flex items-center gap-4 p-4 rounded-xl bg-admin-bg border border-admin-border">
+                   <div className="h-10 w-10 rounded-lg bg-zeronix-blue/10 flex items-center justify-center text-zeronix-blue">
                     <Phone size={18} />
                   </div>
                   <div>
                     <p className="text-[9px] font-bold text-admin-text-muted uppercase tracking-wider">Voice Link</p>
-                    <p className="text-sm font-bold text-admin-text-primary">{customer.phone || 'NO SECURE LINE'}</p>
+                    <p className="text-sm font-bold text-admin-text-primary">{customer.phone || 'N/A'}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 p-4 rounded-xl bg-admin-bg border border-admin-border group">
-                   <div className="h-10 w-10 rounded-lg bg-zeronix-blue/10 flex items-center justify-center text-zeronix-blue group-hover:bg-zeronix-blue group-hover:text-white transition-all">
+                <div className="flex items-center gap-4 p-4 rounded-xl bg-admin-bg border border-admin-border">
+                   <div className="h-10 w-10 rounded-lg bg-zeronix-blue/10 flex items-center justify-center text-zeronix-blue">
                     <FileText size={18} />
                   </div>
                   <div>
@@ -284,14 +281,14 @@ export const CustomerProfile = () => {
                     <p className="text-sm font-bold text-admin-text-primary font-mono">{customer.trn || 'NOT REGISTERED'}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 p-4 rounded-xl bg-admin-bg border border-admin-border group">
-                   <div className="h-10 w-10 rounded-lg bg-zeronix-blue/10 flex items-center justify-center text-zeronix-blue group-hover:bg-zeronix-blue group-hover:text-white transition-all">
+                <div className="flex items-center gap-4 p-4 rounded-xl bg-admin-bg border border-admin-border">
+                   <div className="h-10 w-10 rounded-lg bg-zeronix-blue/10 flex items-center justify-center text-zeronix-blue">
                     <Calendar size={18} />
                   </div>
                   <div>
                     <p className="text-[9px] font-bold text-admin-text-muted uppercase tracking-wider">Onboarding Date</p>
                     <p className="text-sm font-bold text-admin-text-primary">
-                      {customer.created_at ? new Date(customer.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
+                      {customer.created_at ? new Date(customer.created_at).toLocaleDateString() : '—'}
                     </p>
                   </div>
                 </div>
@@ -305,68 +302,93 @@ export const CustomerProfile = () => {
               <div className="p-4 rounded-xl bg-admin-bg border border-admin-border min-h-[140px]">
                  <p className="text-[9px] font-bold text-admin-text-muted uppercase tracking-wider mb-1.5">Registered Address</p>
                  <p className="text-sm font-bold text-admin-text-primary leading-relaxed opacity-80">
-                    {customer.address || "No logistics records found for this identity."}
+                    {customer.address || "No logistics records found."}
                  </p>
               </div>
-              <p className="text-[10px] text-admin-text-muted font-bold italic text-center opacity-40">
-                 System Identity ID: {id}
-              </p>
             </div>
           </div>
         </TabsContent>
 
-        <TabsContent value="enquiries" className="animate-in fade-in slide-in-from-top-2 duration-300">
+        <TabsContent value="enquiries">
           <div className="bg-admin-surface border border-admin-border rounded-2xl overflow-hidden shadow-sm">
-            {enquiries?.length > 0 ? (
-              <DataTable columns={enquiryColumns} data={enquiries} searchColumn="status" searchPlaceholder="Search enquiry records..." onRowClick={() => navigate(`/admin/enquiries`)} />
-            ) : (
-              <div className="flex flex-col items-center justify-center p-20 text-center">
-                <MessageSquare size={48} className="text-admin-text-muted/20 mb-4" />
-                <h3 className="text-sm font-bold text-admin-text-primary uppercase tracking-wider">QUIET STREAM</h3>
-                <p className="text-xs text-admin-text-muted mt-1">No enquiries have been initiated by this client.</p>
-              </div>
-            )}
+            <DataTable columns={enquiryColumns} data={enquiries || []} onRowClick={() => navigate(`${getBasePath()}/enquiries`)} />
           </div>
         </TabsContent>
 
-        <TabsContent value="quotes" className="animate-in fade-in slide-in-from-top-2 duration-300">
+        <TabsContent value="quotes">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-admin-surface border border-admin-border rounded-2xl overflow-hidden shadow-sm">
               <div className="px-6 py-4 border-b border-admin-border bg-admin-bg/10 flex items-center gap-2 text-xs font-bold text-admin-text-primary uppercase tracking-wider">
                  <FileText size={16} className="text-amber-500" /> Quotation History
               </div>
-              {quotes?.length > 0 ? (
-                <DataTable columns={quoteColumns} data={quotes} onRowClick={(row) => navigate(`/admin/quotes/${row.id}`)} />
-              ) : (
-                <div className="p-12 text-center text-admin-text-muted opacity-40 italic text-xs font-bold">No quotation records detected.</div>
-              )}
+              <DataTable columns={quoteColumns} data={quotes || []} onRowClick={(row) => navigate(`${getBasePath()}/quotes/${row.id}`)} />
             </div>
-
             <div className="bg-admin-surface border border-admin-border rounded-2xl overflow-hidden shadow-sm">
               <div className="px-6 py-4 border-b border-admin-border bg-admin-bg/10 flex items-center gap-2 text-xs font-bold text-admin-text-primary uppercase tracking-wider">
                  <Receipt size={16} className="text-zeronix-blue" /> Commercial Invoices
               </div>
-              {invoices?.length > 0 ? (
-                <DataTable columns={invoiceColumns} data={invoices} onRowClick={(row) => navigate(`/admin/invoices/${row.id}`)} />
-              ) : (
-                <div className="p-12 text-center text-admin-text-muted opacity-40 italic text-xs font-bold">No invoice records detected.</div>
-              )}
+              <DataTable columns={invoiceColumns} data={invoices || []} onRowClick={(row) => navigate(`${getBasePath()}/invoices/${row.id}`)} />
             </div>
           </div>
         </TabsContent>
 
-        <TabsContent value="chat" className="animate-in fade-in slide-in-from-top-2 duration-300">
+        <TabsContent value="chat">
           <div className="bg-admin-surface border border-admin-border rounded-2xl p-12 flex flex-col items-center justify-center text-center shadow-sm">
-            <div className="h-16 w-16 bg-admin-bg rounded-full flex items-center justify-center mb-4 border border-admin-border">
-               <MessageSquare size={32} className="text-admin-text-muted/20" />
-            </div>
+            <MessageSquare size={48} className="text-admin-text-muted/20 mb-4" />
             <h3 className="text-sm font-bold text-admin-text-primary uppercase tracking-wider">COMMUNICATIONS HUB</h3>
-            <p className="text-xs text-admin-text-muted max-w-xs mt-2 leading-relaxed">
-               Direct encrypted messaging for this client profile is currently in development phase.
-            </p>
+            <p className="text-xs text-admin-text-muted max-w-xs mt-2">Messaging is currently in development.</p>
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="bg-admin-surface border-admin-border sm:max-w-xl rounded-2xl shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-admin-text-primary uppercase">Refine Client Identity</DialogTitle>
+            <DialogDescription className="text-xs font-bold text-admin-text-muted uppercase tracking-widest mt-1">Update primary contact and logistical data.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Full Name</Label>
+              <Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="h-11 bg-admin-bg border-admin-border rounded-xl font-bold" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Company</Label>
+              <Input value={form.company} onChange={e => setForm({...form, company: e.target.value})} className="h-11 bg-admin-bg border-admin-border rounded-xl font-bold" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Email</Label>
+              <Input value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="h-11 bg-admin-bg border-admin-border rounded-xl font-bold" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Phone</Label>
+              <Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="h-11 bg-admin-bg border-admin-border rounded-xl font-bold" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">TRN</Label>
+              <Input value={form.trn} onChange={e => setForm({...form, trn: e.target.value})} className="h-11 bg-admin-bg border-admin-border rounded-xl font-bold font-mono" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Portal Access</Label>
+              <div className="flex items-center gap-3 h-11 px-3 bg-admin-bg border border-admin-border rounded-xl">
+                <Switch checked={form.is_portal_active} onCheckedChange={v => setForm({...form, is_portal_active: v})} />
+                <span className="text-[10px] font-black text-admin-text-primary uppercase tracking-widest">{form.is_portal_active ? 'ENABLED' : 'DISABLED'}</span>
+              </div>
+            </div>
+            <div className="col-span-2 space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Dispatch Address</Label>
+              <Textarea value={form.address} onChange={e => setForm({...form, address: e.target.value})} className="bg-admin-bg border-admin-border rounded-xl min-h-[100px] font-bold" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditOpen(false)} className="font-bold">CANCEL</Button>
+            <Button onClick={handleUpdate} disabled={update.isPending} className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover rounded-xl font-black px-8">
+              {update.isPending ? <Loader2 className="animate-spin" /> : 'SYNC CHANGES'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -1,3 +1,4 @@
+import { getBasePath } from '@/hooks/useBasePath';
 import { useNavigate } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -100,8 +101,8 @@ export const Quotes = () => {
           isMailPending={sendEmailMutation.isPending && sendEmailMutation.variables === row.original.id}
           isMailSent={!!row.original.email_sent_at}
           onDownload={() => window.open(`${api.defaults.baseURL}/admin/quotes/${row.original.id}/download`, '_blank')}
-          onView={() => navigate(`/admin/quotes/${row.original.id}`)}
-          onEdit={() => navigate(`/admin/quotes/${row.original.id}`)}
+          onView={() => navigate(`${getBasePath()}/quotes/${row.original.id}`)}
+          onEdit={() => navigate(`${getBasePath()}/quotes/${row.original.id}`)}
         />
       ),
     },
@@ -114,9 +115,9 @@ export const Quotes = () => {
       subtitle="Issue and track professional estimates for your clients."
       icon={<FileText size={20} />}
       columns={columns}
-      onRowClick={(row) => navigate(`/admin/quotes/${row.id}`)}
+      onRowClick={(row) => navigate(`${getBasePath()}/quotes/${row.id}`)}
       createLabel="New Quote"
-      createPath="/admin/quotes/create"
+      createPath={`${getBasePath()}/quotes/create`}
       searchPlaceholder="Search by quote # or customer name..."
     />
   );

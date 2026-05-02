@@ -1,3 +1,4 @@
+import { getBasePath } from '@/hooks/useBasePath';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -43,13 +44,13 @@ export const Products = () => {
   // Fetch static data for filters/forms
   const { data: brandsData } = useQuery({
     queryKey: ['brands'],
-    queryFn: async () => (await api.get('/admin/brands')).data,
+    queryFn: async () => (await api.get(`${getBasePath()}/brands`)).data,
   });
   const brands = brandsData?.data || [];
 
   const { data: categoriesData } = useQuery({
     queryKey: ['categories'],
-    queryFn: async () => (await api.get('/admin/categories')).data,
+    queryFn: async () => (await api.get(`${getBasePath()}/categories`)).data,
   });
   const categories = categoriesData?.data || [];
 
@@ -150,7 +151,7 @@ export const Products = () => {
         <ActionGroup
           onEdit={() => openEdit(row.original)}
           onDelete={() => { setDeletingId(row.original.id); setDeleteOpen(true); }}
-          onView={() => navigate(`/admin/products/${row.original.id}`)}
+          onView={() => navigate(`${getBasePath()}/products/${row.original.id}`)}
         />
       ),
     },
@@ -165,9 +166,10 @@ export const Products = () => {
         subtitle="Manage your global IT and hardware stock."
         icon={<Package size={20} />}
         columns={columns}
-        onRowClick={(row) => navigate(`/admin/products/${row.id}`)}
+        onRowClick={(row) => navigate(`${getBasePath()}/products/${row.id}`)}
         createLabel="Add Product"
         createPath="#" // We use openAdd instead
+        onCreateClick={openAdd}
         searchPlaceholder="Search by name, model, or brand..."
         filters={[
           {

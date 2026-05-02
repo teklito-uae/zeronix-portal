@@ -1,3 +1,4 @@
+import { getBasePath } from '@/hooks/useBasePath';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -117,7 +118,7 @@ export const Invoices = () => {
           isMailPending={sendEmailMutation.isPending && sendEmailMutation.variables === row.original.id}
           isMailSent={!!row.original.email_sent_at}
           onDownload={() => window.open(`${api.defaults.baseURL}/admin/invoices/${row.original.id}/download`, '_blank')}
-          onView={() => navigate(`/admin/invoices/${row.original.id}`)}
+          onView={() => navigate(`${getBasePath()}/invoices/${row.original.id}`)}
         />
       ),
     },
@@ -136,7 +137,7 @@ export const Invoices = () => {
             toast.error('Invoice cannot be edited after delivery confirmation.');
             return;
           }
-          navigate(`/admin/invoices/${row.id}`);
+          navigate(`${getBasePath()}/invoices/${row.id}`);
         }}
         searchPlaceholder="Search by invoice # or customer..."
       />

@@ -9,6 +9,7 @@ import { AdminLogin } from './pages/admin/Login';
 import { CustomerLogin } from './pages/customer/Login';
 import { CustomerRegister } from './pages/customer/Register';
 import { Dashboard } from './pages/admin/Dashboard';
+
 import { Customers } from './pages/admin/Customers';
 import { CustomerProfile as AdminCustomerProfile } from './pages/admin/CustomerProfile';
 import { Suppliers } from './pages/admin/Suppliers';
@@ -44,6 +45,30 @@ const PortalRedirect = () => {
   return <Navigate to={`/portal/${companySlug}/dashboard`} replace />;
 };
 
+const CoreRoutes = () => (
+  <Route element={<AdminLayout />}>
+    <Route path="dashboard" element={<Dashboard />} />
+    <Route path="customers" element={<Customers />} />
+    <Route path="customers/:id" element={<AdminCustomerProfile />} />
+    <Route path="suppliers" element={<Suppliers />} />
+    <Route path="suppliers/:id" element={<SupplierProfile />} />
+    <Route path="products" element={<Products />} />
+    <Route path="products/:id" element={<ProductDetail />} />
+    <Route path="enquiries" element={<Enquiries />} />
+    <Route path="quotes" element={<Quotes />} />
+    <Route path="quotes/:id" element={<QuoteDetail />} />
+    <Route path="invoices" element={<Invoices />} />
+    <Route path="invoices/:id" element={<InvoiceDetail />} />
+    <Route path="payment-receipts" element={<PaymentReceipts />} />
+    <Route path="chat" element={<Chat />} />
+    <Route path="bulk-import" element={<BulkImport />} />
+    <Route path="users" element={<Users />} />
+    <Route path="settings" element={<Settings />} />
+    <Route path="activities" element={<Activities />} />
+    <Route path="notifications" element={<Notifications />} />
+  </Route>
+);
+
 function App() {
   const { adminToken, customerToken, setAdmin, setCustomer, setIsLoading, isLoading } = useAuthStore();
 
@@ -65,7 +90,7 @@ function App() {
             setAdmin(res.data.user);
           } catch (err: any) {
             if (err.response?.status === 401 || err.response?.status === 403) {
-              localStorage.removeItem('zeronix_admin_token');
+              (localStorage.removeItem('zeronix_admin_token'), localStorage.removeItem('zeronix_staff_token'));
               setAdmin(null);
             }
           }
@@ -109,34 +134,19 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/portal/login" replace />} />
-      <Route path="/admin/login" element={<AdminLogin />} />
-      <Route path="/sales/login" element={<AdminLogin />} />
+      <Route path="/admin/login" element={<AdminLogin type="admin" />} />
+      <Route path="/staff/login" element={<AdminLogin type="staff" />} />
       <Route path="/portal/login" element={<CustomerLogin />} />
       <Route path="/register" element={<CustomerRegister />} />
 
       <Route path="/admin" element={<AdminRoute />}>
-        <Route element={<AdminLayout />}>
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="customers" element={<Customers />} />
-          <Route path="customers/:id" element={<AdminCustomerProfile />} />
-          <Route path="suppliers" element={<Suppliers />} />
-          <Route path="suppliers/:id" element={<SupplierProfile />} />
-          <Route path="products" element={<Products />} />
-          <Route path="products/:id" element={<ProductDetail />} />
-          <Route path="enquiries" element={<Enquiries />} />
-          <Route path="quotes" element={<Quotes />} />
-          <Route path="quotes/:id" element={<QuoteDetail />} />
-          <Route path="invoices" element={<Invoices />} />
-          <Route path="invoices/:id" element={<InvoiceDetail />} />
-          <Route path="payment-receipts" element={<PaymentReceipts />} />
-          <Route path="chat" element={<Chat />} />
-          <Route path="bulk-import" element={<BulkImport />} />
-          <Route path="users" element={<Users />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="activities" element={<Activities />} />
-          <Route path="notifications" element={<Notifications />} />
-          <Route index element={<Navigate to="/admin/dashboard" replace />} />
-        </Route>
+        {CoreRoutes()}
+        <Route index element={<Navigate to="/admin/dashboard" replace />} />
+      </Route>
+
+      <Route path="/staff" element={<AdminRoute />}>
+        {CoreRoutes()}
+        <Route index element={<Navigate to="/staff/dashboard" replace />} />
       </Route>
 
       <Route path="/portal" element={<CustomerRoute />}>
