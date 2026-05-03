@@ -100,6 +100,7 @@ Route::middleware('throttle:public')->group(function () {
     Route::get('/public/products', [ProductController::class, 'publicIndex']);
     Route::get('/public/categories', [CategoryController::class, 'index']);
     Route::get('/public/brands', [BrandController::class, 'index']);
+    Route::post('/public/rfq', [EnquiryController::class, 'publicStore']);
 });
 
 // Common routes for both Admin and Staff (using getBasePath() on frontend)
