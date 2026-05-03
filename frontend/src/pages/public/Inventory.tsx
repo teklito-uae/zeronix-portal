@@ -6,7 +6,6 @@ import { useThemeStore } from '@/store/useThemeStore';
 import { Logo } from '@/components/shared/Logo';
 import { 
   Search, 
-  ChevronRight, 
   Loader2,
   X,
   ShieldCheck,
@@ -24,7 +23,8 @@ import {
   Moon,
   Sun,
   LayoutGrid,
-  ChevronDown
+  ChevronDown,
+  MessageCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -95,7 +95,7 @@ export const PublicInventory = () => {
     search,
     category_id: selectedCategory,
     brand_id: selectedBrand,
-    per_page: 12
+    per_page: 16
   });
 
   const { data: categoriesData } = usePublicResourceList<any>('categories', {});
@@ -139,16 +139,17 @@ export const PublicInventory = () => {
 
   return (
     <div className="min-h-screen bg-admin-bg text-admin-text-primary selection:bg-zeronix-blue/30 font-sans transition-colors duration-300">
-      <SEO title="Inventory Portal | ZERONIX" description="Request a quote for enterprise-grade hardware and components." />
+      <SEO title="Inventory Portal | ZERONIX" description="Browse our professional hardware inventory and request a quote." />
       
-      {/* Header with Categories MegaMenu */}
+      {/* Responsive Header */}
       <header className="sticky top-0 z-50 w-full border-b border-admin-border bg-admin-surface/80 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-8">
-            <Logo size="md" showText />
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-8">
+            <Logo size="sm" showText className="sm:hidden" />
+            <Logo size="md" showText className="hidden sm:flex" />
             
-            {/* Navigation Menus - Now visible on mobile */}
-            <nav className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+            {/* Desktop Navigation Menus */}
+            <nav className="hidden md:flex items-center gap-1">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="h-9 px-3 text-sm font-bold text-admin-text-secondary hover:text-admin-text-primary hover:bg-admin-surface-hover gap-2">
@@ -184,7 +185,6 @@ export const PublicInventory = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Brands Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="h-9 px-3 text-sm font-bold text-admin-text-secondary hover:text-admin-text-primary hover:bg-admin-surface-hover gap-2">
@@ -200,7 +200,7 @@ export const PublicInventory = () => {
                   >
                     All Brands
                   </DropdownMenuItem>
-                  {brands.slice(0, 12).map((brand: any) => (
+                  {brands.slice(0, 20).map((brand: any) => (
                     <DropdownMenuItem 
                       key={brand.id}
                       onClick={() => { setSelectedBrand(String(brand.id)); setPage(1); }}
@@ -218,32 +218,33 @@ export const PublicInventory = () => {
             </nav>
           </div>
 
-          <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
-            <div className="relative flex-1 max-w-md group min-w-[140px]">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-admin-text-muted group-focus-within:text-zeronix-blue transition-colors" />
+          <div className="flex-1 flex items-center justify-end gap-1 sm:gap-2 min-w-0">
+            <div className="relative flex-1 max-w-md group min-w-[100px] sm:min-w-[200px]">
+              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-admin-text-muted group-focus-within:text-zeronix-blue transition-colors sm:size-4" />
               <Input 
-                placeholder="Search inventory..."
+                placeholder="Search..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="pl-10 bg-admin-bg border-admin-border h-9 text-sm focus:ring-zeronix-blue/10 w-full"
+                className="pl-8 sm:pl-10 bg-admin-bg border-admin-border h-8 sm:h-9 text-xs sm:text-sm focus:ring-zeronix-blue/10 w-full rounded-lg"
               />
             </div>
+            
             <Button
               variant="ghost"
               size="icon"
               onClick={() => toggleTheme(true)}
-              className="h-9 w-9 text-admin-text-secondary hover:text-admin-text-primary hover:bg-admin-surface-hover"
+              className="h-8 w-8 sm:h-9 sm:w-9 text-admin-text-secondary hover:text-admin-text-primary"
             >
-              {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+              {theme === 'light' ? <Moon size={16} className="sm:size-18" /> : <Sun size={16} className="sm:size-18" />}
             </Button>
 
             <Sheet>
               <SheetTrigger asChild>
-                <Button className="relative bg-zeronix-blue hover:bg-zeronix-blue-hover text-white rounded-lg h-9 px-4 font-bold text-xs uppercase tracking-wider shadow-lg shadow-zeronix-blue/20">
-                  <ShoppingCart size={16} className="mr-2" />
-                  RFQ
+                <Button className="relative bg-zeronix-blue hover:bg-zeronix-blue-hover text-white rounded-lg h-8 sm:h-9 px-2 sm:px-4 font-bold text-[10px] sm:text-xs uppercase tracking-wider shadow-lg shadow-zeronix-blue/20">
+                  <ShoppingCart size={14} className="sm:mr-2 sm:size-16" />
+                  <span className="hidden sm:inline">RFQ</span>
                   {items.length > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 h-4 w-4 bg-white text-zeronix-blue text-[10px] font-black flex items-center justify-center rounded-full border-2 border-zeronix-blue animate-in zoom-in">
+                    <span className="absolute -top-1 -right-1 sm:-top-1.5 sm:-right-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4 bg-white text-zeronix-blue text-[8px] sm:text-[10px] font-black flex items-center justify-center rounded-full border-2 border-zeronix-blue animate-in zoom-in">
                       {items.length}
                     </span>
                   )}
@@ -405,91 +406,112 @@ export const PublicInventory = () => {
             </Sheet>
           </div>
         </div>
+
+        {/* Mobile Filters Bar - Sticky below header */}
+        <div className="md:hidden flex items-center gap-1 overflow-x-auto no-scrollbar px-4 py-2 border-t border-admin-border bg-admin-surface/50 backdrop-blur-sm">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 px-3 text-[10px] font-black uppercase tracking-wider text-admin-text-secondary border border-admin-border/50 bg-admin-surface flex-shrink-0 gap-1.5 rounded-full">
+                <LayoutGrid size={12} className="text-zeronix-blue" />
+                {selectedCategory ? categories.find((c: any) => String(c.id) === selectedCategory)?.name : 'Categories'}
+                <ChevronDown size={10} className="opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56 max-h-[300px] overflow-y-auto no-scrollbar bg-admin-surface border-admin-border rounded-xl shadow-2xl p-1">
+              <DropdownMenuItem onClick={() => { setSelectedCategory(null); setPage(1); }} className="text-xs font-bold py-2 rounded-lg">All Components</DropdownMenuItem>
+              {categories.map((cat: any) => (
+                <DropdownMenuItem key={cat.id} onClick={() => { setSelectedCategory(String(cat.id)); setPage(1); }} className="text-xs font-bold py-2 rounded-lg">{cat.name}</DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 px-3 text-[10px] font-black uppercase tracking-wider text-admin-text-secondary border border-admin-border/50 bg-admin-surface flex-shrink-0 gap-1.5 rounded-full">
+                <Building2 size={12} className="text-emerald-500" />
+                {selectedBrand ? brands.find((b: any) => String(b.id) === selectedBrand)?.name : 'Brands'}
+                <ChevronDown size={10} className="opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56 max-h-[300px] overflow-y-auto no-scrollbar bg-admin-surface border-admin-border rounded-xl shadow-2xl p-1">
+              <DropdownMenuItem onClick={() => { setSelectedBrand(null); setPage(1); }} className="text-xs font-bold py-2 rounded-lg">All Brands</DropdownMenuItem>
+              {brands.slice(0, 20).map((brand: any) => (
+                <DropdownMenuItem key={brand.id} onClick={() => { setSelectedBrand(String(brand.id)); setPage(1); }} className="text-xs font-bold py-2 rounded-lg">{brand.name}</DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          {(selectedCategory || selectedBrand || search) && (
+             <Button 
+               variant="ghost" 
+               size="sm" 
+               onClick={() => { setSelectedCategory(null); setSelectedBrand(null); setSearchInput(''); setSearch(''); }}
+               className="h-8 px-3 text-[9px] font-black uppercase tracking-wider text-danger hover:bg-danger/5 flex-shrink-0 rounded-full"
+             >
+               <X size={10} className="mr-1" /> Reset
+             </Button>
+          )}
+        </div>
       </header>
       
-      {/* Mini Breadcrumb / Hero Replacement */}
-      <div className="bg-admin-surface border-b border-admin-border py-4 px-6">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs font-medium">
-            <span className="text-admin-text-muted hover:text-admin-text-primary cursor-pointer" onClick={() => { setSelectedCategory(null); setSelectedBrand(null); setPage(1); }}>Home</span>
-            <ChevronRight size={12} className="text-admin-text-muted/50" />
-            <span className="text-admin-text-primary font-bold">Inventory</span>
-            {selectedCategory && (
-              <>
-                <ChevronRight size={12} className="text-admin-text-muted/50" />
-                <span className="text-zeronix-blue font-bold uppercase tracking-tight">{categories.find((c: any) => String(c.id) === selectedCategory)?.name}</span>
-              </>
-            )}
-          </div>
-          <div className="text-[10px] font-bold text-admin-text-muted uppercase tracking-widest">
-            {total} Products Available
-          </div>
-        </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Main Content */}
           <main className="flex-1 min-w-0">
             {productsLoading ? (
               <div className="flex flex-col items-center justify-center py-40 gap-4">
                 <Loader2 className="animate-spin text-zeronix-blue h-10 w-10" />
-                <p className="text-sm font-medium text-admin-text-muted animate-pulse">Syncing Inventory...</p>
+                <p className="text-sm font-medium text-admin-text-muted animate-pulse uppercase tracking-widest">Loading Catalog...</p>
               </div>
             ) : products.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {products.map((product: Product) => (
                     <div
                       key={product.id}
-                      className="group bg-admin-surface border border-admin-border rounded-2xl p-6 hover:border-zeronix-blue/40 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-zeronix-blue/5 flex flex-col"
+                      className="group bg-admin-surface border border-admin-border rounded-xl p-4 hover:border-zeronix-blue/40 transition-all duration-300 shadow-sm flex flex-col"
                     >
-                      <div className="flex flex-col mb-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <Badge variant="outline" className="text-[9px] font-black tracking-widest uppercase py-0 border-admin-border bg-admin-bg/50 text-admin-text-muted">
-                            {product.category?.name || 'Hardware'}
+                      <div className="flex flex-col mb-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[9px] font-black text-zeronix-blue uppercase tracking-tighter">
+                            {product.brand?.name || 'GENERIC'}
+                          </span>
+                          <Badge variant="outline" className="text-[8px] font-bold uppercase p-0 h-auto text-admin-text-muted border-none bg-transparent">
+                            {product.category?.name}
                           </Badge>
-                          {product.brand && (
-                            <span className="text-[10px] font-black text-zeronix-blue uppercase tracking-tighter">{product.brand.name}</span>
-                          )}
                         </div>
-                        <h3 className="text-base font-bold text-admin-text-primary group-hover:text-zeronix-blue transition-colors leading-snug line-clamp-2 min-h-[3rem]">
+                        <h3 className="text-xs sm:text-sm font-bold text-admin-text-primary group-hover:text-zeronix-blue transition-colors line-clamp-2 min-h-[2rem] leading-tight">
                           {product.name}
                         </h3>
                       </div>
 
-                      <div className="bg-admin-bg/50 rounded-xl p-3 border border-admin-border mb-4">
-                        <div className="text-[8px] font-bold text-admin-text-muted uppercase tracking-[0.2em] mb-1">Model / PN</div>
-                        <code className="text-xs font-mono text-emerald-500 font-bold block truncate">
-                          {product.model_code || 'ZNX-PART-101'}
+                      <div className="bg-admin-bg/50 rounded-lg p-2 border border-admin-border mb-4">
+                        <div className="text-[8px] font-bold text-admin-text-muted uppercase tracking-[0.1em] mb-0.5">Model / Part No</div>
+                        <code className="text-[10px] font-mono text-emerald-500 font-black block truncate">
+                          {product.model_code}
                         </code>
                       </div>
 
-                      <p className="text-xs text-admin-text-secondary line-clamp-2 leading-relaxed mb-6">
-                        {product.description || 'High-performance component optimized for enterprise systems and professional workflows.'}
-                      </p>
-
-                      <div className="mt-auto pt-4 border-t border-admin-border flex items-center justify-between">
-                        <div className="flex items-center gap-4 text-admin-text-muted">
-                           <div className="flex flex-col">
-                             <span className="text-[8px] font-black uppercase tracking-tighter">Status</span>
+                      <div className="mt-auto pt-3 border-t border-admin-border/50 flex items-center justify-between">
+                        <div className="flex flex-col">
+                             <span className="text-[8px] font-black uppercase tracking-tighter text-admin-text-muted">Availability</span>
                              <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-1">
-                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                               Available
+                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                               In Stock
                              </span>
-                           </div>
                         </div>
                         
                         <Button 
                           size="sm"
                           onClick={() => {
                             addItem(product as any);
-                            toast.success(`Added ${product.name} to quote`);
+                            toast.success(`Added to quote`);
                           }}
-                          className="bg-admin-bg hover:bg-zeronix-blue text-admin-text-primary hover:text-white border border-admin-border h-8 px-4 rounded-lg font-bold text-[10px] uppercase tracking-widest transition-all"
+                          className="bg-admin-bg hover:bg-zeronix-blue text-admin-text-primary hover:text-white border border-admin-border h-8 px-3 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all"
                         >
-                          <Plus size={14} className="mr-1.5" />
-                          Add Quote
+                          <Plus size={14} className="mr-1" />
+                          Quote
                         </Button>
                       </div>
                     </div>
@@ -497,26 +519,25 @@ export const PublicInventory = () => {
                 </div>
 
                 {/* Standardized Pagination */}
-                <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-admin-surface border border-admin-border rounded-2xl shadow-sm">
-                  <div className="text-xs font-medium text-admin-text-muted">
-                    Showing <span className="text-admin-text-primary">{(page - 1) * 12 + 1}</span> to <span className="text-admin-text-primary">{Math.min(page * 12, total)}</span> of <span className="text-admin-text-primary">{total}</span> items
+                <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-admin-surface border border-admin-border rounded-xl shadow-sm">
+                  <div className="text-[11px] font-medium text-admin-text-muted">
+                    Showing <span className="text-admin-text-primary">{(page - 1) * 16 + 1}</span>- <span className="text-admin-text-primary">{Math.min(page * 16, total)}</span> of <span className="text-admin-text-primary">{total}</span>
                   </div>
                   
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => { setPage(p => Math.max(1, p - 1)); window.scrollTo(0, 0); }}
                       disabled={page === 1}
-                      className="h-9 px-4 rounded-lg border-admin-border bg-admin-surface hover:bg-admin-surface-hover text-xs font-bold shadow-sm transition-all disabled:opacity-30"
+                      className="h-8 px-3 rounded-lg border-admin-border bg-admin-surface text-[10px] font-black uppercase tracking-widest disabled:opacity-30"
                     >
-                      Previous
+                      Prev
                     </Button>
                     
-                    <div className="flex items-center gap-2">
-                      {[...Array(Math.min(5, lastPage))].map((_, i) => {
+                    <div className="flex items-center gap-1">
+                      {[...Array(Math.min(3, lastPage))].map((_, i) => {
                         const pageNum = i + 1;
-                        // Simple logic for showing pages near current
                         return (
                           <Button
                             key={pageNum}
@@ -524,15 +545,14 @@ export const PublicInventory = () => {
                             size="sm"
                             onClick={() => { setPage(pageNum); window.scrollTo(0, 0); }}
                             className={cn(
-                              "h-9 w-9 p-0 rounded-lg text-xs font-bold transition-all",
-                              page === pageNum ? "bg-zeronix-blue text-white shadow-lg shadow-zeronix-blue/20" : "text-admin-text-muted hover:bg-admin-surface-hover hover:text-admin-text-primary"
+                              "h-8 w-8 p-0 rounded-lg text-[10px] font-black transition-all",
+                              page === pageNum ? "bg-zeronix-blue text-white shadow-lg" : "text-admin-text-muted"
                             )}
                           >
                             {pageNum}
                           </Button>
                         );
                       })}
-                      {lastPage > 5 && <span className="text-admin-text-muted px-1">...</span>}
                     </div>
 
                     <Button
@@ -540,7 +560,7 @@ export const PublicInventory = () => {
                       size="sm"
                       onClick={() => { setPage(p => p + 1); window.scrollTo(0, 0); }}
                       disabled={page >= lastPage}
-                      className="h-9 px-4 rounded-lg border-admin-border bg-admin-surface hover:bg-admin-surface-hover text-xs font-bold shadow-sm transition-all disabled:opacity-30"
+                      className="h-8 px-3 rounded-lg border-admin-border bg-admin-surface text-[10px] font-black uppercase tracking-widest disabled:opacity-30"
                     >
                       Next
                     </Button>
@@ -548,19 +568,19 @@ export const PublicInventory = () => {
                 </div>
               </>
             ) : (
-              <div className="flex flex-col items-center justify-center py-40 bg-admin-surface border border-dashed border-admin-border rounded-[2.5rem]">
-                <div className="h-20 w-20 bg-admin-bg rounded-3xl flex items-center justify-center mb-6 border border-admin-border shadow-inner">
-                  <X size={32} className="text-admin-text-muted/30" />
+              <div className="flex flex-col items-center justify-center py-32 bg-admin-surface border border-dashed border-admin-border rounded-[2rem]">
+                <div className="h-16 w-16 bg-admin-bg rounded-2xl flex items-center justify-center mb-6 border border-admin-border shadow-inner">
+                  <X size={24} className="text-admin-text-muted/30" />
                 </div>
-                <h3 className="text-xl font-bold text-admin-text-primary mb-2">No hardware found</h3>
-                <p className="text-admin-text-secondary text-sm max-w-xs text-center leading-relaxed mb-8">
+                <h3 className="text-lg font-bold text-admin-text-primary mb-2">No hardware found</h3>
+                <p className="text-admin-text-secondary text-[11px] max-w-xs text-center leading-relaxed mb-8">
                   Try adjusting your filters or search terms to find what you're looking for.
                 </p>
                 <Button 
                   onClick={() => { setSearchInput(''); setSelectedCategory(null); setSelectedBrand(null); setPage(1); }}
-                  className="bg-zeronix-blue hover:bg-zeronix-blue-hover text-white px-8 h-11 rounded-xl font-bold uppercase tracking-widest"
+                  className="bg-zeronix-blue hover:bg-zeronix-blue-hover text-white px-8 h-10 rounded-xl font-black uppercase tracking-widest text-[10px]"
                 >
-                  Clear all filters
+                  Clear filters
                 </Button>
               </div>
             )}
@@ -569,26 +589,39 @@ export const PublicInventory = () => {
       </div>
       
       {/* Footer */}
-      <footer className="border-t border-admin-border py-12 px-6 bg-admin-surface">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="flex flex-col items-center md:items-start gap-2">
+      <footer className="border-t border-admin-border py-8 px-6 bg-admin-surface">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex flex-col items-center md:items-start gap-1">
             <Logo size="sm" showText />
-            <p className="text-[10px] font-bold text-admin-text-muted uppercase tracking-widest">Global Distribution Portal</p>
+            <p className="text-[9px] font-black text-admin-text-muted uppercase tracking-widest">Global Distribution Portal</p>
           </div>
           
-          <div className="flex items-center gap-8 text-[10px] font-bold text-admin-text-muted uppercase tracking-widest">
+          <div className="flex items-center gap-6 text-[9px] font-black text-admin-text-muted uppercase tracking-widest">
              <div className="flex items-center gap-2">
-               <ShieldCheck size={14} className="text-emerald-500" />
+               <ShieldCheck size={12} className="text-emerald-500" />
                Quality Assured
              </div>
              <div className="flex items-center gap-2">
-               <Globe size={14} className="text-zeronix-blue" />
+               <Globe size={12} className="text-zeronix-blue" />
                Global Sourcing
              </div>
              <span>&copy; 2026 ZERONIX</span>
           </div>
         </div>
       </footer>
+
+      {/* WhatsApp Floating Button */}
+      <a
+        href="https://wa.me/971567850662?text=Hi%20Zeronix%2C%20I'm%20interested%20in%20your%20hardware%20inventory."
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-50 bg-[#25D366] text-white p-3.5 rounded-full shadow-2xl shadow-green-500/30 hover:scale-110 active:scale-95 transition-all duration-300 group"
+      >
+        <MessageCircle size={24} className="group-hover:rotate-12 transition-transform" />
+        <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-admin-surface border border-admin-border px-3 py-1.5 rounded-lg text-xs font-black text-admin-text-primary uppercase tracking-widest whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl">
+          Chat with Sales
+        </span>
+      </a>
     </div>
   );
 };
