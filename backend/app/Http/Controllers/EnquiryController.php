@@ -164,4 +164,52 @@ class EnquiryController extends Controller
 
         return response()->json($enquiry);
     }
+
+    public function publicStore(Request $request)
+    {
+        $validated = $request->validate([
+            'customer_name' => 'required|string|max:255',
+            'customer_email' => 'required|email',
+            'customer_phone' => 'nullable|string|max:50',
+            'customer_company' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.quantity' => 'required|integer|min:1',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $customer = \App\Models\Customer::firstOrCreate(
+                ['email' => $validated['customer_email']],
+                [
+                    'name' => $validated['customer_name'],
+                    'phone' => $validated['customer_phone'] ?? null,
+                    'company' => $validated['customer_company'] ?? null,
+                    'password' => \Illuminate\Support\Facades\Hash::make('zeronix@123')
+                ]
+            );
+
+            $enquiry = Enquiry::create([
+                'customer_id' => $customer->id,
+                'source' => 'portal_public',
+                'priority' => 'normal',
+                'status' => 'new',
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            foreach ($validated['items'] as $item) {
+                $enquiry->items()->create([
+                    'product_id' => $item['product_id'],
+                    'quantity' => $item['quantity'],
+                ]);
+            }
+
+            DB::commit();
+            return response()->json(['message' => 'Quote request sent successfully', 'id' => $enquiry->id], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Failed to send quote request', 'error' => $e->getMessage()], 500);
+        }
+    }
 }

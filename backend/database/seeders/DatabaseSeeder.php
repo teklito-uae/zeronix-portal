@@ -20,6 +20,16 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // 2. Production Suppliers
-        $this->call(ProductionSupplierSeeder::class);
+        $this->call([
+            ProductionSupplierSeeder::class,
+            AlErshadProductSeeder::class,
+            AlRafaProductSeeder::class,
+            AppleWhiteProductSeeder::class,
+            CapComputerProductSeeder::class,
+            GrandPCDProductSeeder::class,
+            ITWorldProductSeeder::class,
+            SimmalProductSeeder::class,
+            SuperTechProductSeeder::class,
+        ]);
     }
 }
