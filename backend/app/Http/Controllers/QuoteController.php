@@ -59,6 +59,8 @@ class QuoteController extends Controller
             'items.*.quantity' => 'required|numeric|min:0.01',
             'items.*.unit_price' => 'required|numeric|min:0',
             'items.*.tax_percent' => 'nullable|numeric|min:0',
+            'due_date' => 'nullable|date',
+            'closing_ratio' => 'nullable|integer|min:0|max:100',
         ]);
 
         DB::beginTransaction();
@@ -89,6 +91,8 @@ class QuoteController extends Controller
                 'vat_amount' => $vatAmount,
                 'total' => $subtotal + $vatAmount,
                 'status' => $validated['status'] ?? 'draft',
+                'due_date' => $validated['due_date'] ?? null,
+                'closing_ratio' => $validated['closing_ratio'] ?? null,
             ]);
 
             foreach ($validated['items'] as $item) {
@@ -149,6 +153,8 @@ class QuoteController extends Controller
             'items.*.quantity' => 'required|numeric|min:0.01',
             'items.*.unit_price' => 'required|numeric|min:0',
             'items.*.tax_percent' => 'nullable|numeric|min:0',
+            'due_date' => 'nullable|date',
+            'closing_ratio' => 'nullable|integer|min:0|max:100',
         ]);
 
         DB::beginTransaction();
@@ -171,6 +177,8 @@ class QuoteController extends Controller
                 'vat_amount' => $vatAmount,
                 'total' => $subtotal + $vatAmount,
                 'status' => $validated['status'] ?? $quote->status,
+                'due_date' => $validated['due_date'] ?? null,
+                'closing_ratio' => $validated['closing_ratio'] ?? null,
             ]);
 
             // Sync items

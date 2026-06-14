@@ -46,12 +46,8 @@ class QuoteController extends Controller
             'status' => $request->status,
         ]);
 
-        // Notify Admins and Assigned User
-        $assignedUserId = $customer->user_id;
-        $usersToNotify = \App\Models\User::where('role', 'admin')
-            ->when($assignedUserId, function($q) use ($assignedUserId) {
-                $q->orWhere('id', $assignedUserId);
-            })->get();
+        // Notify Admins
+        $usersToNotify = \App\Models\User::where('role', 'admin')->get();
 
         foreach ($usersToNotify as $user) {
             $user->notify(new \App\Notifications\AdminNotification(
@@ -60,6 +56,16 @@ class QuoteController extends Controller
                 $request->status === 'accepted' ? 'success' : 'error',
                 "/admin/quotes/{$quote->id}"
             ));
+        }
+        
+        $assignedUsers = $customer->assigned_users;
+        foreach ($assignedUsers as $staff) {
+            $staff->notify(new \App\Notifications\SystemNotification([
+                'title'      => 'Quote Approved by Customer',
+                'message'    => "Customer {$customer->name} has {$request->status} quote {$quote->quote_number}.",
+                'type'       => $request->status === 'accepted' ? 'success' : 'error',
+                'action_url' => "/staff/quotes/{$quote->id}"
+            ]));
         }
 
         return response()->json([

@@ -25,7 +25,6 @@ class Customer extends Authenticatable
         'address',
         'trn',
         'password',
-        'user_id',
         'is_portal_active'
     ];
 
@@ -68,8 +67,14 @@ class Customer extends Authenticatable
         return $this->hasMany(Enquiry::class);
     }
 
-    public function assigned_user()
+    public function assigned_users()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsToMany(User::class, 'customer_user');
+    }
+
+    public function labels()
+    {
+        return $this->belongsToMany(CustomerLabel::class, 'customer_label_pivot', 'customer_id', 'label_id');
     }
 }
+

@@ -50,16 +50,22 @@ class InvoiceController extends Controller
         ]);
 
         // Notify Admins and Assigned User
-        $assignedUserId = $customer->user_id;
-        $usersToNotify = \App\Models\User::where('role', 'admin')
-            ->when($assignedUserId, function($q) use ($assignedUserId) {
-                $q->orWhere('id', $assignedUserId);
-            })->get();
+        $usersToNotify = \App\Models\User::where('role', 'admin')->get();
 
         $title = $request->status === 'accepted' ? 'Delivery Accepted' : 'Delivery Rejected';
         $type = $request->status === 'accepted' ? 'success' : 'error';
         $message = "Customer {$customer->company} has {$request->status} delivery for Invoice #{$invoice->invoice_number}.";
         
+        $assignedUsers = $customer->assigned_users;
+        foreach ($assignedUsers as $staff) {
+            $staff->notify(new \App\Notifications\SystemNotification([
+                'title'      => $title,
+                'message'    => $message,
+                'type'       => $type,
+                'action_url' => "/admin/invoices/{$invoice->id}"
+            ]));
+        }
+
         foreach ($usersToNotify as $user) {
             $user->notify(new \App\Notifications\AdminNotification($title, $message, $type, "/admin/invoices/{$invoice->id}"));
         }

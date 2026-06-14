@@ -20,6 +20,12 @@ trait HasUserScope
             return $query;
         }
 
+        if (method_exists($this, 'assigned_users')) {
+            return $query->whereHas('assigned_users', function ($q) use ($user) {
+                $q->where('users.id', $user->id);
+            });
+        }
+
         $column = property_exists($this, 'userScopeColumn') ? $this->userScopeColumn : 'user_id';
         return $query->where($column, $user->id);
     }

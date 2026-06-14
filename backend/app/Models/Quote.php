@@ -25,7 +25,10 @@ class Quote extends Model
         'total',
         'status',
         'reference_id',
-        'email_sent_at'
+        'email_sent_at',
+        'due_date',
+        'closing_ratio',
+        'last_notified_at'
     ];
 
     public function customer(): BelongsTo

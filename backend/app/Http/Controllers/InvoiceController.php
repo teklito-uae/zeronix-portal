@@ -106,9 +106,22 @@ class InvoiceController extends Controller
                 ]);
             }
 
-            // If quote_id is provided, mark quote as invoiced
+            // If quote_id is provided, mark quote as invoiced and award points
             if (!empty($validated['quote_id'])) {
-                Quote::where('id', $validated['quote_id'])->update(['status' => 'invoiced']);
+                $quote = Quote::find($validated['quote_id']);
+                if ($quote) {
+                    $quote->update(['status' => 'invoiced']);
+                    $pointsAwarded = (int) floor($quote->total / 100);
+                    if ($pointsAwarded > 0) {
+                        \App\Models\StaffPoint::create([
+                            'user_id' => $quote->user_id,
+                            'quote_id' => $quote->id,
+                            'invoice_id' => $invoice->id,
+                            'points' => $pointsAwarded,
+                            'value' => $quote->total,
+                        ]);
+                    }
+                }
             }
 
             DB::commit();

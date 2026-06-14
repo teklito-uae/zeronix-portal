@@ -71,7 +71,7 @@ class CustomerAuthController extends Controller
                 $token = $customer->createToken('customer-token', ['role:customer'])->plainTextToken;
 
                 return response()->json([
-                    'customer' => $customer->load('assignedUser'),
+                    'customer' => $customer->load('assigned_users'),
                     'token' => $token
                 ]);
             }
@@ -96,7 +96,7 @@ class CustomerAuthController extends Controller
     public function user(Request $request)
     {
         return response()->json([
-            'customer' => $request->user()->load('assignedUser')
+            'customer' => $request->user()->load('assigned_users')
         ]);
     }
 }
