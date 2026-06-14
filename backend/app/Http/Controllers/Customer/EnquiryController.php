@@ -48,22 +48,27 @@ class EnquiryController extends Controller
                 ]);
             }
 
-            // Notify Admins and Assigned User
+            // Notify Admins
             $customer = $request->user();
-            $assignedUserId = $customer->user_id;
+            $usersToNotify = \App\Models\User::where('role', 'admin')->get();
             
-            $usersToNotify = \App\Models\User::where('role', 'admin')
-                ->when($assignedUserId, function($q) use ($assignedUserId) {
-                    $q->orWhere('id', $assignedUserId);
-                })->get();
-
             foreach ($usersToNotify as $user) {
                 $user->notify(new \App\Notifications\AdminNotification(
                     'New Enquiry Received',
-                    "{$customer->company} has submitted a new enquiry.",
+                    "{$customer->company} has submitted a new enquiry {$enquiry->enquiry_number}.",
                     'info',
                     "/admin/enquiries/{$enquiry->id}"
                 ));
+            }
+
+            $assignedUsers = $customer->assigned_users;
+            foreach ($assignedUsers as $staff) {
+                $staff->notify(new \App\Notifications\SystemNotification([
+                    'title'      => 'New Enquiry Received',
+                    'message'    => "Customer {$customer->name} submitted a new enquiry {$enquiry->enquiry_number}.",
+                    'type'       => 'info',
+                    'action_url' => "/staff/enquiries/{$enquiry->id}"
+                ]));
             }
 
             return response()->json($enquiry->load('items.product'), 201);

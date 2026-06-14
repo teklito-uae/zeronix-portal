@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getBasePath } from '@/hooks/useBasePath';
 
 import { Separator } from '@/components/ui/separator';
@@ -20,6 +20,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  Clock,
 } from 'lucide-react';
 
 interface NavItem {
@@ -66,6 +67,7 @@ const getAdminDrawerGroups = (basePath: string): NavGroup[] => [
       { id: 'products', label: 'Products', icon: Package, path: `${basePath}/products` },
       { id: 'users', label: 'Team', icon: Users, path: `${basePath}/users`, adminOnly: true },
       { id: 'bulk-import', label: 'Bulk Import', icon: Upload, path: `${basePath}/bulk-import`, adminOnly: true },
+      { id: 'attendance', label: 'Attendance', icon: Clock, path: `${basePath}/attendance`, adminOnly: true },
     ],
   },
   {
@@ -121,6 +123,27 @@ export const MobileBottomNav = ({ isVisible = true }: { isVisible?: boolean }) =
   const navigate = useNavigate();
   const adminUser = useAuthStore((s) => s.admin);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [scrollHidden, setScrollHidden] = useState(false);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const scroller = document.getElementById('main-content');
+    if (!scroller) return;
+    const onScroll = () => {
+      const current = scroller.scrollTop;
+      const diff = current - lastScrollY.current;
+      if (diff < -8) {
+        // Scrolling UP → hide the nav
+        setScrollHidden(true);
+      } else if (diff > 4) {
+        // Scrolling DOWN → show the nav
+        setScrollHidden(false);
+      }
+      lastScrollY.current = current;
+    };
+    scroller.addEventListener('scroll', onScroll, { passive: true });
+    return () => scroller.removeEventListener('scroll', onScroll);
+  }, []);
 
   const isCustomer = location.pathname.startsWith('/portal');
   const parts = location.pathname.split('/');
@@ -130,12 +153,15 @@ export const MobileBottomNav = ({ isVisible = true }: { isVisible?: boolean }) =
   const primaryTabs = isCustomer ? getCustomerPrimaryTabs(companySlug) : getAdminPrimaryTabs(basePath);
   const drawerGroups = isCustomer ? getCustomerDrawerGroups(companySlug) : getAdminDrawerGroups(basePath);
 
-  // Filter admin-only items based on role
-  const filteredGroups = drawerGroups.map(group => ({
+  // Filter admin-only items based on role & permissions
+  const filteredGroups = isCustomer ? drawerGroups : drawerGroups.map(group => ({
     ...group,
     items: group.items.filter(item => {
-      if (!item.adminOnly) return true;
-      return adminUser?.role === 'admin';
+      if (adminUser?.role === 'admin') return true;
+      if (item.id === 'dashboard') return true;
+      if (item.id === 'chat') return true;
+      if (item.id === 'settings') return true;
+      return adminUser?.permissions?.includes(item.id);
     })
   })).filter(group => group.items.length > 0);
 
@@ -149,10 +175,10 @@ export const MobileBottomNav = ({ isVisible = true }: { isVisible?: boolean }) =
     <>
       {/* Bottom Tab Bar */}
       <nav className={cn(
-        "md:hidden fixed bottom-0 left-0 right-0 z-50 bg-admin-surface/95 backdrop-blur-md border-t border-admin-border transition-transform duration-300",
-        isVisible ? "translate-y-0" : "translate-y-full"
+        "md:hidden fixed bottom-4 left-4 right-4 z-50 bg-brand-white/85 backdrop-blur-xl border border-brand-border/60 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-transform duration-300",
+        !isVisible || scrollHidden ? "translate-y-[150%]" : "translate-y-0"
       )}>
-        <div className="flex items-center justify-around pb-safe" style={{ height: '64px' }}>
+        <div className="flex items-center justify-around h-16 px-1">
           {primaryTabs.map((item) => {
             const active = isActive(item.path);
             const Icon = item.icon;

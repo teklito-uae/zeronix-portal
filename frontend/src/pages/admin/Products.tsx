@@ -1,5 +1,6 @@
 import { getBasePath } from '@/hooks/useBasePath';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -13,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import type { Product } from '@/types';
-import { Loader2, Package } from 'lucide-react';
+import { Plus, Loader2, Package } from 'lucide-react';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { useResourceMutation } from '@/hooks/useApi';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
@@ -26,6 +27,8 @@ import { ProductModal } from '@/components/shared/ProductModal';
  * Refactored to use the standardized State-Driven architecture.
  */
 export const Products = () => {
+  const navigate = useNavigate();
+
   // Dialog States
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -62,57 +65,6 @@ export const Products = () => {
     setDialogOpen(true);
   };
 
-  // Editable Price Component
-  const EditablePrice = ({ product }: { product: Product }) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [localValue, setLocalValue] = useState(String(product.price || 0));
-    const { update } = useResourceMutation('products');
-
-    // Sync local state when product data changes from server
-    useEffect(() => {
-      if (!isEditing) {
-        setLocalValue(String(product.price || 0));
-      }
-    }, [product.price, isEditing]);
-
-    const handleUpdate = () => {
-      const newPrice = Number(localValue);
-      setIsEditing(false);
-      
-      if (newPrice === Number(product.price)) return;
-      
-      update.mutate({ 
-        id: product.id, 
-        data: { price: newPrice } 
-      });
-    };
-
-    if (isEditing) {
-      return (
-        <input
-          autoFocus
-          type="number"
-          value={localValue}
-          onChange={(e) => setLocalValue(e.target.value)}
-          onBlur={handleUpdate}
-          onKeyDown={(e) => e.key === 'Enter' && handleUpdate()}
-          className="w-24 h-8 px-2 bg-admin-bg border-2 border-zeronix-blue rounded-lg font-mono text-sm focus:outline-none shadow-sm"
-        />
-      );
-    }
-
-    return (
-      <div 
-        onDoubleClick={() => setIsEditing(true)}
-        className="font-mono text-sm font-bold text-admin-text-primary whitespace-nowrap cursor-pointer hover:text-zeronix-blue hover:bg-zeronix-blue/5 px-2 py-1 rounded-md transition-all group flex items-center gap-1.5 border border-transparent hover:border-zeronix-blue/20"
-        title="Double click to edit"
-      >
-        {Number(localValue).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-        <span className="text-[10px] text-admin-text-muted">AED</span>
-      </div>
-    );
-  };
-
   const columns: ColumnDef<Product>[] = [
     {
       id: 'selection',
@@ -120,11 +72,9 @@ export const Products = () => {
         <div className="flex items-center px-1">
           <input
             type="checkbox"
-            className="w-4 h-4 rounded border-admin-border bg-admin-bg text-zeronix-blue focus:ring-0 cursor-pointer"
+            className="w-[18px] h-[18px] rounded border-brand-border/50 bg-brand-surface text-brand-accent focus:ring-0 cursor-pointer shadow-sm"
             checked={selectedIds.length > 0}
-            onChange={(_e) => {
-               // Managed by ResourceListingPage in future, or manually for now
-            }}
+            onChange={(_e) => {}}
           />
         </div>
       ),
@@ -132,7 +82,7 @@ export const Products = () => {
         <div className="flex items-center px-1">
           <input
             type="checkbox"
-            className="w-4 h-4 rounded border-admin-border bg-admin-bg text-zeronix-blue focus:ring-0 cursor-pointer"
+            className="w-[18px] h-[18px] rounded border-brand-border/50 bg-brand-surface text-brand-accent focus:ring-0 cursor-pointer shadow-sm"
             checked={selectedIds.includes(row.original.id)}
             onChange={(e) => {
               e.stopPropagation();
@@ -147,7 +97,7 @@ export const Products = () => {
       accessorKey: 'model_code',
       header: 'Code',
       cell: ({ row }) => (
-        <span className="font-mono text-[11px] font-medium text-zeronix-blue bg-zeronix-blue/5 px-2 py-0.5 rounded whitespace-nowrap border border-zeronix-blue/10">
+        <span className="font-mono text-[11px] font-semibold text-brand-accent bg-brand-accent/5 px-2.5 py-1 rounded-md border border-brand-accent/10 shadow-sm">
           {row.original.model_code || '—'}
         </span>
       ),
@@ -158,63 +108,21 @@ export const Products = () => {
       cell: ({ row }) => <CopyableText value={row.original.name} limit={85} />,
     },
     {
-      accessorKey: 'price',
-      header: 'Price',
-      cell: ({ row }) => <EditablePrice product={row.original} />,
+      accessorKey: 'category',
+      header: 'Category',
+      cell: ({ row }) => (
+        <Badge variant="secondary" className="bg-brand-surface border-brand-border/50 text-brand-primary text-[10px] font-semibold px-2 py-0.5 uppercase tracking-wider">
+          {(row.original as any).category?.name || 'Uncategorized'}
+        </Badge>
+      ),
     },
     {
       accessorKey: 'brand',
       header: 'Brand',
       cell: ({ row }) => (
-        <Badge variant="secondary" className="bg-zeronix-blue/5 text-zeronix-blue border-0 text-[10px] font-bold px-2 h-5 uppercase tracking-tight">
+        <Badge variant="secondary" className="bg-brand-info-bg text-brand-info border-brand-info/20 text-[10px] font-semibold px-2 py-0.5 uppercase tracking-wider">
           {row.original.brand?.name || '—'}
         </Badge>
-      ),
-    },
-    {
-      accessorKey: 'category',
-      header: 'Category',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-admin-text-muted/30" />
-          <span className="text-[11px] font-semibold text-admin-text-secondary whitespace-nowrap">
-            {row.original.category?.name || 'Uncategorized'}
-          </span>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'supplier_products_count',
-      header: 'Stock Status',
-      cell: ({ row }) => {
-        const count = row.original.supplier_products_count || 0;
-        return (
-          <Badge 
-            variant="outline" 
-            className={`
-              text-[9px] font-bold px-1.5 h-5 border-0
-              ${count > 0 
-                ? 'bg-emerald-500/10 text-emerald-600' 
-                : 'bg-amber-500/10 text-amber-600'}
-            `}
-          >
-            {count > 0 ? `${count} SUPPLIERS` : 'NO STOCK'}
-          </Badge>
-        );
-      }
-    },
-    {
-      accessorKey: 'created_at',
-      header: 'Added On',
-      cell: ({ row }) => (
-        <div className="flex flex-col gap-0.5 min-w-[80px]">
-          <span className="text-[11px] font-bold text-admin-text-primary">
-            {row.original.created_at ? new Date(row.original.created_at).toLocaleDateString(undefined, { day: '2-digit', month: 'short' }) : '—'}
-          </span>
-          <span className="text-[9px] font-medium text-admin-text-muted uppercase">
-            {row.original.created_at ? new Date(row.original.created_at).toLocaleDateString(undefined, { year: 'numeric' }) : ''}
-          </span>
-        </div>
       ),
     },
     {
@@ -222,11 +130,11 @@ export const Products = () => {
       header: 'Suppliers',
       cell: ({ row }) => {
         const suppliers = row.original.supplier_products || [];
-        if (suppliers.length === 0) return <span className="text-[10px] text-admin-text-muted italic">None</span>;
+        if (suppliers.length === 0) return <span className="text-[11px] text-brand-subtle italic">None</span>;
         return (
           <div className="flex flex-wrap gap-1 max-w-[150px]">
             {suppliers.map((sp: any, i: number) => (
-              <Badge key={i} variant="outline" className="bg-admin-bg border-admin-border text-[9px] px-1 h-4 text-admin-text-secondary">
+              <Badge key={i} variant="outline" className="bg-brand-surface border-brand-border/50 text-[10px] px-1.5 py-0 font-medium text-brand-secondary">
                 {sp.supplier?.name}
               </Badge>
             ))}
@@ -235,12 +143,22 @@ export const Products = () => {
       }
     },
     {
+      accessorKey: 'is_active',
+      header: 'Status',
+      cell: ({ row }) => (
+        <Badge variant="outline" className={`text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider ${row.original.is_active ? 'bg-brand-success-bg text-brand-success border-brand-success/20' : 'bg-brand-warning-bg text-brand-warning border-brand-warning/20'}`}>
+          {row.original.is_active ? 'Active' : 'Inactive'}
+        </Badge>
+      ),
+    },
+    {
       id: 'actions',
       header: '',
       cell: ({ row }) => (
         <ActionGroup
           onEdit={() => openEdit(row.original)}
           onDelete={() => { setDeletingId(row.original.id); setDeleteOpen(true); }}
+          onView={() => navigate(`${getBasePath()}/products/${row.original.id}`)}
         />
       ),
     },
@@ -252,8 +170,10 @@ export const Products = () => {
       <ResourceListingPage<Product>
         resource="products"
         title="Products Inventory"
+        subtitle="Manage your global IT and hardware stock."
         icon={<Package size={20} />}
         columns={columns}
+        onRowClick={(row) => navigate(`${getBasePath()}/products/${row.id}`)}
         createLabel="Add Product"
         createPath="#" // We use openAdd instead
         onCreateClick={openAdd}
@@ -277,6 +197,13 @@ export const Products = () => {
         onBulkUpdate={() => setBulkUpdateOpen(true)}
       />
 
+      {/* Manual Button for Add (Since we use a modal not a path) */}
+      <div className="fixed bottom-8 right-8 z-50 lg:hidden">
+        <Button onClick={openAdd} className="h-14 w-14 rounded-full bg-brand-primary shadow-xl text-brand-white hover:scale-110 active:scale-90 transition-all">
+          <Plus size={24} />
+        </Button>
+      </div>
+
       <ProductModal
         isOpen={dialogOpen}
         onClose={() => setDialogOpen(false)}
@@ -298,54 +225,58 @@ export const Products = () => {
 
       {/* Bulk Update Dialog */}
       <Dialog open={bulkUpdateOpen} onOpenChange={setBulkUpdateOpen}>
-        <DialogContent className="bg-admin-surface border-admin-border sm:max-w-md rounded-2xl shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-admin-text-primary">Bulk Update</DialogTitle>
-            <DialogDescription className="text-admin-text-secondary">
-              Apply changes to {selectedIds.length} selected products.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
+        <DialogContent className="bg-brand-white border-brand-border/50 sm:max-w-md rounded-xl shadow-xl p-0 overflow-hidden">
+          <div className="p-6 bg-brand-surface border-b border-brand-border/50">
+            <DialogHeader>
+              <DialogTitle className="text-[16px] font-semibold text-brand-primary">Bulk Update Products</DialogTitle>
+              <DialogDescription className="text-[13px] text-brand-subtle mt-0.5">
+                Apply changes to {selectedIds.length} selected products.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="space-y-5 p-6">
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Change Brand To</Label>
+              <Label className="text-[12px] font-medium text-brand-secondary ml-1">Change Brand To</Label>
               <Select value={bulkUpdateForm.brand_id} onValueChange={val => setBulkUpdateForm({ ...bulkUpdateForm, brand_id: val })}>
-                <SelectTrigger className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl">
+                <SelectTrigger className="h-[36px] bg-brand-surface border-brand-border/50 text-brand-primary rounded-lg text-[13px] font-medium">
                   <SelectValue placeholder="Leave as is" />
                 </SelectTrigger>
-                <SelectContent className="bg-admin-surface border-admin-border rounded-xl">
+                <SelectContent className="bg-brand-white border-brand-border/50 rounded-xl shadow-lg">
                   <SelectItem value="none">No Change</SelectItem>
                   {brands.map((b: any) => <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Change Category To</Label>
+              <Label className="text-[12px] font-medium text-brand-secondary ml-1">Change Category To</Label>
               <Select value={bulkUpdateForm.category_id} onValueChange={val => setBulkUpdateForm({ ...bulkUpdateForm, category_id: val })}>
-                <SelectTrigger className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl">
+                <SelectTrigger className="h-[36px] bg-brand-surface border-brand-border/50 text-brand-primary rounded-lg text-[13px] font-medium">
                   <SelectValue placeholder="Leave as is" />
                 </SelectTrigger>
-                <SelectContent className="bg-admin-surface border-admin-border rounded-xl">
+                <SelectContent className="bg-brand-white border-brand-border/50 rounded-xl shadow-lg">
                   <SelectItem value="none">No Change</SelectItem>
                   {categories.map((c: any) => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
           </div>
-          <DialogFooter className="gap-2">
-            <Button variant="ghost" onClick={() => setBulkUpdateOpen(false)} className="text-admin-text-secondary rounded-xl">Cancel</Button>
-            <Button
-              onClick={() => {
-                const data: any = { ids: selectedIds };
-                if (bulkUpdateForm.brand_id && bulkUpdateForm.brand_id !== 'none') data.brand_id = Number(bulkUpdateForm.brand_id);
-                if (bulkUpdateForm.category_id && bulkUpdateForm.category_id !== 'none') data.category_id = Number(bulkUpdateForm.category_id);
-                bulkUpdate.mutate(data);
-              }}
-              disabled={(!bulkUpdateForm.brand_id && !bulkUpdateForm.category_id) || bulkUpdate.isPending}
-              className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover rounded-xl font-bold shadow-lg"
-            >
-              {bulkUpdate.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Apply Updates'}
-            </Button>
-          </DialogFooter>
+          <div className="p-6 pt-2">
+            <DialogFooter className="gap-2">
+              <Button variant="ghost" onClick={() => setBulkUpdateOpen(false)} className="rounded-lg text-[13px] font-medium">Cancel</Button>
+              <Button
+                onClick={() => {
+                  const data: any = { ids: selectedIds };
+                  if (bulkUpdateForm.brand_id && bulkUpdateForm.brand_id !== 'none') data.brand_id = Number(bulkUpdateForm.brand_id);
+                  if (bulkUpdateForm.category_id && bulkUpdateForm.category_id !== 'none') data.category_id = Number(bulkUpdateForm.category_id);
+                  bulkUpdate.mutate(data);
+                }}
+                disabled={(!bulkUpdateForm.brand_id && !bulkUpdateForm.category_id) || bulkUpdate.isPending}
+                className="bg-brand-primary text-brand-white hover:opacity-90 rounded-lg text-[13px] font-medium px-6 shadow-sm"
+              >
+                {bulkUpdate.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null} Apply Updates
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

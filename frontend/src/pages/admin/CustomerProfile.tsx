@@ -16,17 +16,24 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { useResourceMutation } from '@/hooks/useApi';
+import Avatar from 'boring-avatars';
+import { useThemeStore } from '@/store/useThemeStore';
 
 import type { ColumnDef } from '@tanstack/react-table';
 import type { Enquiry, Quote, Invoice } from '@/types';
-import { Mail, Phone, Building2, Calendar, FileText, MessageSquare, Receipt, Loader2, MapPin, ShieldCheck, User as UserIcon, Wallet, ArrowUpRight, Edit } from 'lucide-react';
+import { Mail, Phone, Building2, Calendar, FileText, MessageSquare, Receipt, Loader2, MapPin, ShieldCheck, Wallet, ArrowUpRight, Edit, User as UserIcon } from 'lucide-react';
 
 
 export const CustomerProfile = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { theme } = useThemeStore();
+  const avatarColors = theme === 'dark' 
+    ? ['#ff4d6d', '#ff758f', '#ffbe0b', '#fdfcdc', '#48cae4']
+    : ['#cc063e', '#e83535', '#fd9407', '#e2d9c2', '#10898b'];
 
 
   const [editOpen, setEditOpen] = useState(false);
@@ -175,47 +182,50 @@ export const CustomerProfile = () => {
   ];
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className="bg-brand-white border border-brand-border/50 rounded-xl shadow-sm flex flex-col min-h-[calc(100vh-140px)] m-5 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
+      
       {/* Premium Identity Header */}
-      <div className="bg-admin-surface border border-admin-border rounded-2xl p-6 shadow-sm overflow-hidden relative">
-         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-zeronix-blue via-indigo-500 to-purple-500" />
+      <div className="bg-brand-white border-b border-brand-border/50 p-6 sm:p-8 relative">
          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div className="flex items-center gap-5">
-               <div className="h-16 w-16 rounded-2xl bg-admin-bg border border-admin-border flex items-center justify-center text-zeronix-blue shadow-inner group">
-                  <UserIcon size={32} className="group-hover:scale-110 transition-transform duration-500" />
-               </div>
+               <Avatar
+                 size={64}
+                 name={customer.name || 'User'}
+                 variant="marble"
+                 colors={avatarColors}
+               />
                <div>
                   <div className="flex items-center gap-2.5">
-                    <h1 className="text-2xl font-bold text-admin-text-primary tracking-tight uppercase">{customer.name}</h1>
+                    <h1 className="text-2xl font-bold text-brand-primary tracking-tight uppercase">{customer.name}</h1>
                     {customer.is_portal_active && (
-                      <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
+                      <span className="h-2 w-2 rounded-full bg-brand-success shadow-[0_0_8px_var(--color-brand-success)] animate-pulse" />
                     )}
                   </div>
-                  <div className="flex flex-wrap items-center gap-4 mt-1.5">
-                     <span className="text-[10px] font-bold text-admin-text-muted uppercase tracking-wider bg-admin-bg px-2 py-0.5 rounded border border-admin-border">
+                  <div className="flex flex-wrap items-center gap-4 mt-2">
+                     <span className="text-[10px] font-bold text-brand-subtle uppercase tracking-wider bg-brand-surface px-2 py-0.5 rounded border border-brand-border/50">
                         CODE: {customer.customer_code || 'GENERIC-IDENTITY'}
                      </span>
-                     <div className="flex items-center gap-1.5 text-xs font-bold text-admin-text-secondary">
-                        <Building2 size={14} className="text-zeronix-blue" /> {customer.company || 'Private Entity'}
+                     <div className="flex items-center gap-1.5 text-[12px] font-semibold text-brand-secondary">
+                        <Building2 size={14} className="text-brand-accent" /> {customer.company || 'Private Entity'}
                      </div>
                   </div>
                </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
                <Button 
                  variant="outline" 
                  onClick={() => setEditOpen(true)}
-                 className="h-10 rounded-xl border-admin-border text-xs font-bold gap-2 shadow-sm px-5"
+                 className="h-[36px] rounded-lg border-brand-border text-[12px] font-medium gap-2 shadow-sm px-4 text-brand-secondary hover:text-brand-primary"
                >
-                 <Edit size={16} /> Edit Profile
+                 <Edit size={14} /> Edit Profile
                </Button>
                {!customer.is_portal_active ? (
                  <Button 
                    onClick={() => registerPortalMutation.mutate()} 
                    disabled={registerPortalMutation.isPending}
-                   className="h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-6 font-bold text-[11px] uppercase tracking-wider shadow-lg shadow-emerald-600/10 gap-2"
+                   className="h-[36px] rounded-lg bg-brand-success hover:bg-brand-success/90 text-white px-5 font-medium text-[12px] shadow-sm gap-2"
                  >
-                   {registerPortalMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
+                   {registerPortalMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
                    Initialize Access
                  </Button>
                ) : (
@@ -223,71 +233,82 @@ export const CustomerProfile = () => {
                    variant="outline" 
                    onClick={() => registerPortalMutation.mutate()} 
                    disabled={registerPortalMutation.isPending}
-                   className="h-10 rounded-xl border-admin-border text-xs font-bold gap-2 shadow-sm"
+                   className="h-[36px] rounded-lg border-brand-border text-[12px] font-medium gap-2 shadow-sm text-brand-secondary hover:text-brand-primary"
                  >
-                   <ArrowUpRight size={16} /> Resend Access
+                   <ArrowUpRight size={14} /> Resend Access
                  </Button>
                )}
             </div>
          </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-         <StatCard title="Enquiry Stream" value={customer.enquiries_count || 0} icon={<MessageSquare size={16} className="text-purple-500" />} iconBg="bg-purple-500/10" />
-         <StatCard title="Issued Quotes" value={customer.quotes_count || 0} icon={<FileText size={16} className="text-amber-500" />} iconBg="bg-amber-500/10" />
-         <StatCard title="Financial Ledger" value={customer.invoices_count || 0} icon={<Receipt size={16} className="text-zeronix-blue" />} iconBg="bg-zeronix-blue/10" />
-         <StatCard title="Total Volume" value={`${(customer.total_volume || 0).toLocaleString()} AED`} icon={<Wallet size={16} className="text-emerald-500" />} iconBg="bg-emerald-500/10" />
+      <div className="px-6 py-6 border-b border-brand-border/50">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+           <StatCard title="Enquiry Stream" value={customer.enquiries_count || 0} icon={<MessageSquare size={16} className="text-brand-info" />} iconBg="bg-brand-info-bg" />
+           <StatCard title="Issued Quotes" value={customer.quotes_count || 0} icon={<FileText size={16} className="text-brand-warning" />} iconBg="bg-brand-warning-bg" />
+           <StatCard title="Financial Ledger" value={customer.invoices_count || 0} icon={<Receipt size={16} className="text-brand-accent" />} iconBg="bg-brand-accent-light dark:bg-brand-accent/20" />
+           <StatCard title="Total Volume" value={`${(customer.total_volume || 0).toLocaleString()} AED`} icon={<Wallet size={16} className="text-brand-success" />} iconBg="bg-brand-success-bg" />
+        </div>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="bg-admin-surface border border-admin-border rounded-lg p-1 h-10 w-full max-w-lg shadow-sm">
-          <TabsTrigger value="overview" className="flex-1 rounded-md text-[11px] font-semibold uppercase tracking-wider data-[state=active]:bg-zeronix-blue data-[state=active]:text-white">Profile</TabsTrigger>
-          <TabsTrigger value="enquiries" className="flex-1 rounded-md text-[11px] font-semibold uppercase tracking-wider data-[state=active]:bg-zeronix-blue data-[state=active]:text-white">Enquiries</TabsTrigger>
-          <TabsTrigger value="quotes" className="flex-1 rounded-md text-[11px] font-semibold uppercase tracking-wider data-[state=active]:bg-zeronix-blue data-[state=active]:text-white">Ledger</TabsTrigger>
-          <TabsTrigger value="chat" className="flex-1 rounded-md text-[11px] font-semibold uppercase tracking-wider data-[state=active]:bg-zeronix-blue data-[state=active]:text-white">Chat</TabsTrigger>
-        </TabsList>
+      <div className="flex-1 overflow-auto">
+        <Tabs defaultValue="overview" className="h-full flex flex-col">
+          <TabsList className="w-full justify-start bg-brand-white border-b border-brand-border/50 rounded-none px-6 h-12 flex gap-8 overflow-x-auto no-scrollbar flex-shrink-0">
+            <TabsTrigger value="overview" className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-brand-accent data-[state=active]:bg-transparent data-[state=active]:text-brand-primary data-[state=active]:shadow-none text-brand-subtle hover:text-brand-primary px-1 font-semibold text-[13px] flex items-center gap-2 transition-colors">
+              <UserIcon size={16} className="text-brand-info" /> Profile Overview
+            </TabsTrigger>
+            <TabsTrigger value="enquiries" className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-brand-accent data-[state=active]:bg-transparent data-[state=active]:text-brand-primary data-[state=active]:shadow-none text-brand-subtle hover:text-brand-primary px-1 font-semibold text-[13px] flex items-center gap-2 transition-colors">
+              <MessageSquare size={16} className="text-brand-accent" /> Enquiries
+            </TabsTrigger>
+            <TabsTrigger value="quotes" className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-brand-accent data-[state=active]:bg-transparent data-[state=active]:text-brand-primary data-[state=active]:shadow-none text-brand-subtle hover:text-brand-primary px-1 font-semibold text-[13px] flex items-center gap-2 transition-colors">
+              <Receipt size={16} className="text-brand-success" /> Financial Ledger
+            </TabsTrigger>
+            <TabsTrigger value="chat" className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-brand-accent data-[state=active]:bg-transparent data-[state=active]:text-brand-primary data-[state=active]:shadow-none text-brand-subtle hover:text-brand-primary px-1 font-semibold text-[13px] flex items-center gap-2 transition-colors">
+              <MessageSquare size={16} className="text-brand-warning" /> Client Chat
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="overview">
+        <TabsContent value="overview" className="p-6 m-0 border-none outline-none flex-1 overflow-auto">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-admin-surface border border-admin-border rounded-2xl p-6 shadow-sm space-y-6">
-              <div className="flex items-center gap-2 text-xs font-bold text-admin-text-primary uppercase tracking-wider border-b border-admin-border pb-4">
-                 <UserIcon size={16} className="text-zeronix-blue" /> Identity Specifications
+            <div className="lg:col-span-2 bg-brand-white border border-brand-border/50 rounded-xl p-6 shadow-sm space-y-6">
+              <div className="flex items-center gap-2 text-[14px] font-semibold text-brand-primary border-b border-brand-border/50 pb-4">
+                 <UserIcon size={16} className="text-brand-info" /> Identity Specifications
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-4 p-4 rounded-xl bg-admin-bg border border-admin-border">
-                   <div className="h-10 w-10 rounded-lg bg-zeronix-blue/10 flex items-center justify-center text-zeronix-blue">
+                <div className="flex items-center gap-4 p-4 rounded-xl bg-brand-surface border border-brand-border/50">
+                   <div className="h-10 w-10 rounded-lg bg-brand-info-bg flex items-center justify-center text-brand-info">
                     <Mail size={18} />
                   </div>
                   <div>
-                    <p className="text-[9px] font-bold text-admin-text-muted uppercase tracking-wider">Digital Mail</p>
-                    <p className="text-sm font-bold text-admin-text-primary">{customer.email}</p>
+                    <p className="text-[11px] font-medium text-brand-subtle uppercase tracking-wider">Digital Mail</p>
+                    <p className="text-[13px] font-semibold text-brand-primary">{customer.email}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 p-4 rounded-xl bg-admin-bg border border-admin-border">
-                   <div className="h-10 w-10 rounded-lg bg-zeronix-blue/10 flex items-center justify-center text-zeronix-blue">
+                <div className="flex items-center gap-4 p-4 rounded-xl bg-brand-surface border border-brand-border/50">
+                   <div className="h-10 w-10 rounded-lg bg-brand-accent-light dark:bg-brand-accent/20 flex items-center justify-center text-brand-accent">
                     <Phone size={18} />
                   </div>
                   <div>
-                    <p className="text-[9px] font-bold text-admin-text-muted uppercase tracking-wider">Voice Link</p>
-                    <p className="text-sm font-bold text-admin-text-primary">{customer.phone || 'N/A'}</p>
+                    <p className="text-[11px] font-medium text-brand-subtle uppercase tracking-wider">Voice Link</p>
+                    <p className="text-[13px] font-semibold text-brand-primary">{customer.phone || 'N/A'}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 p-4 rounded-xl bg-admin-bg border border-admin-border">
-                   <div className="h-10 w-10 rounded-lg bg-zeronix-blue/10 flex items-center justify-center text-zeronix-blue">
+                <div className="flex items-center gap-4 p-4 rounded-xl bg-brand-surface border border-brand-border/50">
+                   <div className="h-10 w-10 rounded-lg bg-brand-warning-bg flex items-center justify-center text-brand-warning">
                     <FileText size={18} />
                   </div>
                   <div>
-                    <p className="text-[9px] font-bold text-admin-text-muted uppercase tracking-wider">Tax Registry (TRN)</p>
-                    <p className="text-sm font-bold text-admin-text-primary font-mono">{customer.trn || 'NOT REGISTERED'}</p>
+                    <p className="text-[11px] font-medium text-brand-subtle uppercase tracking-wider">Tax Registry (TRN)</p>
+                    <p className="text-[13px] font-semibold text-brand-primary font-mono">{customer.trn || 'NOT REGISTERED'}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 p-4 rounded-xl bg-admin-bg border border-admin-border">
-                   <div className="h-10 w-10 rounded-lg bg-zeronix-blue/10 flex items-center justify-center text-zeronix-blue">
+                <div className="flex items-center gap-4 p-4 rounded-xl bg-brand-surface border border-brand-border/50">
+                   <div className="h-10 w-10 rounded-lg bg-brand-success-bg flex items-center justify-center text-brand-success">
                     <Calendar size={18} />
                   </div>
                   <div>
-                    <p className="text-[9px] font-bold text-admin-text-muted uppercase tracking-wider">Onboarding Date</p>
-                    <p className="text-sm font-bold text-admin-text-primary">
+                    <p className="text-[11px] font-medium text-brand-subtle uppercase tracking-wider">Onboarding Date</p>
+                    <p className="text-[13px] font-semibold text-brand-primary">
                       {customer.created_at ? new Date(customer.created_at).toLocaleDateString() : '—'}
                     </p>
                   </div>
@@ -295,13 +316,13 @@ export const CustomerProfile = () => {
               </div>
             </div>
 
-            <div className="bg-admin-surface border border-admin-border rounded-2xl p-6 shadow-sm space-y-6">
-              <div className="flex items-center gap-2 text-xs font-bold text-admin-text-primary uppercase tracking-wider border-b border-admin-border pb-4">
-                 <MapPin size={16} className="text-zeronix-blue" /> Dispatch Logistics
+            <div className="bg-brand-white border border-brand-border/50 rounded-xl p-6 shadow-sm space-y-6">
+              <div className="flex items-center gap-2 text-[14px] font-semibold text-brand-primary border-b border-brand-border/50 pb-4">
+                 <MapPin size={16} className="text-brand-info" /> Dispatch Logistics
               </div>
-              <div className="p-4 rounded-xl bg-admin-bg border border-admin-border min-h-[140px]">
-                 <p className="text-[9px] font-bold text-admin-text-muted uppercase tracking-wider mb-1.5">Registered Address</p>
-                 <p className="text-sm font-bold text-admin-text-primary leading-relaxed opacity-80">
+              <div className="p-4 rounded-xl bg-brand-surface border border-brand-border/50 min-h-[140px]">
+                 <p className="text-[11px] font-medium text-brand-subtle uppercase tracking-wider mb-1.5">Registered Address</p>
+                 <p className="text-[13px] font-medium text-brand-secondary leading-relaxed">
                     {customer.address || "No logistics records found."}
                  </p>
               </div>
@@ -309,82 +330,82 @@ export const CustomerProfile = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="enquiries">
-          <div className="bg-admin-surface border border-admin-border rounded-2xl overflow-hidden shadow-sm">
+        <TabsContent value="enquiries" className="p-6 m-0 border-none outline-none flex-1 overflow-auto">
+          <div className="bg-brand-white border border-brand-border/50 rounded-xl overflow-hidden shadow-sm">
             <DataTable columns={enquiryColumns} data={enquiries || []} onRowClick={() => navigate(`${getBasePath()}/enquiries`)} />
           </div>
         </TabsContent>
 
-        <TabsContent value="quotes">
+        <TabsContent value="quotes" className="p-6 m-0 border-none outline-none flex-1 overflow-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-admin-surface border border-admin-border rounded-2xl overflow-hidden shadow-sm">
-              <div className="px-6 py-4 border-b border-admin-border bg-admin-bg/10 flex items-center gap-2 text-xs font-bold text-admin-text-primary uppercase tracking-wider">
-                 <FileText size={16} className="text-amber-500" /> Quotation History
+            <div className="bg-brand-white border border-brand-border/50 rounded-xl overflow-hidden shadow-sm">
+              <div className="px-5 py-4 border-b border-brand-border/50 bg-brand-surface flex items-center gap-2 text-[13px] font-semibold text-brand-primary">
+                 <FileText size={16} className="text-brand-warning" /> Quotation History
               </div>
               <DataTable columns={quoteColumns} data={quotes || []} onRowClick={(row) => navigate(`${getBasePath()}/quotes/${row.id}`)} />
             </div>
-            <div className="bg-admin-surface border border-admin-border rounded-2xl overflow-hidden shadow-sm">
-              <div className="px-6 py-4 border-b border-admin-border bg-admin-bg/10 flex items-center gap-2 text-xs font-bold text-admin-text-primary uppercase tracking-wider">
-                 <Receipt size={16} className="text-zeronix-blue" /> Commercial Invoices
+            <div className="bg-brand-white border border-brand-border/50 rounded-xl overflow-hidden shadow-sm">
+              <div className="px-5 py-4 border-b border-brand-border/50 bg-brand-surface flex items-center gap-2 text-[13px] font-semibold text-brand-primary">
+                 <Receipt size={16} className="text-brand-success" /> Commercial Invoices
               </div>
               <DataTable columns={invoiceColumns} data={invoices || []} onRowClick={(row) => navigate(`${getBasePath()}/invoices/${row.id}`)} />
             </div>
           </div>
         </TabsContent>
 
-        <TabsContent value="chat">
-          <div className="bg-admin-surface border border-admin-border rounded-2xl p-12 flex flex-col items-center justify-center text-center shadow-sm">
-            <MessageSquare size={48} className="text-admin-text-muted/20 mb-4" />
-            <h3 className="text-sm font-bold text-admin-text-primary uppercase tracking-wider">COMMUNICATIONS HUB</h3>
-            <p className="text-xs text-admin-text-muted max-w-xs mt-2">Messaging is currently in development.</p>
+        <TabsContent value="chat" className="p-6 m-0 border-none outline-none flex-1 overflow-auto">
+          <div className="bg-brand-white border border-brand-border/50 rounded-xl p-12 flex flex-col items-center justify-center text-center shadow-sm">
+            <MessageSquare size={48} className="text-brand-border mb-4" />
+            <h3 className="text-[14px] font-semibold text-brand-primary">Communications Hub</h3>
+            <p className="text-[13px] text-brand-subtle max-w-xs mt-1">Messaging is currently in development.</p>
           </div>
         </TabsContent>
       </Tabs>
+      </div>
 
-      {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="bg-admin-surface border-admin-border sm:max-w-xl rounded-2xl shadow-2xl">
+        <DialogContent className="bg-brand-white border-brand-border/50 sm:max-w-xl rounded-xl shadow-lg">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-admin-text-primary uppercase">Refine Client Identity</DialogTitle>
-            <DialogDescription className="text-xs font-bold text-admin-text-muted uppercase tracking-widest mt-1">Update primary contact and logistical data.</DialogDescription>
+            <DialogTitle className="text-[16px] font-semibold text-brand-primary">Refine Client Identity</DialogTitle>
+            <DialogDescription className="text-[13px] text-brand-subtle mt-1">Update primary contact and logistical data.</DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-4">
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Full Name</Label>
-              <Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="h-11 bg-admin-bg border-admin-border rounded-xl font-bold" />
+              <Label className="text-[12px] font-medium text-brand-secondary ml-1">Full Name</Label>
+              <Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="h-[36px] bg-brand-surface border-brand-border/50 rounded-lg text-[13px]" />
             </div>
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Company</Label>
-              <Input value={form.company} onChange={e => setForm({...form, company: e.target.value})} className="h-11 bg-admin-bg border-admin-border rounded-xl font-bold" />
+              <Label className="text-[12px] font-medium text-brand-secondary ml-1">Company</Label>
+              <Input value={form.company} onChange={e => setForm({...form, company: e.target.value})} className="h-[36px] bg-brand-surface border-brand-border/50 rounded-lg text-[13px]" />
             </div>
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Email</Label>
-              <Input value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="h-11 bg-admin-bg border-admin-border rounded-xl font-bold" />
+              <Label className="text-[12px] font-medium text-brand-secondary ml-1">Email</Label>
+              <Input value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="h-[36px] bg-brand-surface border-brand-border/50 rounded-lg text-[13px]" />
             </div>
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Phone</Label>
-              <Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="h-11 bg-admin-bg border-admin-border rounded-xl font-bold" />
+              <Label className="text-[12px] font-medium text-brand-secondary ml-1">Phone</Label>
+              <Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="h-[36px] bg-brand-surface border-brand-border/50 rounded-lg text-[13px]" />
             </div>
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">TRN</Label>
-              <Input value={form.trn} onChange={e => setForm({...form, trn: e.target.value})} className="h-11 bg-admin-bg border-admin-border rounded-xl font-bold font-mono" />
+              <Label className="text-[12px] font-medium text-brand-secondary ml-1">TRN</Label>
+              <Input value={form.trn} onChange={e => setForm({...form, trn: e.target.value})} className="h-[36px] bg-brand-surface border-brand-border/50 rounded-lg text-[13px] font-mono" />
             </div>
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Portal Access</Label>
-              <div className="flex items-center gap-3 h-11 px-3 bg-admin-bg border border-admin-border rounded-xl">
+              <Label className="text-[12px] font-medium text-brand-secondary ml-1">Portal Access</Label>
+              <div className="flex items-center gap-3 h-[36px] px-3 bg-brand-surface border border-brand-border/50 rounded-lg">
                 <Switch checked={form.is_portal_active} onCheckedChange={v => setForm({...form, is_portal_active: v})} />
-                <span className="text-[10px] font-black text-admin-text-primary uppercase tracking-widest">{form.is_portal_active ? 'ENABLED' : 'DISABLED'}</span>
+                <span className="text-[12px] font-medium text-brand-primary">{form.is_portal_active ? 'Enabled' : 'Disabled'}</span>
               </div>
             </div>
             <div className="col-span-2 space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Dispatch Address</Label>
-              <Textarea value={form.address} onChange={e => setForm({...form, address: e.target.value})} className="bg-admin-bg border-admin-border rounded-xl min-h-[100px] font-bold" />
+              <Label className="text-[12px] font-medium text-brand-secondary ml-1">Dispatch Address</Label>
+              <Textarea value={form.address} onChange={e => setForm({...form, address: e.target.value})} className="bg-brand-surface border-brand-border/50 rounded-lg min-h-[100px] text-[13px]" />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setEditOpen(false)} className="font-bold">CANCEL</Button>
-            <Button onClick={handleUpdate} disabled={update.isPending} className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover rounded-xl font-black px-8">
-              {update.isPending ? <Loader2 className="animate-spin" /> : 'SYNC CHANGES'}
+            <Button variant="ghost" onClick={() => setEditOpen(false)} className="text-[13px] font-medium">Cancel</Button>
+            <Button onClick={handleUpdate} disabled={update.isPending} className="bg-brand-primary text-brand-white hover:opacity-90 rounded-lg text-[13px] font-medium px-6">
+              {update.isPending ? <Loader2 className="animate-spin mr-2" size={14} /> : null} Sync Changes
             </Button>
           </DialogFooter>
         </DialogContent>

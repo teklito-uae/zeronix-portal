@@ -1,9 +1,10 @@
 import { Outlet } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { Sidebar } from './Sidebar';
-import { Topbar } from './Topbar';
+
 import { MobileBottomNav } from './MobileBottomNav';
 import { SplashScreen } from '../shared/SplashScreen';
+import { GlobalSearch } from './GlobalSearch';
 
 export const AdminLayout = () => {
   const [showBottomNav, setShowBottomNav] = useState(true);
@@ -14,6 +15,19 @@ export const AdminLayout = () => {
     return true;
   });
   const lastScrollY = useRef(0);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // Ctrl+K / Cmd+K to open search
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setSearchOpen((o) => !o);
+      }
+    };
+    document.addEventListener('keydown', down);
+    return () => document.removeEventListener('keydown', down);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -34,26 +48,28 @@ export const AdminLayout = () => {
   return (
     <>
       {showSplash && <SplashScreen />}
-      <div className="flex h-screen bg-admin-bg text-admin-text-primary overflow-hidden">
+      <div className="flex h-screen bg-brand-page-bg p-0 md:p-3 gap-0 md:gap-3 overflow-hidden text-brand-primary">
         {/* Desktop Sidebar */}
         <Sidebar />
 
         {/* Main Content Area */}
-        <div className="flex flex-col flex-1 min-w-0">
-          <Topbar />
-          <main
+        <main className="flex-1 flex flex-col overflow-hidden">
+          <div
             id="main-content"
-            className="flex-1 overflow-y-auto touch-scroll p-4 md:p-8 pb-20 md:pb-8"
+            className="flex-1 overflow-y-auto touch-scroll"
           >
-            <div className="animate-in fade-in duration-200">
+            <div className="animate-in fade-in duration-200 h-full">
               <Outlet />
             </div>
-          </main>
-        </div>
+          </div>
+        </main>
 
         {/* Mobile Bottom Navigation */}
         <MobileBottomNav isVisible={showBottomNav} />
       </div>
+
+      <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </>
   );
 };
+

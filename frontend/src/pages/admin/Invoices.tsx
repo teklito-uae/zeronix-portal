@@ -25,6 +25,16 @@ export const Invoices = () => {
 
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
+
+  const invoiceTabs = [
+    { id: 'all', label: 'All Invoices' },
+    { id: 'draft', label: 'Drafts' },
+    { id: 'sent', label: 'Sent' },
+    { id: 'paid', label: 'Paid & Settled' },
+    { id: 'overdue', label: 'Overdue' },
+    { id: 'cancelled', label: 'Cancelled' },
+  ];
 
   // Custom mutation for email sending (specific to invoices)
   const sendEmailMutation = useMutation({
@@ -42,9 +52,9 @@ export const Invoices = () => {
       header: 'Invoice #',
       cell: ({ row }) => (
         <div>
-          <span className="font-mono text-sm font-bold text-zeronix-blue">{row.original.invoice_number}</span>
+          <span className="font-mono text-[13px] font-semibold text-brand-primary bg-brand-surface px-2 py-0.5 rounded border border-brand-border/50">{row.original.invoice_number}</span>
           {row.original.email_sent_at && (
-            <p className="text-[10px] text-green-500 flex items-center gap-0.5 mt-0.5 font-medium">
+            <p className="text-[10px] text-brand-success flex items-center gap-0.5 mt-1 font-medium">
               <CheckCircle2 size={10} /> SENT VIA EMAIL
             </p>
           )}
@@ -56,10 +66,10 @@ export const Invoices = () => {
       header: 'Customer',
       cell: ({ row }) => (
         <div className="max-w-[200px]">
-          <p className="text-sm font-semibold text-admin-text-primary truncate">{row.original.customer?.name || '—'}</p>
+          <p className="text-[14px] font-semibold text-brand-primary truncate">{row.original.customer?.name || '—'}</p>
           {row.original.customer?.company && (
-            <p className="text-[11px] text-admin-text-muted flex items-center gap-1 truncate">
-              <Building2 size={10} /> {row.original.customer.company}
+            <p className="text-[12px] text-brand-subtle flex items-center gap-1.5 mt-0.5 truncate">
+              <Building2 size={12} className="opacity-50" /> {row.original.customer.company}
             </p>
           )}
         </div>
@@ -75,11 +85,11 @@ export const Invoices = () => {
       header: 'Amount',
       cell: ({ row }) => (
         <div className="text-right">
-          <p className="font-mono text-sm font-bold text-admin-text-primary">
-            {Number(row.original.total).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-[10px] text-admin-text-muted">AED</span>
+          <p className="font-mono text-[14px] font-semibold text-brand-primary">
+            {Number(row.original.total).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-[11px] text-brand-subtle">AED</span>
           </p>
           {row.original.amount_paid > 0 && (
-            <p className="text-[10px] font-bold text-green-600 bg-green-50 px-1 rounded inline-block mt-1">
+            <p className="text-[11px] font-medium text-brand-success bg-brand-success-bg px-1.5 py-0.5 rounded inline-block mt-1">
               PAID: {row.original.amount_paid.toLocaleString()}
             </p>
           )}
@@ -91,15 +101,15 @@ export const Invoices = () => {
       header: 'Due Date',
       cell: ({ row }) => {
         const days = row.original.days_due;
-        if (row.original.status === 'paid') return <span className="text-[11px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">SETTLED</span>;
+        if (row.original.status === 'paid') return <span className="text-[11px] font-medium text-brand-success bg-brand-success-bg px-2 py-0.5 rounded-full">SETTLED</span>;
         return (
           <div className="space-y-1">
-            <p className="text-[11px] text-admin-text-muted flex items-center gap-1 font-medium">
-              <Calendar size={10} /> {row.original.due_date ? new Date(row.original.due_date).toLocaleDateString() : '—'}
+            <p className="text-[12px] text-brand-subtle flex items-center gap-1.5 font-medium">
+              <Calendar size={12} className="opacity-50" /> {row.original.due_date ? new Date(row.original.due_date).toLocaleDateString() : '—'}
             </p>
             <span className={cn(
-              "text-[10px] font-bold uppercase flex items-center gap-0.5 px-1.5 py-0.5 rounded",
-              days < 0 ? "text-red-600 bg-red-50" : "text-blue-600 bg-blue-50"
+              "text-[10px] font-medium flex items-center gap-1 px-1.5 py-0.5 rounded max-w-max",
+              days < 0 ? "text-brand-danger bg-brand-danger-bg" : "text-brand-accent bg-brand-accent/10 border border-brand-accent/20"
             )}>
               <Clock size={10} />
               {days < 0 ? `${Math.abs(days)}d overdue` : `${days}d left`}
@@ -139,6 +149,10 @@ export const Invoices = () => {
           navigate(`${getBasePath()}/invoices/${row.id}`);
         }}
         searchPlaceholder="Search by invoice # or customer..."
+        tabs={invoiceTabs}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        baseFilters={{ status: activeTab !== 'all' ? activeTab : undefined }}
       />
 
       <PaymentReceiptModal

@@ -23,8 +23,11 @@ class User extends Authenticatable
         'password',
         'role',
         'designation',
+        'phone',
         'permissions',
         'is_active',
+        'shift_start',
+        'shift_end',
         'smtp_host',
         'smtp_port',
         'smtp_username',
@@ -77,5 +80,35 @@ class User extends Authenticatable
     public function invoices(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Invoice::class);
+    }
+
+    public function attendances(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Attendance::class);
+    }
+
+    public function points(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(StaffPoint::class);
+    }
+
+    public function assigned_customers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Customer::class, 'customer_user');
+    }
+
+    public function assigned_enquiries()
+    {
+        return $this->belongsToMany(Enquiry::class, 'enquiry_user');
+    }
+
+    public function tasks(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Task::class);
+    }
+
+    public function stickyNotes(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(StickyNote::class);
     }
 }

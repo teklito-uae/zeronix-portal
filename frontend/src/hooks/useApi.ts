@@ -38,7 +38,9 @@ export function useResourceDetail<_T>(resource: string, id: string | number | un
  */
 export function useResourceMutation(resource: string, additionalQueryKeys: string[][] = []) {
   const queryClient = useQueryClient();
-  const baseKeys = [[resource], ['admin-dashboard'], ...additionalQueryKeys];
+  const basePath = getBasePath();
+  // Only invalidate admin-dashboard when operating in the admin context
+  const baseKeys = [[resource], ...(basePath === '/admin' ? [['admin-dashboard']] : []), ...additionalQueryKeys];
 
   const invalidateAll = () => {
     baseKeys.forEach(key => queryClient.invalidateQueries({ queryKey: key }));

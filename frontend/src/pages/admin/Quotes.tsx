@@ -7,6 +7,7 @@ import api from '@/lib/axios';
 import type { Quote } from '@/types';
 import { FileText, Building2, CheckCircle2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
+import { useState } from 'react';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import { ActionGroup } from '@/components/shared/ActionGroup';
 
@@ -17,6 +18,15 @@ import { ActionGroup } from '@/components/shared/ActionGroup';
 export const Quotes = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState('all');
+
+  const quoteTabs = [
+    { id: 'all', label: 'All Quotes' },
+    { id: 'draft', label: 'Drafts' },
+    { id: 'sent', label: 'Sent' },
+    { id: 'accepted', label: 'Accepted' },
+    { id: 'declined', label: 'Declined' },
+  ];
 
   // Custom mutation for email sending (specific to quotes)
   const sendEmailMutation = useMutation({
@@ -34,10 +44,10 @@ export const Quotes = () => {
       header: 'Quote #',
       cell: ({ row }) => (
         <div>
-          <span className="font-mono text-sm font-bold text-zeronix-blue">{row.original.quote_number}</span>
+          <span className="font-mono text-[13px] font-semibold text-brand-accent">{row.original.quote_number}</span>
           {row.original.email_sent_at && (
-            <p className="text-[10px] text-green-500 flex items-center gap-0.5 mt-0.5 font-medium uppercase tracking-tighter">
-              <CheckCircle2 size={10} /> SENT
+            <p className="text-[11px] text-brand-success flex items-center gap-1 mt-0.5 font-medium uppercase tracking-wider">
+              <CheckCircle2 size={12} /> Sent
             </p>
           )}
         </div>
@@ -48,10 +58,10 @@ export const Quotes = () => {
       header: 'Customer',
       cell: ({ row }) => (
         <div className="max-w-[200px]">
-          <p className="text-sm font-bold text-admin-text-primary truncate">{row.original.customer?.name || '—'}</p>
+          <p className="text-[13px] font-semibold text-brand-primary truncate">{row.original.customer?.name || '—'}</p>
           {row.original.customer?.company && (
-            <p className="text-[11px] text-admin-text-muted flex items-center gap-1 truncate font-medium">
-              <Building2 size={10} /> {row.original.customer.company}
+            <p className="text-[12px] text-brand-subtle flex items-center gap-1.5 truncate mt-0.5">
+              <Building2 size={12} /> {row.original.customer.company}
             </p>
           )}
         </div>
@@ -67,8 +77,8 @@ export const Quotes = () => {
       header: 'Total Amount',
       cell: ({ row }) => (
         <div className="text-right">
-          <p className="font-mono text-sm font-bold text-admin-text-primary">
-            {Number(row.original.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-[10px] text-admin-text-muted">AED</span>
+          <p className="font-mono text-[13px] font-semibold text-brand-primary">
+            {Number(row.original.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-[11px] text-brand-muted">AED</span>
           </p>
         </div>
       ),
@@ -77,8 +87,8 @@ export const Quotes = () => {
       accessorKey: 'created_at',
       header: 'Issue Date',
       cell: ({ row }) => (
-        <div className="flex items-center gap-1.5 text-xs text-admin-text-muted font-medium">
-          <Calendar size={12} className="text-admin-text-muted" />
+        <div className="flex items-center gap-1.5 text-[12px] text-brand-secondary">
+          <Calendar size={14} className="text-brand-subtle" />
           {row.original.created_at ? new Date(row.original.created_at).toLocaleDateString() : '—'}
         </div>
       ),
@@ -87,7 +97,7 @@ export const Quotes = () => {
       accessorKey: 'valid_until',
       header: 'Expiry',
       cell: ({ row }) => (
-        <div className="text-[11px] font-bold text-admin-text-secondary bg-admin-bg px-2 py-0.5 rounded-full inline-block">
+        <div className="text-[12px] font-medium text-brand-secondary bg-brand-surface px-2.5 py-0.5 rounded-md inline-block">
           {row.original.valid_until ? new Date(row.original.valid_until).toLocaleDateString() : '—'}
         </div>
       ),
@@ -118,6 +128,10 @@ export const Quotes = () => {
       createLabel="New Quote"
       createPath={`${getBasePath()}/quotes/create`}
       searchPlaceholder="Search by quote # or customer name..."
+      tabs={quoteTabs}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      baseFilters={{ status: activeTab !== 'all' ? activeTab : undefined }}
     />
   );
 };

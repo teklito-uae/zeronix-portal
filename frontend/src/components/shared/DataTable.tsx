@@ -7,7 +7,7 @@ import {
   getFilteredRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { useState, Fragment } from 'react';
+import { useState, Fragment, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, Search } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -30,6 +31,8 @@ interface DataTableProps<TData, TValue> {
   renderRowDetails?: (row: TData) => React.ReactNode;
   headerAction?: React.ReactNode;
   hidePagination?: boolean;
+  enableRowSelection?: boolean;
+  onSelectionChange?: (selectedRows: TData[]) => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -42,6 +45,8 @@ export function DataTable<TData, TValue>({
   renderRowDetails,
   headerAction,
   hidePagination = false,
+  enableRowSelection = false,
+  onSelectionChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
@@ -54,18 +59,66 @@ export function DataTable<TData, TValue>({
     }));
   };
 
+  const [rowSelection, setRowSelection] = useState({});
+
+  useEffect(() => {
+    if (onSelectionChange && table) {
+      const selectedRows = table.getFilteredSelectedRowModel().rows.map(r => r.original);
+      onSelectionChange(selectedRows);
+    }
+  }, [rowSelection]);
+
+  // Inject checkbox column if enabled
+  const finalColumns = enableRowSelection
+    ? [
+        {
+          id: 'select',
+          header: ({ table }) => (
+            <div className="px-2">
+              <Checkbox
+                checked={
+                  table.getIsAllPageRowsSelected()
+                    ? true
+                    : table.getIsSomePageRowsSelected()
+                    ? 'indeterminate'
+                    : false
+                }
+                onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+                aria-label="Select all"
+              />
+            </div>
+          ),
+          cell: ({ row }) => (
+            <div className="px-2" onClick={(e) => e.stopPropagation()}>
+              <Checkbox
+                checked={row.getIsSelected()}
+                onCheckedChange={(value) => row.toggleSelected(!!value)}
+                aria-label="Select row"
+              />
+            </div>
+          ),
+          enableSorting: false,
+          enableHiding: false,
+        } as ColumnDef<TData, TValue>,
+        ...columns,
+      ]
+    : columns;
+
   const table = useReactTable({
     data,
-    columns,
+    columns: finalColumns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
+    onRowSelectionChange: setRowSelection,
+    enableRowSelection: enableRowSelection,
     state: {
       sorting,
       globalFilter,
+      rowSelection,
     },
     initialState: {
       pagination: {
@@ -80,12 +133,12 @@ export function DataTable<TData, TValue>({
       {searchColumn !== undefined && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="relative w-full sm:w-80">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-admin-text-muted" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-subtle" />
             <Input
               placeholder={searchPlaceholder}
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
-              className="pl-9 h-[38px] bg-admin-surface border-admin-border text-admin-text-primary placeholder:text-admin-text-muted focus:border-zeronix-blue focus:ring-zeronix-blue/20"
+              className="pl-8 h-[30px] text-[12px] bg-brand-white border-brand-border text-brand-primary placeholder:text-brand-subtle focus:border-brand-accent focus:ring-brand-accent/20"
             />
           </div>
           {headerAction && <div className="w-full sm:w-auto">{headerAction}</div>}
@@ -93,17 +146,16 @@ export function DataTable<TData, TValue>({
       )}
 
       {/* Table Container */}
-      <div className="rounded-xl border border-admin-border bg-admin-surface overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id} className="border-b border-admin-border hover:bg-transparent">
-                  {headerGroup.headers.map((header) => (
-                    <TableHead
-                      key={header.id}
-                      className="h-11 px-4 text-[13px] font-semibold uppercase tracking-wider text-admin-text-secondary bg-admin-surface whitespace-nowrap"
-                    >
+      <div className="overflow-x-auto bg-brand-white">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id} className="border-b border-brand-border/50 hover:bg-transparent">
+                {headerGroup.headers.map((header) => (
+                  <TableHead
+                     key={header.id}
+                     className="h-10 px-4 text-[12px] font-semibold text-brand-subtle uppercase tracking-wider bg-brand-surface border border-brand-border/50 whitespace-nowrap"
+                  >
                       {header.isPlaceholder ? null : (
                         <div
                           className={
@@ -115,7 +167,7 @@ export function DataTable<TData, TValue>({
                         >
                           {flexRender(header.column.columnDef.header, header.getContext())}
                           {header.column.getCanSort() && (
-                            <ArrowUpDown size={14} className="text-admin-text-muted" />
+                            <ArrowUpDown size={12} className="text-brand-subtle" />
                           )}
                         </div>
                       )}
@@ -136,20 +188,22 @@ export function DataTable<TData, TValue>({
                         }
                         onRowClick?.(row.original);
                       }}
-                      className={`border-b border-admin-border last:border-0 bg-admin-surface hover:bg-admin-surface-hover transition-colors duration-100 ${
+                      className={`border-b border-brand-border/50 last:border-0 bg-brand-white hover:bg-brand-bg transition-colors duration-100 ${
                         (onRowClick || renderRowDetails) ? 'cursor-pointer' : ''
-                      } ${expandedRows[row.id] ? 'bg-admin-surface-hover' : ''}`}
+                      } ${expandedRows[row.id] ? 'bg-brand-bg' : ''} ${
+                        row.getIsSelected() ? 'bg-brand-accent/5' : ''
+                      }`}
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className="px-4 py-3 text-sm text-admin-text-primary whitespace-nowrap">
+                        <TableCell key={cell.id} className="px-4 py-2.5 text-[13px] font-medium text-brand-secondary whitespace-nowrap border border-brand-border/50">
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
                       ))}
                     </TableRow>
                     {renderRowDetails && expandedRows[row.id] && (
-                      <TableRow className="bg-admin-bg/50 border-b border-admin-border animate-in fade-in slide-in-from-top-1 duration-200">
-                        <TableCell colSpan={columns.length} className="p-0">
-                          <div className="p-4 bg-admin-bg/30 border-l-4 border-l-zeronix-blue whitespace-normal">
+                      <TableRow className="bg-brand-bg/50 border-b border-brand-border/50 hover:bg-brand-bg/50">
+                        <TableCell colSpan={row.getVisibleCells().length} className="p-0">
+                          <div className="p-4 border-l-2 border-l-brand-accent animate-in slide-in-from-top-1 duration-200">
                             {renderRowDetails(row.original)}
                           </div>
                         </TableCell>
@@ -160,8 +214,8 @@ export function DataTable<TData, TValue>({
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center text-admin-text-muted"
+                    colSpan={columns.length + (enableRowSelection ? 1 : 0)}
+                    className="h-24 text-center text-[13px] text-brand-subtle"
                   >
                     No results.
                   </TableCell>
@@ -170,12 +224,11 @@ export function DataTable<TData, TValue>({
             </TableBody>
           </Table>
         </div>
-      </div>
 
       {/* Pagination */}
       {!hidePagination && table.getPageCount() > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-admin-text-muted">
+          <p className="text-sm text-brand-subtle">
             {table.getFilteredRowModel().rows.length} total rows
           </p>
           <div className="flex items-center gap-1">

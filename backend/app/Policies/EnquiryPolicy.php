@@ -15,13 +15,13 @@ class EnquiryPolicy
         return true;
     }
 
-    public function view(User $user, Enquiry $enquiry)
+    public function view(User $user, Enquiry $enquiry): bool
     {
         if ($user->role === 'admin') {
             return true;
         }
 
-        return $enquiry->assigned_to === $user->id || $enquiry->user_id === $user->id;
+        return $enquiry->assigned_users()->where('users.id', $user->id)->exists() || $enquiry->user_id === $user->id;
     }
 
     public function create(User $user)
@@ -29,13 +29,16 @@ class EnquiryPolicy
         return true;
     }
 
-    public function update(User $user, Enquiry $enquiry)
+    /**
+     * Determine whether the user can update the model.
+     */
+    public function update(User $user, Enquiry $enquiry): bool
     {
         if ($user->role === 'admin') {
             return true;
         }
 
-        return $enquiry->assigned_to === $user->id || $enquiry->user_id === $user->id;
+        return $enquiry->assigned_users()->where('users.id', $user->id)->exists() || $enquiry->user_id === $user->id;
     }
 
     public function delete(User $user, Enquiry $enquiry)

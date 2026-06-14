@@ -58,6 +58,7 @@ export const DocumentEditor = ({ type, id, isNew }: DocumentEditorProps) => {
     due_date: '',
     notes: '',
     reference_id: '',
+    closing_ratio: '',
   });
 
   const listLabel = type === 'quote' ? 'Quotes' : 'Invoices';
@@ -174,14 +175,14 @@ export const DocumentEditor = ({ type, id, isNew }: DocumentEditorProps) => {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 pb-20">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 pb-20 md:pb-0">
       {/* Dynamic Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={() => navigate(`${getBasePath()}/${type}s`)} 
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => navigate(`${getBasePath()}/${type}s`)}
             className="rounded-2xl border-admin-border h-11 w-11 hover:bg-admin-surface-hover shadow-sm transition-all active:scale-95"
           >
             <ArrowLeft size={20} />
@@ -203,9 +204,9 @@ export const DocumentEditor = ({ type, id, isNew }: DocumentEditorProps) => {
             <>
               <DownloadButton id={id!} type={type} mode="view" variant="outline" label="View PDF" />
               {type === 'quote' && docData.status !== 'invoiced' && (
-                <Button 
-                  onClick={handleConvert} 
-                  size="sm" 
+                <Button
+                  onClick={handleConvert}
+                  size="sm"
                   className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-10 px-5 font-bold text-[11px] uppercase tracking-wider shadow-lg shadow-emerald-600/10"
                 >
                   <Receipt size={16} className="mr-2" /> Convert to Invoice
@@ -213,10 +214,10 @@ export const DocumentEditor = ({ type, id, isNew }: DocumentEditorProps) => {
               )}
             </>
           )}
-          <Button 
-            onClick={handleSaveDoc} 
-            disabled={loading || (type === 'invoice' && docData.delivery_status === 'delivered' && admin?.role !== 'admin')} 
-            size="sm" 
+          <Button
+            onClick={handleSaveDoc}
+            disabled={loading || (type === 'invoice' && docData.delivery_status === 'delivered' && admin?.role !== 'admin')}
+            size="sm"
             className="bg-zeronix-blue hover:bg-zeronix-blue-hover text-white rounded-md h-9 px-4 font-medium text-sm transition-all active:scale-95"
           >
             {loading ? <Loader2 className="animate-spin mr-2" size={16} /> : <Save size={16} className="mr-2" />}
@@ -235,7 +236,7 @@ export const DocumentEditor = ({ type, id, isNew }: DocumentEditorProps) => {
               </div>
               <ShieldCheck size={16} className="text-emerald-500 opacity-50" />
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted ml-1 flex items-center gap-1.5">
@@ -266,9 +267,9 @@ export const DocumentEditor = ({ type, id, isNew }: DocumentEditorProps) => {
                   </SelectTrigger>
                   <SelectContent className="bg-admin-surface border-admin-border rounded-2xl shadow-2xl">
                     {type === 'quote' ? (
-                      <>{['draft','sent','accepted','rejected','invoiced'].map(s => <SelectItem key={s} value={s} className="rounded-lg m-1">{s.toUpperCase()}</SelectItem>)}</>
+                      <>{['draft', 'sent', 'accepted', 'rejected', 'invoiced'].map(s => <SelectItem key={s} value={s} className="rounded-lg m-1">{s.toUpperCase()}</SelectItem>)}</>
                     ) : (
-                      <>{['draft','sent','unpaid','paid','partial','overdue','cancelled'].map(s => <SelectItem key={s} value={s} className="rounded-lg m-1">{s.toUpperCase()}</SelectItem>)}</>
+                      <>{['draft', 'sent', 'unpaid', 'paid', 'partial', 'overdue', 'cancelled'].map(s => <SelectItem key={s} value={s} className="rounded-lg m-1">{s.toUpperCase()}</SelectItem>)}</>
                     )}
                   </SelectContent>
                 </Select>
@@ -278,11 +279,11 @@ export const DocumentEditor = ({ type, id, isNew }: DocumentEditorProps) => {
                 <Label className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted ml-1 flex items-center gap-1.5">
                   <Calendar size={12} className="text-zeronix-blue" /> Issue Date
                 </Label>
-                <Input 
-                  type="date" 
-                  value={docData.date ? docData.date.split('T')[0] : ''} 
-                  onChange={(e) => setDocData({ ...docData, date: e.target.value })} 
-                  className="h-11 bg-admin-bg border-admin-border rounded-xl text-sm focus:ring-zeronix-blue/10 shadow-sm" 
+                <Input
+                  type="date"
+                  value={docData.date ? docData.date.split('T')[0] : ''}
+                  onChange={(e) => setDocData({ ...docData, date: e.target.value })}
+                  className="h-11 bg-admin-bg border-admin-border rounded-xl text-sm focus:ring-zeronix-blue/10 shadow-sm"
                 />
               </div>
 
@@ -298,15 +299,46 @@ export const DocumentEditor = ({ type, id, isNew }: DocumentEditorProps) => {
                 />
               </div>
 
+              {type === 'quote' && (
+                <>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted ml-1 flex items-center gap-1.5">
+                      <Calendar size={12} className="text-zeronix-blue" /> Follow-up Due Date
+                    </Label>
+                    <Input
+                      type="date"
+                      value={docData.due_date ? docData.due_date.split('T')[0] : ''}
+                      onChange={(e) => setDocData({ ...docData, due_date: e.target.value })}
+                      className="h-11 bg-admin-bg border-admin-border rounded-xl text-sm focus:ring-zeronix-blue/10 shadow-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted ml-1 flex items-center gap-1.5">
+                      <Settings2 size={12} className="text-zeronix-blue" /> Closing Ratio (%)
+                    </Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={docData.closing_ratio !== undefined ? docData.closing_ratio : ''}
+                      onChange={(e) => setDocData({ ...docData, closing_ratio: e.target.value ? Number(e.target.value) : '' })}
+                      className="h-11 bg-admin-bg border-admin-border rounded-xl text-sm focus:ring-zeronix-blue/10 shadow-sm"
+                      placeholder="e.g. 80"
+                    />
+                  </div>
+                </>
+              )}
+
               <div className="md:col-span-2 space-y-2">
                 <Label className="text-[11px] font-semibold uppercase tracking-wider text-admin-text-muted mb-1.5 block">
                   Commercial Reference (LPO / SO)
                 </Label>
-                <Input 
-                  value={docData.reference_id || ''} 
-                  onChange={(e) => setDocData({ ...docData, reference_id: e.target.value })} 
-                  placeholder="Reference #" 
-                  className="h-10 bg-admin-bg border-admin-border rounded-md text-sm shadow-sm" 
+                <Input
+                  value={docData.reference_id || ''}
+                  onChange={(e) => setDocData({ ...docData, reference_id: e.target.value })}
+                  placeholder="Reference #"
+                  className="h-10 bg-admin-bg border-admin-border rounded-md text-sm shadow-sm"
                 />
               </div>
             </div>
@@ -318,10 +350,10 @@ export const DocumentEditor = ({ type, id, isNew }: DocumentEditorProps) => {
               <span className="text-xs font-semibold text-admin-text-primary uppercase tracking-wider flex items-center gap-2">
                 Line Items
               </span>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={() => { setEditingIndex(null); setIsModalOpen(true); }} 
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => { setEditingIndex(null); setIsModalOpen(true); }}
                 className="h-8 rounded-md text-xs border-admin-border bg-admin-surface hover:bg-admin-bg px-3"
                 disabled={type === 'invoice' && docData.delivery_status === 'delivered' && admin?.role !== 'admin'}
               >
@@ -359,7 +391,7 @@ export const DocumentEditor = ({ type, id, isNew }: DocumentEditorProps) => {
                       </TableCell>
                       <TableCell className="text-center text-sm text-admin-text-secondary">{item.quantity}</TableCell>
                       <TableCell className="text-right text-sm font-mono text-admin-text-secondary">
-                        {Number(item.unit_price).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                        {Number(item.unit_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell className="text-center">
                         <span className="text-[10px] font-semibold text-admin-text-muted">{item.tax_percent}%</span>
@@ -369,19 +401,19 @@ export const DocumentEditor = ({ type, id, isNew }: DocumentEditorProps) => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => { setEditingIndex(i); setIsModalOpen(true); }} 
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => { setEditingIndex(i); setIsModalOpen(true); }}
                             disabled={type === 'invoice' && docData.delivery_status === 'delivered' && admin?.role !== 'admin'}
                             className="h-8 w-8 text-admin-text-muted hover:text-zeronix-blue hover:bg-zeronix-blue/10 rounded-lg"
                           >
                             <Pencil size={14} />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => setItems(items.filter((_, idx) => idx !== i))} 
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setItems(items.filter((_, idx) => idx !== i))}
                             disabled={type === 'invoice' && docData.delivery_status === 'delivered' && admin?.role !== 'admin'}
                             className="h-8 w-8 text-admin-text-muted hover:text-danger hover:bg-danger/10 rounded-lg"
                           >
@@ -403,7 +435,7 @@ export const DocumentEditor = ({ type, id, isNew }: DocumentEditorProps) => {
             <div className="flex items-center gap-2 text-xs font-semibold text-admin-text-primary uppercase tracking-wider border-b border-admin-border pb-4">
               Summary
             </div>
-            
+
             <div className="space-y-3">
               <div className="flex justify-between items-center text-xs text-admin-text-secondary uppercase">
                 <span>Subtotal</span>
@@ -413,7 +445,7 @@ export const DocumentEditor = ({ type, id, isNew }: DocumentEditorProps) => {
                 <span>VAT (5%)</span>
                 <span className="font-mono text-sm">{totals.vat.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
               </div>
-              
+
               <div className="pt-4 border-t border-admin-border">
                 <div className="bg-admin-bg p-4 rounded-md border border-admin-border">
                   <p className="text-[10px] font-semibold text-admin-text-muted uppercase tracking-wider mb-1">Total Amount</p>

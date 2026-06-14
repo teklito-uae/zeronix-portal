@@ -11,7 +11,7 @@ class EnquiryController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Enquiry::with(['customer', 'user', 'assignedUser'])->withCount('items');
+        $query = Enquiry::with(['customer', 'user', 'assigned_users'])->withCount('items');
 
         // Data Scoping
         $query->forUser($request->user());
@@ -90,12 +90,15 @@ class EnquiryController extends Controller
             $enquiry = Enquiry::create([
                 'customer_id' => $customerId,
                 'user_id' => $request->user()->id ?? null,
-                'assigned_to' => $request->user()->role === 'salesman' ? $request->user()->id : null,
                 'source' => $validated['source'] ?? 'portal',
                 'priority' => $validated['priority'] ?? 'normal',
                 'status' => $validated['status'] ?? 'new',
                 'notes' => $validated['notes'] ?? null,
             ]);
+
+            if ($request->user() && $request->user()->role === 'salesman') {
+                $enquiry->assigned_users()->attach([$request->user()->id]);
+            }
 
             if (!empty($validated['items'])) {
                 foreach ($validated['items'] as $item) {
@@ -109,7 +112,7 @@ class EnquiryController extends Controller
 
             DB::commit();
             
-            $enquiry->load(['customer', 'items.product', 'user', 'assignedUser']);
+            $enquiry->load(['customer', 'items.product', 'user', 'assigned_users']);
             
             return response()->json($enquiry, 201);
         } catch (\Exception $e) {
@@ -121,7 +124,7 @@ class EnquiryController extends Controller
     public function show(Request $request, Enquiry $enquiry)
     {
         $this->authorize('view', $enquiry);
-        return response()->json($enquiry->load(['customer', 'items.product', 'user', 'assignedUser']));
+        return response()->json($enquiry->load(['customer', 'items.product', 'user', 'assigned_users']));
     }
 
     public function update(Request $request, Enquiry $enquiry)
@@ -156,11 +159,12 @@ class EnquiryController extends Controller
         $enquiry = Enquiry::findOrFail($id);
 
         $validated = $request->validate([
-            'assigned_to' => 'nullable|exists:users,id',
+            'user_ids'   => 'nullable|array',
+            'user_ids.*' => 'exists:users,id',
         ]);
 
-        $enquiry->update(['assigned_to' => $validated['assigned_to']]);
-        $enquiry->load(['customer', 'user', 'assignedUser']);
+        $enquiry->assigned_users()->sync($validated['user_ids'] ?? []);
+        $enquiry->load(['customer', 'user', 'assigned_users']);
 
         return response()->json($enquiry);
     }

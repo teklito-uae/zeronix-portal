@@ -1,7 +1,38 @@
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @theme {
+  /* 2.1 Color Palette */
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-secondary: var(--brand-secondary);
+  --color-brand-muted: var(--brand-muted);
+  --color-brand-subtle: var(--brand-subtle);
+  --color-brand-border: var(--brand-border);
+  --color-brand-border-strong: var(--brand-border-strong);
+  --color-brand-surface: var(--brand-surface);
+  --color-brand-bg: var(--brand-bg);
+  --color-brand-page-bg: var(--brand-page-bg);
+  --color-brand-white: var(--brand-white);
+
+  --color-brand-accent: #8B5CF6;
+  --color-brand-accent-light: #EDE9FE;
+  --color-brand-accent-mid: #C4B5FD;
+
+  --color-brand-success: #10B981;
+  --color-brand-success-bg: #D1FAE5;
+  --color-brand-success-text: #065F46;
+  --color-brand-danger: #EF4444;
+  --color-brand-danger-bg: #FEE2E2;
+  --color-brand-danger-text: #991B1B;
+  --color-brand-warning: #F59E0B;
+  --color-brand-warning-bg: #FEF3C7;
+  --color-brand-warning-text: #92400E;
+  --color-brand-info: #3B82F6;
+  --color-brand-info-bg: #DBEAFE;
+  --color-brand-info-text: #1E40AF;
+
+  /* Legacy Colors for gradual migration */
   --color-zeronix-blue: #10B981;
   --color-zeronix-blue-hover: #059669;
   --color-zeronix-green: #23F78C;
@@ -9,7 +40,6 @@
   --color-success: #10B981;
   --color-warning: #F59E0B;
   --color-danger: #EF4444;
-
   --color-admin-bg: var(--admin-bg);
   --color-admin-surface: var(--admin-surface);
   --color-admin-surface-hover: var(--admin-surface-hover);
@@ -20,22 +50,101 @@
   --color-admin-text-secondary: var(--admin-text-secondary);
   --color-admin-text-muted: var(--admin-text-muted);
 
-  --color-cust-bg: #FFFFFF;
-  --color-cust-bg-subtle: #F8FAFF;
-  --color-cust-bg-dark: #0E1A23;
-  --color-cust-border: #E2E8F0;
-  --color-cust-text-primary: #0F1629;
-  --color-cust-text-secondary: #4A5568;
-  --color-cust-text-on-dark: #F0F4FF;
-
-  --radius-brand: 8px;
-
+  /* 2.2 Typography */
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+
+  /* Font sizes */
+  --text-2xs: 10px;
+  --text-2xs--line-height: 14px;
+  --text-2xs--letter-spacing: 0.05em;
+
+  --text-xs: 11px;
+  --text-xs--line-height: 16px;
+
+  --text-sm: 12px;
+  --text-sm--line-height: 18px;
+
+  --text-base: 13px;
+  --text-base--line-height: 20px;
+
+  --text-md: 14px;
+  --text-md--line-height: 20px;
+
+  --text-lg: 16px;
+  --text-lg--line-height: 24px;
+
+  --text-xl: 18px;
+  --text-xl--line-height: 28px;
+
+  --text-2xl: 20px;
+  --text-2xl--line-height: 28px;
+
+  --text-3xl: 22px;
+  --text-3xl--line-height: 30px;
+
+  --text-4xl: 28px;
+  --text-4xl--line-height: 36px;
+
+  /* Font weights */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* 2.4 Border Radius */
+  --radius-none: 0;
+  --radius-sm: 4px;
+  --radius: 6px; /* default */
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-full: 9999px;
+
+  /* 2.5 Spacing Scale */
+  --spacing-0_5: 2px;
+  --spacing-1: 4px;
+  --spacing-1_5: 6px;
+  --spacing-2: 8px;
+  --spacing-2_5: 10px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+
+  /* Layout Spacing */
+  --spacing-sidebar: 210px;
+  --spacing-topbar: 56px;
+
+  /* 2.6 Shadows */
+  --shadow-none: none;
+  --shadow-focus: 0 0 0 3px rgba(139, 92, 246, 0.2);
+  --shadow-focus-default: 0 0 0 2px rgba(17, 24, 39, 0.15);
+  
+  /* Disable decorative shadows */
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-xl: none;
+  --shadow-2xl: none;
+  --shadow-inner: none;
 }
 
 @layer base {
   :root {
+    --brand-primary: #111827;
+    --brand-secondary: #374151;
+    --brand-muted: #6B7280;
+    --brand-subtle: #9CA3AF;
+    --brand-border: #E5E7EB;
+    --brand-border-strong: #D1D5DB;
+    --brand-surface: #F3F4F6;
+    --brand-bg: #F9FAFB;
+    --brand-page-bg: #E8EAF0;
+    --brand-white: #FFFFFF;
+
+    /* Legacy variables for graceful degradation */
     --admin-bg: #F4F6FA;
     --admin-surface: #FFFFFF;
     --admin-surface-hover: #F0F4FF;
@@ -45,44 +154,104 @@
     --admin-text-secondary: #4A5568;
     --admin-text-muted: #94A3B8;
 
-    /* Shadcn UI Overrides */
+    /* 2.7 Global CSS Variables (shadcn + layout) */
+    --background: 0 0% 100%;
+    --foreground: 220 13% 13%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 13% 13%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --popover-foreground: 220 13% 13%;
+    --primary: 220 13% 13%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 220 9% 96%;
+    --secondary-foreground: 220 13% 13%;
+    --muted: 220 9% 96%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 262 83% 63%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 262 83% 63%;
+
+    --sidebar-width: 210px;
+    --topbar-height: 56px;
+    --page-bg: #E8EAF0;
   }
 
   .dark {
-    --admin-bg: #0E1A23;
-    --admin-surface: #152030;
-    --admin-surface-hover: #1C2B3A;
-    --admin-sidebar-bg: #0A1520;
-    --admin-border: #1E3040;
-    --admin-text-primary: #F0F4FF;
-    --admin-text-secondary: #7A9BB5;
-    --admin-text-muted: #3D5468;
+    --brand-primary: #F9FAFB;
+    --brand-secondary: #D1D5DB;
+    --brand-muted: #9CA3AF;
+    --brand-subtle: #6B7280;
+    --brand-border: #2A3847;
+    --brand-border-strong: #3D5468;
+    --brand-surface: #1E2E3E;
+    --brand-bg: #152331;
+    --brand-page-bg: #0B131C;
+    --brand-white: #152331;
 
-    /* Shadcn UI Overrides for Dark Mode */
-    --popover: 213 32% 14%;
+    /* Legacy variables */
+    --admin-bg: #0B131C;
+    --admin-surface: #152331;
+    --admin-surface-hover: #1E2E3E;
+    --admin-sidebar-bg: #0B131C;
+    --admin-border: #2A3847;
+    --admin-text-primary: #F9FAFB;
+    --admin-text-secondary: #D1D5DB;
+    --admin-text-muted: #6B7280;
+
+    /* 2.7 Global CSS Variables (shadcn + layout) for Dark Mode */
+    --background: 215 28% 14%;
+    --foreground: 210 40% 98%;
+    --card: 215 28% 14%;
+    --card-foreground: 210 40% 98%;
+    --popover: 215 28% 14%;
     --popover-foreground: 210 40% 98%;
-    --accent: 213 32% 20%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 214 25% 25%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 214 25% 25%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 214 25% 25%;
     --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 211 25% 22%;
+    --input: 211 25% 22%;
+    --ring: 262 83% 63%;
   }
 }
 
+/* Removed * { margin: 0; padding: 0; } as Tailwind Preflight handles this natively */
+
 body {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: #111827;
+  background: var(--page-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Animate-in utility for page transitions */
+/* Remove default outlines, use focus rings */
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #8B5CF6;
+}
+[role="button"]:focus-visible, [tabindex="0"]:not(#main-content):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #8B5CF6;
+}
+
+/* Legacy Animate-in utility */
 @keyframes fadeIn {
   from {
     opacity: 0;
     transform: translateY(4px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
@@ -95,118 +264,41 @@ body {
 
 /* Status badge urgent pulse */
 @keyframes urgentPulse {
-
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.7;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
-/* ===== MOBILE RESPONSIVE FIXES ===== */
-
-/* Prevent iOS zoom on input focus — inputs must be 16px+ */
 @media (max-width: 767px) {
-
-  input,
-  select,
-  textarea {
+  input, select, textarea {
     font-size: 16px !important;
   }
-
-  /* Ensure bottom nav clearance */
   .pb-mobile-nav {
     padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
   }
 }
 
-/* Safe area insets for notched devices */
 @supports (padding: env(safe-area-inset-bottom)) {
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
 
-/* PWA Splash Screen */
-@keyframes splashFadeOut {
-  0% {
-    opacity: 1;
-  }
-
-  80% {
-    opacity: 1;
-  }
-
-  100% {
-    opacity: 0;
-    pointer-events: none;
-  }
-}
-
-@keyframes splashLogoIn {
-  0% {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-
-  50% {
-    opacity: 1;
-    transform: scale(1.05);
-  }
-
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes splashPulse {
-
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
-  }
-
-  50% {
-    box-shadow: 0 0 0 20px rgba(16, 185, 129, 0);
-  }
-}
-
-/* Mobile drawer overlay */
-@keyframes slideInFromBottom {
-  from {
-    transform: translateY(100%);
-  }
-
-  to {
-    transform: translateY(0);
-  }
-}
-
-/* Touch-friendly scrolling */
 .touch-scroll {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
 
-/* Green themed scrollbar */
 .scrollbar-green::-webkit-scrollbar {
   width: 4px;
 }
-
 .scrollbar-green::-webkit-scrollbar-track {
   background: transparent;
 }
-
 .scrollbar-green::-webkit-scrollbar-thumb {
-  background-color: var(--color-zeronix-green);
+  background-color: #8B5CF6;
   border-radius: 10px;
 }
-
 .scrollbar-green {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-zeronix-green) transparent;
+  scrollbar-color: #8B5CF6 transparent;
 }

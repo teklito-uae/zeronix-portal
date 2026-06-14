@@ -139,7 +139,7 @@ export const Topbar = () => {
   };
 
   return (
-    <header className="h-14 bg-admin-surface border-b border-admin-border flex items-center px-4 justify-between flex-shrink-0">
+    <header className="flex items-center justify-between mb-2 flex-shrink-0">
       {/* Left: Logo (mobile) / Menu toggle + Breadcrumbs (desktop) */}
       <div className="flex items-center gap-3">
         {/* Mobile: Show logo */}
@@ -147,38 +147,28 @@ export const Topbar = () => {
           <Logo size="sm" showText />
         </div>
         {/* Desktop: Show sidebar toggle */}
-        <Button
-          variant="ghost"
-          size="icon"
+        <button
           onClick={toggle}
-          className="hidden md:flex h-8 w-8 text-admin-text-secondary hover:text-admin-text-primary hover:bg-admin-surface-hover"
+          className="hidden md:flex p-2 rounded-lg hover:bg-brand-white border border-transparent hover:border-brand-border transition-colors text-brand-muted hover:text-brand-secondary"
         >
-          <Menu size={18} />
-        </Button>
+          <Menu size={16} />
+        </button>
 
-        <nav className="hidden sm:flex items-center gap-1 text-sm">
-          {/* Home icon */}
-          <Link
-            to={isCustomer ? `/portal/${companySlug}/dashboard` : `${getBasePath()}/dashboard`}
-            className="text-admin-text-muted hover:text-admin-text-primary transition-colors"
-          >
-            <Home size={13} />
-          </Link>
-
+        <nav className="hidden sm:flex items-center gap-2 text-sm">
           {breadcrumbs.map((crumb, i) => (
-            <span key={i} className="flex items-center gap-1">
-              <ChevronRight size={12} className="text-admin-text-muted/50" />
+            <span key={i} className="flex items-center gap-2">
+              {i > 0 && <ChevronRight size={14} className="text-brand-subtle" />}
               {crumb.href ? (
                 <Link
                   to={crumb.href}
-                  className="text-admin-text-muted hover:text-admin-text-primary transition-colors text-sm"
+                  className="text-brand-muted hover:text-brand-secondary transition-colors text-[14px]"
                 >
                   {crumb.label}
                 </Link>
               ) : (
-                <span className="text-admin-text-primary font-medium text-sm">
+                <h1 className="text-[20px] font-semibold text-brand-primary">
                   {crumb.label}
-                </span>
+                </h1>
               )}
             </span>
           ))}
@@ -186,118 +176,59 @@ export const Topbar = () => {
       </div>
 
       {/* Right: Theme + Chat + User */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-2">
         {/* Mobile Search icon */}
-        <Button
-          variant="ghost"
-          size="icon"
+        <button
           onClick={() => setSearchOpen(true)}
-          className="md:hidden h-8 w-8 text-admin-text-secondary hover:text-admin-text-primary hover:bg-admin-surface-hover"
+          className="md:hidden p-2 rounded-lg hover:bg-brand-white border border-transparent hover:border-brand-border transition-colors text-brand-muted hover:text-brand-secondary"
         >
-          <Search size={17} />
-        </Button>
+          <Search size={16} />
+        </button>
+        
         {/* Desktop search trigger */}
         <button
           onClick={() => setSearchOpen(true)}
-          className="hidden md:flex items-center gap-2 h-8 px-3 rounded-md bg-admin-bg border border-admin-border text-admin-text-muted hover:border-zeronix-blue/40 hover:text-admin-text-primary transition-colors"
+          className="hidden md:flex items-center gap-2 bg-brand-white border border-brand-border rounded-lg px-3 py-1.5 w-64 hover:border-brand-border-strong transition-colors"
         >
-          <Search size={13} />
-          <span className="text-xs">Search…</span>
-          <kbd className="ml-3 text-[10px] opacity-60 border border-admin-border rounded px-1 py-0.5 bg-admin-surface">⌘K</kbd>
+          <Search size={14} className="text-brand-subtle" />
+          <span className="text-[13px] text-brand-subtle flex-1 text-left">Search...</span>
+          <kbd className="text-[10px] text-brand-subtle bg-brand-surface px-1.5 py-0.5 rounded">⌘K</kbd>
         </button>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(isCustomer ? `/portal/${companySlug}/notifications` : `${getBasePath()}/notifications`)}
-            className="h-8 w-8 text-admin-text-secondary hover:text-admin-text-primary hover:bg-admin-surface-hover relative"
-          >
-            <Bell size={17} />
-            {user && (unreadNotifs?.length || 0) > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 h-4 w-4 text-[8px] font-bold text-white flex items-center justify-center rounded-full bg-red-500 border-2 border-admin-surface shadow-sm">
-                {unreadNotifs.length}
-              </span>
-            )}
-          </Button>
-
+        <button
+          onClick={() => navigate(isCustomer ? `/portal/${companySlug}/notifications` : `${getBasePath()}/notifications`)}
+          className="p-2 rounded-lg hover:bg-brand-white border border-transparent hover:border-brand-border transition-colors text-brand-muted hover:text-brand-secondary relative"
+        >
+          <Bell size={16} />
+          {user && (unreadNotifs?.length || 0) > 0 && (
+            <span className="absolute top-1 right-1 h-3 w-3 text-[8px] font-bold text-brand-white flex items-center justify-center rounded-full bg-brand-danger shadow-sm">
+              {unreadNotifs.length}
+            </span>
+          )}
+        </button>
 
         {isCustomer && (
           <CartDrawer>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-admin-text-secondary hover:text-admin-text-primary hover:bg-admin-surface-hover relative group"
+            <button
+              className="p-2 rounded-lg hover:bg-brand-white border border-transparent hover:border-brand-border transition-colors text-brand-muted hover:text-brand-secondary relative group"
             >
-              <ShoppingCart size={17} className="group-hover:scale-110 transition-transform" />
+              <ShoppingCart size={16} className="group-hover:scale-110 transition-transform" />
               {totalCartItems > 0 && (
-                <span className="absolute -top-1 -right-1 h-4 w-4 bg-emerald-500 text-[10px] font-bold text-white flex items-center justify-center rounded-full border-2 border-admin-surface animate-in zoom-in">
+                <span className="absolute top-1 right-1 h-3 w-3 bg-brand-success text-[8px] font-bold text-brand-white flex items-center justify-center rounded-full shadow-sm animate-in zoom-in">
                   {totalCartItems}
                 </span>
               )}
-            </Button>
+            </button>
           </CartDrawer>
         )}
 
-        <Button
-          variant="ghost"
-          size="icon"
+        <button
           onClick={() => toggleTheme(isCustomer)}
-          className="h-8 w-8 text-admin-text-secondary hover:text-admin-text-primary hover:bg-admin-surface-hover"
+          className="p-2 rounded-lg hover:bg-brand-white border border-transparent hover:border-brand-border transition-colors text-brand-muted hover:text-brand-secondary"
         >
-          {theme === 'light' ? <Moon size={17} /> : <Sun size={17} />}
-        </Button>
+          {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+        </button>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 px-2 h-9 hover:bg-admin-surface-hover">
-              <Avatar className="h-7 w-7 border border-admin-border">
-                <img
-                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'User'}`}
-                  alt={user?.name}
-                  className="h-full w-full object-cover"
-                />
-                <AvatarFallback className="bg-zeronix-blue text-white text-xs font-semibold">
-                  {user?.name?.charAt(0) || (isCustomer ? 'C' : 'A')}
-                </AvatarFallback>
-              </Avatar>
-              <div className="hidden sm:flex flex-col items-start leading-tight">
-                {isCustomer ? (
-                  <>
-                    <span className="text-sm font-bold text-emerald-500 uppercase tracking-tight">
-                      {customer?.company || 'My Company'}
-                    </span>
-                    <span className="text-[10px] text-admin-text-muted font-medium flex items-center gap-1">
-                      <UserCircle2 size={10} className="text-zeronix-blue" />
-                      Account Mgr: {customer?.assigned_user?.name || 'Zeronix Sales'}
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-sm font-bold text-admin-text-primary">
-                    {user?.name || 'Admin'}
-                  </span>
-                )}
-              </div>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 bg-admin-surface border-admin-border">
-            <DropdownMenuItem
-              className="text-admin-text-secondary hover:bg-admin-surface-hover cursor-pointer text-sm"
-              onClick={() => navigate(isCustomer ? `/portal/${companySlug}/profile` : '#')}
-            >
-              <User size={14} className="mr-2" /> Profile
-            </DropdownMenuItem>
-            <DropdownMenuItem className="text-admin-text-secondary hover:bg-admin-surface-hover cursor-pointer text-sm">
-              <Settings size={14} className="mr-2" /> Settings
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-admin-border" />
-            <DropdownMenuItem
-              onClick={handleLogout}
-              className="text-danger hover:bg-admin-surface-hover cursor-pointer text-sm"
-            >
-              <LogOut size={14} className="mr-2" /> Logout
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
       <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />

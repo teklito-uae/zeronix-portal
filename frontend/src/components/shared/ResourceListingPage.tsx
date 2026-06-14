@@ -12,7 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Search, Loader2, X } from 'lucide-react';
+import { Plus, Search, Loader2, Filter, X, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Mail, Calendar, Bell, Sun, Moon } from 'lucide-react';
+import { useThemeStore } from '@/store/useThemeStore';
+import { cn } from '@/lib/utils';
 import { SEO } from './SEO';
 
 interface FilterConfig {
@@ -25,6 +27,7 @@ interface FilterConfig {
 interface ResourceListingPageProps<T> {
   resource: string;
   title: string;
+  subtitle?: string; // Kept for SEO/legacy compat but not rendered in the main UI
   icon: React.ReactNode;
   columns: ColumnDef<T>[];
   onRowClick?: (row: T) => void;
@@ -36,44 +39,72 @@ interface ResourceListingPageProps<T> {
   selectedIds?: number[];
   setSelectedIds?: (ids: number[]) => void;
   onCreateClick?: () => void;
-  headerActions?: React.ReactNode;
+  extraActions?: React.ReactNode;
+  leftActions?: React.ReactNode; // For module-specific left buttons like 'Table View'
+  tabs?: { id: string; label: string }[];
+  activeTab?: string;
+  onTabChange?: (tabId: string) => void;
+  baseFilters?: Record<string, any>;
+  customContent?: React.ReactNode;
+  topContent?: React.ReactNode;
+  enableRowSelection?: boolean;
+  floatingBulkActions?: (selectedIds: number[], clearSelection: () => void) => React.ReactNode;
 }
 
 export function ResourceListingPage<T extends { id: number }>({
   resource,
   title,
-  icon,
   columns,
   onRowClick,
   createPath,
-  createLabel = 'Create',
+  createLabel = 'Add New',
   filters = [],
   searchPlaceholder = 'Search...',
   onBulkUpdate,
   selectedIds = [],
   setSelectedIds,
   onCreateClick,
-  headerActions,
+  extraActions,
+  leftActions,
+  icon,
+  tabs,
+  activeTab,
+  onTabChange,
+  baseFilters = {},
+  customContent,
+  topContent,
+  enableRowSelection = false,
+  floatingBulkActions,
 }: ResourceListingPageProps<T>) {
   const navigate = useNavigate();
+  const { theme, toggle } = useThemeStore();
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState('10');
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
+  const [showFilters, setShowFilters] = useState(false);
+  const [goToPageInput, setGoToPageInput] = useState('');
 
   // Sync search input with debounce
   useEffect(() => {
-    const timer = setTimeout(() => setSearch(searchInput), 500);
+    const timer = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 500);
     return () => clearTimeout(timer);
   }, [searchInput]);
 
   // Fetch data
-  const { data: resourceData, isLoading } = useResourceList<T>(resource, {
+  const queryParams = {
     page,
-    search,
-    per_page: 15,
+    search: search || undefined,
+    per_page: Number(perPage),
     ...activeFilters,
-  });
+    ...baseFilters,
+  };
+
+  const { data: resourceData, isLoading } = useResourceList<T>(resource, queryParams);
 
   const data = resourceData?.data || [];
   const total = resourceData?.total || 0;
@@ -96,166 +127,311 @@ export function ResourceListingPage<T extends { id: number }>({
 
   const hasActiveFilters = search || Object.values(activeFilters).some(v => v !== '');
 
+  // Pagination helpers
+  const renderPaginationButtons = () => {
+    const buttons = [];
+    const maxVisiblePages = 5;
+
+    let startPage = Math.max(1, page - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(lastPage, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      buttons.push(
+        <Button
+          key={i}
+          variant="ghost"
+          onClick={() => setPage(i)}
+          className={cn(
+            "h-8 w-8 p-0 rounded-md text-sm font-semibold transition-colors",
+            page === i
+              ? "bg-zeronix-blue text-white hover:bg-zeronix-blue-hover hover:text-white"
+              : "text-admin-text-secondary hover:bg-admin-surface-hover"
+          )}
+        >
+          {i}
+        </Button>
+      );
+    }
+    return buttons;
+  };
+
+  const handleGoToPage = () => {
+    const p = parseInt(goToPageInput);
+    if (!isNaN(p) && p >= 1 && p <= lastPage) {
+      setPage(p);
+      setGoToPageInput('');
+    }
+  };
+
+
   return (
-    <div className="space-y-4 animate-in fade-in duration-200">
+    <div className="bg-brand-white md:border border-brand-border md:rounded-xl shadow-sm flex flex-col h-full overflow-hidden animate-in fade-in duration-200">
       <SEO title={title} />
 
-      {/* Page Header Removed as requested */}
+      {/* Header Inside Card */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between px-4 md:px-5 py-3 md:py-4 gap-3 md:gap-0 border-b border-brand-border bg-brand-white flex-shrink-0">
+        
+        {/* Top Row on Mobile: Title + Notification Icons */}
+        <div className="flex items-center justify-between w-full md:w-auto">
+          {/* Left: Title */}
+          <div className="flex items-center gap-4 md:gap-6">
+            <h1 className="text-[16px] md:text-[18px] font-bold text-brand-primary flex items-center gap-2">
+              {icon && React.cloneElement(icon as React.ReactElement, { size: 18, className: "text-brand-subtle" } as any)}
+              {title}
+            </h1>
+          </div>
 
-      {/* Bulk Actions Bar */}
-      {selectedIds.length > 0 && onBulkUpdate && (
-        <div className="flex items-center justify-between p-3 bg-zeronix-blue/5 border border-zeronix-blue/20 rounded-xl animate-in slide-in-from-top-2 duration-300">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold text-zeronix-blue">{selectedIds.length} items selected</span>
-            <div className="h-4 w-px bg-zeronix-blue/20" />
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onBulkUpdate(selectedIds)}
-              className="h-8 border-zeronix-blue/30 text-zeronix-blue hover:bg-zeronix-blue hover:text-white rounded-lg"
-            >
-              Bulk Edit
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setSelectedIds?.([])}
-              className="h-8 text-admin-text-muted hover:text-danger rounded-lg"
-            >
-              Cancel
-            </Button>
+          {/* Mobile Right: Notification Icons */}
+          <div className="flex md:hidden items-center gap-3">
+            <button className="text-brand-subtle hover:text-brand-primary transition-colors" onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { 'key': 'k', 'metaKey': true }))}>
+              <Search size={18} />
+            </button>
+            <button onClick={() => toggle()} className="text-brand-subtle hover:text-brand-primary transition-colors relative">
+              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+            <button className="text-brand-subtle hover:text-brand-primary transition-colors relative">
+              <Bell size={18} />
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-brand-danger rounded-full border border-brand-white"></span>
+            </button>
+          </div>
+        </div>
+
+        {/* Desktop Search */}
+        <div className="hidden md:flex relative w-80 items-center mx-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-subtle" size={14} />
+          <div className="w-full h-[34px] bg-brand-surface border border-brand-border rounded-lg flex items-center pl-9 pr-3 text-[13px] text-brand-subtle cursor-pointer hover:bg-brand-bg transition-colors" onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { 'key': 'k', 'metaKey': true }))}>
+            <span className="flex-1 text-left truncate min-w-0">Search {title.toLowerCase()} globally...</span>
+            <kbd className="hidden sm:inline-block flex-shrink-0 text-[10px] bg-brand-white border border-brand-border rounded px-1.5 py-0.5 ml-2 font-mono text-brand-muted">⌘K</kbd>
+          </div>
+        </div>
+
+        {/* Right Section: Buttons + Desktop Icons */}
+        <div className="flex flex-col md:flex-row md:items-center w-full md:w-auto gap-3 md:gap-4 mt-1 md:mt-0">
+          
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            {extraActions}
+            {createPath && (
+              <Button
+                onClick={() => onCreateClick ? onCreateClick() : navigate(createPath)}
+                className="w-full md:w-auto text-[13px] font-medium px-4 h-[34px] rounded-lg transition-all shadow-sm"
+              >
+                {createLabel}
+              </Button>
+            )}
+          </div>
+
+          {/* Desktop Notification Icons */}
+          <div className="hidden md:flex items-center gap-3 border-l border-brand-border/50 pl-4">
+            <button className="text-brand-subtle hover:text-brand-primary transition-colors" onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { 'key': 'k', 'metaKey': true }))}>
+              <Search size={18} />
+            </button>
+            <button onClick={() => toggle()} className="text-brand-subtle hover:text-brand-primary transition-colors relative">
+              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+            <button className="text-brand-subtle hover:text-brand-primary transition-colors">
+              <Mail size={18} />
+            </button>
+            <button className="text-brand-subtle hover:text-brand-primary transition-colors">
+              <Calendar size={18} />
+            </button>
+            <button className="text-brand-subtle hover:text-brand-primary transition-colors relative">
+              <Bell size={18} />
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-brand-danger rounded-full border border-brand-white"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      {tabs && tabs.length > 0 && (
+        <div className="px-5 border-b border-brand-border bg-brand-white flex items-center gap-6 flex-shrink-0 overflow-x-auto no-scrollbar">
+          {tabs.map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => onTabChange?.(tab.id)}
+                className={cn(
+                  "py-3.5 text-[13px] whitespace-nowrap transition-colors border-b-2",
+                  isActive
+                    ? "font-semibold text-brand-primary border-brand-accent"
+                    : "font-medium text-brand-subtle hover:text-brand-primary border-transparent"
+                )}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Toolbar */}
+      {!customContent && (
+        <div className="px-4 md:px-5 py-3 flex flex-col xl:flex-row xl:items-center justify-between border-b border-brand-border/50 bg-brand-white gap-3 flex-shrink-0">
+          
+          {/* Left Side: Search & Default Filters */}
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-2 w-full xl:w-auto">
+            
+            <div className="relative w-full sm:w-[280px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-subtle" size={14} />
+              <Input
+                placeholder={searchPlaceholder}
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
+                className="pl-8 h-[32px] text-[12px] bg-brand-white border-brand-border rounded-lg shadow-sm w-full"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <Button variant="outline" className="h-[32px] px-3 text-[12px] font-medium border-brand-border shadow-sm text-brand-secondary">
+                <Filter size={13} className="mr-1.5" /> Filter
+              </Button>
+
+              {filters.length > 0 && filters.map((filter) => (
+                <Select
+                  key={filter.name}
+                  value={activeFilters[filter.name] || 'all'}
+                  onValueChange={(val) => handleFilterChange(filter.name, val)}
+                >
+                  <SelectTrigger className="h-[32px] text-[12px] bg-brand-white border-brand-border rounded-lg hover:bg-brand-bg px-3 min-w-[120px] font-medium text-brand-secondary shadow-sm">
+                    {filter.label}
+                  </SelectTrigger>
+                  <SelectContent className="bg-brand-white border-brand-border rounded-xl shadow-sm">
+                    <SelectItem value="all" className="text-[12px] font-medium">All {filter.label}</SelectItem>
+                    {filter.options.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value} className="text-[12px]">
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ))}
+
+              {hasActiveFilters && (
+                <Button variant="ghost" onClick={clearFilters} className="h-[32px] px-2 text-brand-danger hover:text-brand-danger text-[12px]">
+                  <X size={13} className="mr-1" /> Clear
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Right Side: Custom Actions (leftActions) & Bulk Actions */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full xl:w-auto mt-2 xl:mt-0">
+            {leftActions && (
+              <div className="w-full xl:w-auto">
+                {leftActions}
+              </div>
+            )}
+            
+            {selectedIds.length > 0 && onBulkUpdate && (
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto h-[32px] text-[12px] text-brand-danger border-brand-border hover:bg-brand-danger-bg shadow-sm"
+                onClick={() => onBulkUpdate(selectedIds)}
+              >
+                Delete Selected ({selectedIds.length})
+              </Button>
+            )}
           </div>
         </div>
       )}
 
-      {/* Compact Search & Action Bar */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 group">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-admin-text-muted group-focus-within:text-zeronix-blue transition-colors" />
-            <Input
-              placeholder={searchPlaceholder}
-              value={searchInput}
-              onChange={e => setSearchInput(e.target.value)}
-              className="pl-10 h-10 bg-admin-surface border-admin-border text-admin-text-primary rounded-xl focus:ring-zeronix-blue/10 transition-all shadow-sm w-full text-sm"
-            />
-          </div>
-
-          {headerActions && <div className="shrink-0">{headerActions}</div>}
-
-          {createPath && (
-            <Button
-              onClick={() => onCreateClick ? onCreateClick() : navigate(createPath)}
-              className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover h-10 px-3 sm:px-6 rounded-xl font-bold shadow-lg shadow-zeronix-blue/20 transition-all active:scale-95 shrink-0"
-            >
-              <Plus size={18} className="sm:mr-2" />
-              <span className="hidden sm:inline">{createLabel}</span>
-            </Button>
-          )}
+      {/* Top Content */}
+      {topContent && (
+        <div className="px-5 pt-4 pb-2 bg-brand-white flex-shrink-0">
+          {topContent}
         </div>
+      )}
 
-        {/* Filter Row - Scrollable on mobile */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          <div className="flex items-center gap-2 shrink-0">
-            {filters.map((f) => (
-              <div key={f.name} className="w-[140px] sm:w-40">
-                <Select
-                  value={activeFilters[f.name] || 'all'}
-                  onValueChange={v => handleFilterChange(f.name, v)}
-                >
-                  <SelectTrigger className="h-9 bg-admin-surface/50 border-admin-border text-[10px] font-bold uppercase tracking-wider rounded-lg focus:ring-zeronix-blue/10">
-                    <SelectValue placeholder={f.placeholder} />
-                  </SelectTrigger>
-                  <SelectContent className="bg-admin-surface border-admin-border rounded-xl shadow-xl">
-                    <SelectItem value="all">All {f.label}s</SelectItem>
-                    {f.options.map(opt => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ))}
+      {/* Table Body / Custom Content */}
+      <div className="flex-1 overflow-auto bg-brand-white px-5 pb-5 pt-2 relative">
+        {selectedIds.length > 0 && floatingBulkActions && (
+          <div className="absolute bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom-5 fade-in duration-200">
+            {floatingBulkActions(selectedIds, () => setSelectedIds?.([]))}
           </div>
-          
-          {hasActiveFilters && (
-            <Button 
-              variant="ghost" 
-              onClick={clearFilters} 
-              className="h-9 px-3 text-[10px] font-bold uppercase tracking-widest text-admin-text-muted hover:text-danger hover:bg-danger/5 rounded-lg shrink-0"
-            >
-              <X size={14} className="mr-1" /> Reset
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Table Section */}
-      <div className="bg-admin-surface border border-admin-border rounded-2xl overflow-hidden shadow-sm transition-all">
-        {isLoading && page === 1 ? (
-          <div className="flex flex-col items-center justify-center h-96 gap-3">
-            <Loader2 className="h-10 w-10 animate-spin text-zeronix-blue" />
-            <p className="text-sm font-medium text-admin-text-muted animate-pulse">Loading {resource}...</p>
+        )}
+        
+        {customContent ? (
+          customContent
+        ) : isLoading && page === 1 ? (
+          <div className="flex flex-col items-center justify-center h-full gap-3 min-h-[300px]">
+            <Loader2 className="h-8 w-8 animate-spin text-brand-primary" />
+            <p className="text-[13px] font-medium text-brand-subtle animate-pulse">Loading data...</p>
+          </div>
+        ) : data.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-center">
+            <div className="p-4 bg-brand-surface rounded-full mb-4 text-brand-subtle">
+              <Search size={32} />
+            </div>
+            <h3 className="text-[16px] font-semibold text-brand-primary mb-1">No results found</h3>
+            <p className="text-[13px] text-brand-subtle max-w-sm mx-auto">
+              {search || Object.values(activeFilters).some(v => v !== '')
+                ? "We couldn't find any results matching your filters. Try adjusting your search."
+                : `Start by creating your first ${title}.`}
+            </p>
+            {hasActiveFilters && (
+              <Button variant="outline" onClick={clearFilters} className="mt-4 text-[13px]">
+                Clear all filters
+              </Button>
+            )}
           </div>
         ) : (
-          <>
-            <DataTable
-              columns={columns}
-              data={data}
-              onRowClick={onRowClick}
-              hidePagination={true}
-            />
-
-            {/* Standardized Pagination */}
-            <div className="flex items-center justify-between px-6 py-4 border-t border-admin-border bg-admin-surface/50">
-              <p className="text-xs font-medium text-admin-text-muted">
-                Showing <span className="text-admin-text-primary">{(page - 1) * 15 + 1}</span> to <span className="text-admin-text-primary">{Math.min(page * 15, total)}</span> of <span className="text-admin-text-primary">{total}</span> {resource}
-              </p>
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="h-9 px-4 rounded-lg border-admin-border bg-admin-surface hover:bg-admin-surface-hover text-xs font-semibold shadow-sm transition-all"
-                >
-                  Previous
-                </Button>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-admin-text-primary">Page {page}</span>
-                  <span className="text-xs text-admin-text-muted">/</span>
-                  <span className="text-xs text-admin-text-muted">{lastPage}</span>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(p => p + 1)}
-                  disabled={page >= lastPage}
-                  className="h-9 px-4 rounded-lg border-admin-border bg-admin-surface hover:bg-admin-surface-hover text-xs font-semibold shadow-sm transition-all"
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          </>
+          <DataTable
+            columns={columns}
+            data={data}
+            onRowClick={onRowClick}
+            hidePagination={true}
+            enableRowSelection={enableRowSelection || !!onBulkUpdate}
+            onSelectionChange={(rows) => setSelectedIds?.(rows.map(r => r.id))}
+          />
         )}
       </div>
 
-      {!isLoading && data.length === 0 && (
-        <div className="flex flex-col items-center justify-center p-16 text-center border border-dashed border-admin-border rounded-2xl bg-admin-surface/50 animate-in fade-in zoom-in duration-300">
-          <div className="p-4 bg-admin-bg rounded-full mb-4 text-admin-text-muted/30">
-            {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<any>, { size: 40 }) : icon}
+      {/* Pagination */}
+      {!customContent && data.length > 0 && (
+        <div className="px-5 py-3 border-t border-brand-border bg-brand-white flex flex-col sm:flex-row items-center justify-between gap-4 flex-shrink-0">
+          <div className="text-[12px] text-brand-subtle font-medium">
+            Showing <span className="text-brand-primary">{(page - 1) * Number(perPage) + 1}</span> to <span className="text-brand-primary">{Math.min(page * Number(perPage), total)}</span> of <span className="text-brand-primary">{total}</span> results
           </div>
-          <h3 className="text-lg font-bold text-admin-text-primary mb-1">No {resource} found</h3>
-          <p className="text-sm text-admin-text-secondary max-w-xs mx-auto">
-            {search || Object.values(activeFilters).some(v => v !== '')
-              ? "We couldn't find any results matching your filters. Try adjusting your search."
-              : `Start by creating your first ${resource.slice(0, -1)}.`}
-          </p>
-          {hasActiveFilters && (
-            <Button variant="link" onClick={clearFilters} className="mt-2 text-zeronix-blue">
-              Clear all filters
-            </Button>
-          )}
+
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-[12px] text-brand-subtle">Rows:</span>
+              <Select value={perPage} onValueChange={(v) => { setPerPage(v); setPage(1); }}>
+                <SelectTrigger className="h-[30px] w-16 text-[12px] bg-brand-white border-brand-border shadow-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-brand-white border-brand-border">
+                  <SelectItem value="10" className="text-[12px]">10</SelectItem>
+                  <SelectItem value="25" className="text-[12px]">25</SelectItem>
+                  <SelectItem value="50" className="text-[12px]">50</SelectItem>
+                  <SelectItem value="100" className="text-[12px]">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="icon" className="h-[30px] w-[30px] rounded-lg border-brand-border shadow-sm" onClick={() => setPage(1)} disabled={page === 1}>
+                <ChevronsLeft size={14} className="text-brand-secondary" />
+              </Button>
+              <Button variant="outline" size="icon" className="h-[30px] w-[30px] rounded-lg border-brand-border shadow-sm" onClick={() => setPage(prev => Math.max(1, prev - 1))} disabled={page === 1}>
+                <ChevronLeft size={14} className="text-brand-secondary" />
+              </Button>
+              <div className="flex items-center gap-1 px-2">
+                {renderPaginationButtons()}
+              </div>
+              <Button variant="outline" size="icon" className="h-[30px] w-[30px] rounded-lg border-brand-border shadow-sm" onClick={() => setPage(prev => Math.min(lastPage, prev + 1))} disabled={page === lastPage || lastPage === 0}>
+                <ChevronRight size={14} className="text-brand-secondary" />
+              </Button>
+              <Button variant="outline" size="icon" className="h-[30px] w-[30px] rounded-lg border-brand-border shadow-sm" onClick={() => setPage(lastPage)} disabled={page === lastPage || lastPage === 0}>
+                <ChevronsRight size={14} className="text-brand-secondary" />
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -13,11 +13,10 @@ use App\Traits\HasUserScope;
 class Enquiry extends Model
 {
     use LogsActivity, HasUserScope;
-    protected $userScopeColumn = 'assigned_to';
+    protected $userScopeRelation = 'assigned_users';
     protected $fillable = [
         'customer_id',
         'user_id',
-        'assigned_to',
         'source',
         'priority',
         'status',
@@ -38,9 +37,9 @@ class Enquiry extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function assignedUser(): BelongsTo
+    public function assigned_users(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
-        return $this->belongsTo(User::class, 'assigned_to');
+        return $this->belongsToMany(User::class, 'enquiry_user');
     }
 
     public function items(): HasMany

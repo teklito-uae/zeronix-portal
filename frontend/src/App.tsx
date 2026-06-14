@@ -27,6 +27,8 @@ import { Users } from './pages/admin/Users';
 import { Settings } from './pages/admin/Settings';
 import { Activities } from './pages/admin/Activities';
 import { Notifications } from './pages/admin/Notifications';
+import { CustomerImport } from './pages/admin/CustomerImport';
+import { AttendanceReport } from './pages/admin/AttendanceReport';
 import { CustomerProducts } from './pages/customer/CustomerProducts';
 import { RequestForm } from './pages/customer/RequestForm';
 import { CustomerEnquiries } from './pages/customer/CustomerEnquiries';
@@ -65,6 +67,8 @@ const CoreRoutes = () => (
     <Route path="settings" element={<Settings />} />
     <Route path="activities" element={<Activities />} />
     <Route path="notifications" element={<Notifications />} />
+    <Route path="customers/import" element={<CustomerImport />} />
+    <Route path="attendance" element={<AttendanceReport />} />
   </Route>
 );
 

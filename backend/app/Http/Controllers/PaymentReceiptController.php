@@ -82,9 +82,9 @@ class PaymentReceiptController extends Controller
     {
         $paymentReceipt->load(['customer', 'invoice']);
 
-        if ($request->user() && $request->user()->role !== 'admin') {
-            if ($paymentReceipt->customer->user_id !== $request->user()->id) {
-                return response()->json(['message' => 'Unauthorized'], 403);
+        if ($request->user() && $request->user()->role === 'salesman') {
+            if (!$paymentReceipt->customer->assigned_users()->where('users.id', $request->user()->id)->exists()) {
+                abort(403);
             }
         }
 

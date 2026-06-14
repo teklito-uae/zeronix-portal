@@ -40,16 +40,22 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8',
-            'role' => 'required|string',
+            'name'        => 'required|string|max:255',
+            'email'       => 'required|string|email|max:255|unique:users',
+            'password'    => 'required|string|min:8',
+            'role'        => 'required|string',
             'designation' => 'nullable|string|max:255',
+            'phone'       => 'nullable|string|max:50',
             'permissions' => 'nullable|array',
-            'is_active' => 'boolean',
+            'is_active'   => 'boolean',
+            'shift_start' => 'nullable|string',
+            'shift_end'   => 'nullable|string',
         ]);
 
-        $validated['password'] = Hash::make($validated['password']);
+        if (!empty($validated['password'])) {
+            $validated['password'] = Hash::make($validated['password']);
+        }
+
         $validated['is_active'] = $validated['is_active'] ?? true;
 
         $user = User::create($validated);
@@ -68,19 +74,22 @@ class UserController extends Controller
         $this->authorize('update', $user);
 
         $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'email' => ['sometimes', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'password' => 'nullable|string|min:8',
-            'role' => 'sometimes|string',
+            'name'        => 'sometimes|string|max:255',
+            'email'       => ['sometimes', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'password'    => 'nullable|string|min:8',
+            'role'        => 'sometimes|string',
             'designation' => 'nullable|string|max:255',
+            'phone'       => 'nullable|string|max:50',
             'permissions' => 'nullable|array',
-            'is_active' => 'boolean',
+            'is_active'   => 'boolean',
+            'shift_start' => 'nullable|string',
+            'shift_end'   => 'nullable|string',
         ]);
 
-        if (!empty($validated['password'])) {
-            $validated['password'] = Hash::make($validated['password']);
-        } else {
+        if (empty($validated['password'])) {
             unset($validated['password']);
+        } else {
+            $validated['password'] = Hash::make($validated['password']);
         }
 
         $user->update($validated);

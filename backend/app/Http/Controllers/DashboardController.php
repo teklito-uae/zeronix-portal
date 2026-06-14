@@ -32,6 +32,7 @@ class DashboardController extends Controller
                 'recent_invoices' => $dashboardService->getRecentInvoices($user),
                 'recent_activities' => $dashboardService->getRecentActivities($user),
                 'user_stats' => $dashboardService->getUserPerformance($user),
+                'points' => $user->role === 'salesman' ? $dashboardService->getPointsStats($user) : [],
             ]);
         } catch (\Exception $e) {
             return response()->json([

@@ -14,7 +14,7 @@ We will use Laravel's native **Database Notifications**. This stores all notific
 ### Real-Time Delivery (The "Ping")
 Since we cannot easily run a WebSocket server on shared hosting, we will choose between:
 *   **Option A: Pusher (Recommended)** - An external hosted WebSocket service. It has a generous free tier (200k messages/day, 100 concurrent users) and natively integrates with Laravel Echo. This provides **true real-time** push notifications with zero server load.
-*   **Option B: Frontend Polling (Fallback)** - We configure React Query (TanStack) to silently fetch the `/api/notifications/unread` endpoint every 15-30 seconds. It mimics real-time behavior but increases database hits. 
+*   **Option B: Frontend Polling (Fallback)** - We configure React Query (TanStack) to silently fetch the `/api/notifications/unread` endpoint every 5-10 minutes / when page refresh check any unread notification and fetch it if any api calls. 
 
 ---
 

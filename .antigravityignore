@@ -1,0 +1,28 @@
+# Global Workspace Ignoring
+.git/
+.github/
+.idea/
+.vscode/
+*.log
+*.tar.gz
+*.zip
+
+# Nested Backend Cache & Code Dependencies (Laravel)
+backend/vendor/
+backend/node_modules/
+backend/storage/framework/
+backend/storage/logs/
+backend/bootstrap/cache/
+backend/.phpunit.cache/
+backend/.env
+backend/.env.production
+
+# Nested Frontend Cache & Code Dependencies (React)
+frontend/node_modules/
+frontend/.next/
+frontend/dist/
+frontend/build/
+frontend/.cache/
+frontend/npm-debug.log*
+frontend/.env
+frontend/.env.local

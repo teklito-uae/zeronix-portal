@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\PaymentReceipt;
 use App\Models\User;
 use App\Models\ActivityLog;
+use App\Models\StaffPoint;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -174,5 +175,50 @@ class DashboardService
         }
 
         return (float) $query->sum('amount');
+    }
+
+    public function getPointsStats(User $user): array
+    {
+        $todayStart = Carbon::today();
+        $todayEnd = Carbon::tomorrow()->subSecond();
+
+        $weekStart = Carbon::now()->startOfWeek();
+        $weekEnd = Carbon::now()->endOfWeek();
+
+        $monthStart = Carbon::now()->startOfMonth();
+        $monthEnd = Carbon::now()->endOfMonth();
+
+        $pointsToday = (int) StaffPoint::where('user_id', $user->id)
+            ->whereBetween('created_at', [$todayStart, $todayEnd])
+            ->sum('points');
+
+        $pointsThisWeek = (int) StaffPoint::where('user_id', $user->id)
+            ->whereBetween('created_at', [$weekStart, $weekEnd])
+            ->sum('points');
+
+        $pointsThisMonth = (int) StaffPoint::where('user_id', $user->id)
+            ->whereBetween('created_at', [$monthStart, $monthEnd])
+            ->sum('points');
+
+        $pointsChartData = [];
+        for ($i = 14; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i);
+            $start = $date->copy()->startOfDay();
+            $end = $date->copy()->endOfDay();
+
+            $pointsChartData[] = [
+                'date' => $date->format('d M'),
+                'points' => (int) StaffPoint::where('user_id', $user->id)
+                    ->whereBetween('created_at', [$start, $end])
+                    ->sum('points')
+            ];
+        }
+
+        return [
+            'points_today' => $pointsToday,
+            'points_this_week' => $pointsThisWeek,
+            'points_this_month' => $pointsThisMonth,
+            'points_chart_data' => $pointsChartData
+        ];
     }
 }

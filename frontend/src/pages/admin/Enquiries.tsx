@@ -22,6 +22,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { useResourceMutation } from '@/hooks/useApi';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -31,9 +32,11 @@ import api from '@/lib/axios';
 import { timeAgo } from '@/lib/utils';
 import type { Enquiry, Customer, User as UserType } from '@/types';
 import { MessageSquare, Building2, Loader2, Plus, User as UserIcon } from 'lucide-react';
+import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
+import Avatar from 'boring-avatars';
+import { useThemeStore } from '@/store/useThemeStore';
 
 import { Badge } from '@/components/ui/badge';
-import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import { ActionGroup } from '@/components/shared/ActionGroup';
 
 /**
@@ -41,6 +44,11 @@ import { ActionGroup } from '@/components/shared/ActionGroup';
  * Refactored to use the standardized State-Driven architecture.
  */
 export const Enquiries = () => {
+
+  const { theme } = useThemeStore();
+  const avatarColors = theme === 'dark' 
+    ? ['#ff4d6d', '#ff758f', '#ffbe0b', '#fdfcdc', '#48cae4']
+    : ['#cc063e', '#e83535', '#fd9407', '#e2d9c2', '#10898b'];
 
   const queryClient = useQueryClient();
   const admin = useAuthStore(state => state.admin);
@@ -54,6 +62,17 @@ export const Enquiries = () => {
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
   // Dynamic stages for kanban columns
   const [stages, setStages] = useState<string[]>(['new', 'in_progress', 'quoted', 'won', 'lost', 'closed']);
+
+  const [activeTab, setActiveTab] = useState('all');
+  const enquiryTabs = [
+    { id: 'all', label: 'All Leads' },
+    { id: 'new', label: 'New' },
+    { id: 'in_progress', label: 'In Progress' },
+    { id: 'quoted', label: 'Quoted' },
+    { id: 'won', label: 'Won' },
+    { id: 'lost', label: 'Lost' },
+    { id: 'closed', label: 'Closed' },
+  ];
 
   const [addForm, setAddForm] = useState({
     customer_id: '', customer_name: '', customer_email: '', customer_phone: '', customer_company: '',
@@ -91,8 +110,8 @@ export const Enquiries = () => {
   const { create, update } = useResourceMutation('enquiries', [['enquiry', selectedId ? String(selectedId) : '']]);
 
   const assignMutation = useMutation({
-    mutationFn: async ({ id, userId }: { id: number; userId: string }) =>
-      api.put(`${getBasePath()}/enquiries/${id}/assign`, { assigned_to: userId || null }),
+    mutationFn: async ({ id, userIds }: { id: number; userIds: number[] }) =>
+      api.put(`${getBasePath()}/enquiries/${id}/assign`, { user_ids: userIds }),
     onSuccess: (res) => {
       // Optimistic/Instant cache update across all paginated lists
       const updatedEnquiry = res.data;
@@ -118,7 +137,7 @@ export const Enquiries = () => {
         accessorKey: 'id',
         header: 'ID',
         cell: ({ row }) => (
-          <span className="font-mono text-[11px] font-bold text-zeronix-blue bg-zeronix-blue/5 px-2 py-0.5 rounded border border-zeronix-blue/10">
+          <span className="font-mono text-[11px] font-bold text-brand-accent bg-brand-accent/5 px-2 py-0.5 rounded border border-brand-accent/10">
             #ENQ{String(row.original.id).padStart(3, '0')}
           </span>
         ),
@@ -128,10 +147,10 @@ export const Enquiries = () => {
         header: 'Lead Details',
         cell: ({ row }) => (
           <div className="max-w-[220px]">
-            <p className="text-sm font-bold text-admin-text-primary truncate">{row.original.customer?.name || 'Manual Lead'}</p>
+            <p className="text-[13px] font-semibold text-brand-primary truncate">{row.original.customer?.name || 'Manual Lead'}</p>
             {row.original.customer?.company && (
-              <p className="text-[11px] text-admin-text-muted flex items-center gap-1 truncate font-medium uppercase">
-                <Building2 size={10} /> {row.original.customer.company}
+              <p className="text-[11px] text-brand-subtle flex items-center gap-1.5 truncate font-medium uppercase mt-0.5">
+                <Building2 size={12} /> {row.original.customer.company}
               </p>
             )}
           </div>
@@ -149,13 +168,31 @@ export const Enquiries = () => {
       },
       {
         accessorKey: 'created_at',
-        header: 'Recieved',
+        header: 'Received',
         cell: ({ row }) => (
           <div className="flex flex-col">
-            <span className="text-xs font-bold text-admin-text-primary uppercase tracking-tighter">
+            <span className="text-[12px] font-semibold text-brand-secondary">
               {row.original.created_at ? timeAgo(row.original.created_at) : '—'}
             </span>
-            <span className="text-[10px] text-admin-text-muted capitalize">{row.original.source}</span>
+            <span className="text-[11px] text-brand-subtle capitalize mt-0.5">{row.original.source}</span>
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'items_count',
+        header: 'Items',
+        cell: ({ row }) => (
+          <div className="text-[12px] font-bold text-brand-secondary">
+            {row.original.items_count || 0} <span className="text-[10px] text-brand-subtle font-medium ml-0.5">Items</span>
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'notes',
+        header: 'Notes',
+        cell: ({ row }) => (
+          <div className="max-w-[150px] truncate text-[11px] text-brand-secondary" title={row.original.notes || ''}>
+            {row.original.notes || <span className="italic text-brand-subtle">No notes</span>}
           </div>
         ),
       },
@@ -166,34 +203,48 @@ export const Enquiries = () => {
         accessorKey: 'assigned_to',
         header: 'Assigned Agent',
         cell: ({ row }) => {
-          const enq = row.original;
-          const assigned = enq.assignedUser;
+          const users = row.original.assigned_users || [];
+          if (users.length === 0) return (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider bg-admin-bg text-admin-text-muted border border-admin-border">
+              UNASSIGNED
+            </span>
+          );
           return (
-            <div onClick={(e) => e.stopPropagation()}>
-              <Select
-                value={String(enq.assigned_to || 'unassigned')}
-                onValueChange={(v) => assignMutation.mutate({ id: enq.id, userId: v === 'unassigned' ? '' : v })}
-              >
-                <SelectTrigger className="h-8 text-[11px] font-bold bg-admin-bg border-admin-border rounded-lg w-36 focus:ring-zeronix-blue/10">
-                  <SelectValue placeholder="Assign Lead…">
-                    {assigned ? (
-                      <span className="flex items-center gap-1.5">
-                        <div className="h-4 w-4 rounded-full bg-zeronix-blue text-white flex items-center justify-center text-[8px] font-black uppercase">
-                          {assigned.name[0]}
+            <TooltipProvider delayDuration={200}>
+              <div className="flex items-center gap-2">
+                <div className="flex -space-x-2">
+                  {users.slice(0, 3).map((u: any, i: number) => (
+                    <Tooltip key={u.id}>
+                      <TooltipTrigger asChild>
+                        <div className="relative border-2 border-brand-white rounded-full bg-brand-surface shadow-sm transition-transform hover:z-20 hover:scale-110" style={{ zIndex: 10 - i }}>
+                          <Avatar size={24} name={u.name} variant="beam" colors={avatarColors} />
                         </div>
-                        {assigned.name.split(' ')[0]}
-                      </span>
-                    ) : <span className="text-admin-text-muted opacity-50">UNASSIGNED</span>}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent className="bg-admin-surface border-admin-border rounded-xl shadow-xl">
-                  <SelectItem value="unassigned" className="text-xs font-bold text-admin-text-muted">UNASSIGNED</SelectItem>
-                  {usersList.map((u) => (
-                    <SelectItem key={u.id} value={String(u.id)} className="text-xs font-medium">{u.name}</SelectItem>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="bg-brand-secondary text-brand-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-md border-none">
+                        {u.name}
+                      </TooltipContent>
+                    </Tooltip>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
+                  {users.length > 3 && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="relative z-0 h-6 w-6 rounded-full bg-brand-surface border border-brand-border/50 flex items-center justify-center text-[9px] font-bold text-brand-subtle shadow-sm transition-transform hover:scale-110 cursor-default">
+                          +{users.length - 3}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="bg-brand-secondary text-brand-white text-[11px] font-bold px-2.5 py-1.5 rounded-md shadow-md border-none max-w-[200px]">
+                        {users.slice(3).map((u: any) => u.name).join(', ')}
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+                {users.length === 1 && (
+                  <span className="text-[11px] font-medium text-admin-text-secondary truncate max-w-[80px]">
+                    {users[0].name.split(' ')[0]}
+                  </span>
+                )}
+              </div>
+            </TooltipProvider>
           );
         },
       });
@@ -296,21 +347,20 @@ export const Enquiries = () => {
             >
               <div className="flex items-center justify-between mb-4 px-1">
                 <h2 className="text-sm font-black capitalize tracking-wider text-admin-text-primary flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${
-                    stage === 'new' ? 'bg-blue-500' :
-                    stage === 'in_progress' ? 'bg-amber-500' :
-                    stage === 'quoted' ? 'bg-purple-500' :
-                    stage === 'won' ? 'bg-emerald-500' :
-                    stage === 'lost' ? 'bg-red-500' :
-                    'bg-gray-500'
-                  }`} />
+                  <div className={`w-2 h-2 rounded-full ${stage === 'new' ? 'bg-blue-500' :
+                      stage === 'in_progress' ? 'bg-amber-500' :
+                        stage === 'quoted' ? 'bg-purple-500' :
+                          stage === 'won' ? 'bg-emerald-500' :
+                            stage === 'lost' ? 'bg-red-500' :
+                              'bg-gray-500'
+                    }`} />
                   {stage.replace('_', ' ')}
                 </h2>
                 <Badge variant="secondary" className="text-[10px] font-black h-5 px-1.5 bg-admin-surface border-admin-border">
                   {cards.length}
                 </Badge>
               </div>
-              
+
               <div className="flex-1 space-y-3 overflow-y-auto pr-1">
                 {cards.length === 0 && (
                   <div className="h-24 rounded-xl border border-dashed border-admin-border/50 flex items-center justify-center">
@@ -329,440 +379,388 @@ export const Enquiries = () => {
   };
   return (
     <>
-      {
-        viewMode === 'table' ? (
-          <ResourceListingPage<Enquiry>
-            resource="enquiries"
-            title="Enquiry Hub"
-            icon={<MessageSquare size={20} />}
-            columns={columns}
-            onRowClick={(row) => { setSelectedId(row.id); setSheetOpen(true); }}
-            createLabel="Add Enquiry"
-            createPath="#" // Using modal
-            onCreateClick={() => setAddOpen(true)}
-            searchPlaceholder="Search leads by name, company, or ID..."
-            headerActions={
-              <div className="flex items-center gap-1.5">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setViewMode('kanban')}
-                  className="h-10 px-3 text-admin-text-secondary border border-admin-border rounded-xl hover:bg-admin-surface-hover transition-all"
-                  title="Switch to Kanban"
-                >
-                  <div className="flex items-center gap-2">
-                    {viewMode === 'table' ? (
-                      <>
-                        <div className="h-4 w-4 grid grid-cols-2 gap-0.5 opacity-70">
-                          <div className="bg-current rounded-[1px]" />
-                          <div className="bg-current rounded-[1px]" />
-                          <div className="bg-current rounded-[1px]" />
-                          <div className="bg-current rounded-[1px]" />
-                        </div>
-                        <span className="hidden sm:inline text-[10px] font-black uppercase tracking-widest">Kanban</span>
-                      </>
-                    ) : (
-                      <>
-                        <div className="h-4 w-4 flex flex-col gap-0.5 opacity-70">
-                          <div className="h-1 w-full bg-current rounded-[1px]" />
-                          <div className="h-1 w-full bg-current rounded-[1px]" />
-                          <div className="h-1 w-full bg-current rounded-[1px]" />
-                        </div>
-                        <span className="hidden sm:inline text-[10px] font-black uppercase tracking-widest">Table</span>
-                      </>
-                    )}
-                  </div>
-                </Button>
-              </div>
-            }
-            filters={[
-          {
-            name: 'status',
-            label: 'Status',
-            placeholder: 'Filter status',
-            options: [
-              { label: 'New', value: 'new' },
-              { label: 'In Progress', value: 'in_progress' },
-              { label: 'Quoted', value: 'quoted' },
-              { label: 'Won', value: 'won' },
-              { label: 'Lost', value: 'lost' },
-              { label: 'Closed', value: 'closed' },
-            ]
-          },
-          {
-            name: 'priority',
-            label: 'Priority',
-            placeholder: 'Filter priority',
-            options: [
-              { label: 'Normal', value: 'normal' },
-              { label: 'High', value: 'high' },
-              { label: 'Urgent', value: 'urgent' },
-            ]
-          },
-          {
-            name: 'source',
-            label: 'Source',
-            placeholder: 'Filter source',
-            options: [
-              { label: 'Portal', value: 'portal' },
-              { label: 'Email', value: 'email' },
-              { label: 'WhatsApp', value: 'whatsapp' },
-              { label: 'Phone', value: 'phone' },
-            ]
-          }
-        ]}
+      <ResourceListingPage<Enquiry>
+        resource="enquiries"
+        title="Enquiry Hub"
+        subtitle={admin?.role === 'salesman' ? "Process your incoming leads and convert them to quotes." : "Process incoming leads, assign agents, and convert to quotes."}
+        icon={<MessageSquare size={20} />}
+        columns={columns}
+        onRowClick={(row) => { setSelectedId(row.id); setSheetOpen(true); }}
+        createLabel="Add Enquiry"
+        createPath="#" // Using modal
+        onCreateClick={() => setAddOpen(true)}
+        searchPlaceholder="Search leads by name, company, or ID..."
+        tabs={enquiryTabs}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        baseFilters={{ status: activeTab !== 'all' ? activeTab : undefined }}
+        extraActions={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setViewMode(viewMode === 'table' ? 'kanban' : 'table')} className="h-[34px] px-3 font-medium text-[13px]">
+              {viewMode === 'table' ? 'Kanban View' : 'Table View'}
+            </Button>
+            {viewMode === 'kanban' && (
+              <Button variant="secondary" size="sm" onClick={() => {
+                const name = prompt('Enter new stage name');
+                if (name) setStages([...stages, name.trim()]);
+              }} className="h-[34px] px-3 font-medium text-[13px] bg-brand-surface border border-brand-border/50 hover:bg-brand-bg text-brand-primary">
+                Add Stage
+              </Button>
+            )}
+          </div>
+        }
+        customContent={
+          viewMode === 'kanban' ? (
+            <div className="h-full min-h-[500px]">
+              <KanbanBoard
+                enquiries={enquiries}
+                stages={stages}
+                onCardMove={(cardId, newStage) => {
+                  update.mutate({ id: cardId, data: { status: newStage } });
+                }}
+                onCardClick={(cardId) => { setSelectedId(cardId); setSheetOpen(true); }}
+              />
+            </div>
+          ) : undefined
+        }
       />
-        ) : (
-          <div className="space-y-4">
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1 group">
-                   <h2 className="text-sm font-black uppercase tracking-widest text-admin-text-primary ml-2">Pipeline View</h2>
-                </div>
-                
-                <div className="flex items-center gap-1.5">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setViewMode('table')}
-                    className="h-10 px-3 text-admin-text-secondary border border-admin-border rounded-xl hover:bg-admin-surface-hover transition-all"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="h-4 w-4 flex flex-col gap-0.5 opacity-70">
-                        <div className="h-1 w-full bg-current rounded-[1px]" />
-                        <div className="h-1 w-full bg-current rounded-[1px]" />
-                        <div className="h-1 w-full bg-current rounded-[1px]" />
+
+      <Dialog open={sheetOpen} onOpenChange={setSheetOpen}>
+        <DialogContent className="sm:max-w-lg bg-brand-white border-brand-border/50 p-0 overflow-hidden shadow-xl rounded-xl">
+          {isEnquiryLoading ? (
+            <div className="flex justify-center items-center w-full h-80">
+              <Loader2 className="animate-spin text-brand-accent" size={40} />
+            </div>
+          ) : selectedEnquiry && (
+            <div className="flex flex-col h-full max-h-[85vh]">
+              {/* Premium Glass Header */}
+              <div className="p-5 pb-4 border-b border-brand-border/50 bg-brand-surface sticky top-0 z-20">
+                <DialogHeader>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-brand-accent-light dark:bg-brand-accent/20 flex items-center justify-center">
+                        <MessageSquare size={20} className="text-brand-accent" />
                       </div>
-                      <span className="hidden sm:inline text-[10px] font-black uppercase tracking-widest">Table View</span>
+                      <div>
+                        <DialogTitle className="text-[16px] font-semibold text-brand-primary flex items-center gap-2">
+                          <span className="text-brand-accent">ENQ</span>
+                          <span className="opacity-30">/</span>
+                          <span>{String(selectedEnquiry.id).padStart(3, '0')}</span>
+                        </DialogTitle>
+                        <DialogDescription className="text-[13px] font-medium text-brand-subtle mt-0.5">
+                          Lead Management Console
+                        </DialogDescription>
+                      </div>
                     </div>
-                  </Button>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={selectedEnquiry.status} />
+                    </div>
+                  </div>
+                </DialogHeader>
+              </div>
 
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => {
-                      const name = prompt('Enter new stage name');
-                      if (name) setStages([...stages, name.trim()]);
-                    }}
-                    className="h-10 px-3 text-zeronix-blue bg-zeronix-blue/5 border border-zeronix-blue/10 rounded-xl hover:bg-zeronix-blue/10 transition-all shrink-0"
-                  >
-                    <Plus size={16} className="sm:mr-2" />
-                    <span className="hidden sm:inline text-[10px] font-black uppercase tracking-widest">Add Stage</span>
-                  </Button>
+              <div className="flex-1 p-5 space-y-6 overflow-y-auto">
+                {/* Core Workflow Controls */}
+                <section className="space-y-3">
+                  <div className="flex items-center gap-2 text-brand-secondary mb-1">
+                    <div className="h-1.5 w-3 bg-brand-accent rounded-full" />
+                    <h4 className="text-[13px] font-semibold text-brand-primary">Workflow & Priority</h4>
+                  </div>
+                  <div className="grid grid-cols-2 gap-5">
+                    <div className="space-y-2">
+                      <Label className="text-[12px] font-medium text-brand-secondary ml-1">Current Status</Label>
+                      <Select value={selectedEnquiry.status} onValueChange={(v) => {
+                        update.mutate({ id: selectedId!, data: { status: v as any } });
+                        toast.success(`Status updated to ${v.replace('_', ' ')}`);
+                      }}>
+                        <SelectTrigger className="h-[36px] bg-brand-surface border-brand-border/50 text-brand-primary rounded-lg font-medium text-[13px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-brand-white border-brand-border/50 rounded-xl shadow-lg">
+                          {['new', 'in_progress', 'quoted', 'delivered', 'closed', 'won', 'lost', 'cancelled'].map(s => (
+                            <SelectItem key={s} value={s} className="capitalize font-medium text-[13px]">{s.replace('_', ' ')}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[12px] font-medium text-brand-secondary ml-1">Urgency Level</Label>
+                      <Select value={selectedEnquiry.priority} onValueChange={(v) => {
+                        update.mutate({ id: selectedId!, data: { priority: v as any } });
+                        toast.success(`Priority updated to ${v}`);
+                      }}>
+                        <SelectTrigger className="h-[36px] bg-brand-surface border-brand-border/50 text-brand-primary rounded-lg font-medium text-[13px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-brand-white border-brand-border/50 rounded-xl shadow-lg">
+                          {['normal', 'high', 'urgent'].map(p => (
+                            <SelectItem key={p} value={p} className="capitalize font-medium text-[13px]">{p}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </section>
 
-                  <Button 
-                    onClick={() => setAddOpen(true)}
-                    className="h-10 px-3 sm:px-6 bg-zeronix-blue text-white rounded-xl font-black shadow-lg shadow-zeronix-blue/20 shrink-0"
-                  >
-                    <Plus size={18} className="sm:mr-2" />
-                    <span className="hidden sm:inline text-[10px] font-black uppercase tracking-widest">Add Enquiry</span>
-                  </Button>
-                </div>
+                {/* Team Assignment Segment */}
+                {admin?.role !== 'salesman' && (
+                  <section className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-brand-secondary mb-1">
+                        <div className="h-1.5 w-3 bg-brand-warning rounded-full" />
+                        <h4 className="text-[13px] font-semibold text-brand-primary">Team Assignment</h4>
+                      </div>
+                      <span className="text-[11px] font-medium text-brand-subtle">
+                        {selectedEnquiry.assigned_users?.length || 0} agents attached
+                      </span>
+                    </div>
+                    <div className="bg-brand-surface border border-brand-border/50 rounded-xl p-3">
+                      <div className="flex flex-wrap gap-2">
+                        {usersList.map((u) => {
+                          const isAssigned = selectedEnquiry.assigned_users?.some((au: any) => au.id === u.id);
+                          return (
+                            <button
+                              key={u.id}
+                              onClick={() => {
+                                const currentIds = selectedEnquiry.assigned_users?.map((au: any) => au.id) || [];
+                                const newIds = isAssigned 
+                                  ? currentIds.filter((id: number) => id !== u.id)
+                                  : [...currentIds, u.id];
+                                assignMutation.mutate({ id: selectedId!, userIds: newIds });
+                              }}
+                              className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${
+                                isAssigned 
+                                  ? 'bg-brand-primary border-brand-primary shadow-md scale-105' 
+                                  : 'bg-brand-white border-brand-border/50 hover:border-brand-primary/30 opacity-70 hover:opacity-100'
+                              }`}
+                            >
+                              <div className={`transition-transform ${isAssigned ? 'scale-110' : ''}`}>
+                                <Avatar size={18} name={u.name} variant="beam" colors={avatarColors} />
+                              </div>
+                              <span className={`text-[11px] font-bold ${isAssigned ? 'text-brand-white' : 'text-brand-secondary'}`}>
+                                {u.name.split(' ')[0]}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </section>
+                )}
+                {/* Customer Details Segment */}
+                <section className="space-y-3">
+                  <div className="flex items-center gap-2 text-brand-secondary mb-1">
+                    <div className="h-1.5 w-3 bg-brand-info rounded-full" />
+                    <h4 className="text-[13px] font-semibold text-brand-primary">Client Identification</h4>
+                  </div>
+                  <div className="bg-brand-surface border border-brand-border/50 rounded-xl p-5 flex items-center gap-5">
+                    <Avatar
+                      size={48}
+                      name={selectedEnquiry.customer?.name || 'Manual Lead'}
+                      variant="marble"
+                      colors={avatarColors}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-brand-primary text-[14px]">{selectedEnquiry.customer?.name || 'Manual Lead'}</p>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <p className="text-[12px] font-medium text-brand-subtle flex items-center gap-1.5">
+                          <Building2 size={12} className="text-brand-info" /> {selectedEnquiry.customer?.company || 'Personal Account'}
+                        </p>
+                        <div className="h-1 w-1 bg-brand-border rounded-full" />
+                        <p className="text-[12px] font-medium text-brand-subtle">
+                          Source: <span className="text-brand-primary capitalize">{selectedEnquiry.source}</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Operational Notes Segment */}
+                <section className="space-y-3 pb-2">
+                  <div className="flex items-center gap-2 text-brand-secondary mb-1">
+                    <div className="h-1.5 w-3 bg-brand-success rounded-full" />
+                    <h4 className="text-[13px] font-semibold text-brand-primary">Internal Collaboration</h4>
+                  </div>
+                  <div className="space-y-3">
+                    <Textarea
+                      defaultValue={selectedEnquiry.notes || ''}
+                      id="enquiry-notes"
+                      className="bg-brand-surface border-brand-border/50 text-brand-primary focus:ring-1 focus:ring-brand-accent/30 rounded-xl min-h-[120px] resize-none text-[13px] p-4"
+                      placeholder="Type internal notes, quality assessments, or follow-up details..."
+                    />
+                    <Button
+                      onClick={() => {
+                        const notes = (document.getElementById('enquiry-notes') as HTMLTextAreaElement).value;
+                        update.mutate({ id: selectedId!, data: { notes } });
+                        toast.success('Internal notes updated successfully');
+                      }}
+                      disabled={update.isPending}
+                      className="w-full bg-brand-primary text-brand-white hover:opacity-90 h-[36px] rounded-lg font-medium text-[13px] shadow-sm"
+                    >
+                      {update.isPending ? <Loader2 className="animate-spin mr-2" size={14} /> : null} Sync Internal Log
+                    </Button>
+                  </div>
+                </section>
               </div>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
-            <KanbanBoard
-              enquiries={enquiries}
-              stages={stages}
-              onCardMove={(cardId, newStage) => {
-                update.mutate({ id: cardId, data: { status: newStage } });
-              }}
-              onCardClick={(cardId) => { setSelectedId(cardId); setSheetOpen(true); }}
-            />
-          </div>
-        )
-      }
-
-  <Dialog open={sheetOpen} onOpenChange={setSheetOpen}>
-    <DialogContent className="sm:max-w-lg bg-admin-surface border-admin-border p-0 overflow-hidden shadow-2xl rounded-3xl">
-      {isEnquiryLoading ? (
-        <div className="flex justify-center items-center w-full h-80">
-          <Loader2 className="animate-spin text-zeronix-blue" size={40} />
-        </div>
-      ) : selectedEnquiry && (
-        <div className="flex flex-col h-full max-h-[85vh]">
-          {/* Premium Glass Header */}
-          <div className="p-5 pb-4 border-b border-admin-border bg-admin-bg/40 backdrop-blur-md sticky top-0 z-20">
+      {/* Add Enquiry Dialog */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="bg-brand-white border-brand-border/50 sm:max-w-lg rounded-xl shadow-xl overflow-hidden p-0">
+          <div className="bg-brand-surface p-6 border-b border-brand-border/50">
             <DialogHeader>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-zeronix-blue/10 flex items-center justify-center border border-zeronix-blue/20">
-                    <MessageSquare size={20} className="text-zeronix-blue" />
-                  </div>
-                  <div>
-                    <DialogTitle className="text-xl font-black text-admin-text-primary flex items-center gap-2">
-                      <span className="text-zeronix-blue">ENQ</span>
-                      <span className="opacity-30">/</span>
-                      <span>{String(selectedEnquiry.id).padStart(3, '0')}</span>
-                    </DialogTitle>
-                    <DialogDescription className="text-[10px] font-black text-admin-text-muted uppercase tracking-widest">
-                      Lead Management Console
-                    </DialogDescription>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                   <StatusBadge status={selectedEnquiry.status} />
-                </div>
-              </div>
+              <DialogTitle className="text-[16px] font-semibold text-brand-primary flex items-center gap-2">
+                <Plus size={18} className="text-brand-accent" />
+                New Lead
+              </DialogTitle>
+              <DialogDescription className="text-[13px] font-medium text-brand-subtle mt-0.5">
+                Capture manual enquiries from calls or external emails.
+              </DialogDescription>
             </DialogHeader>
           </div>
 
-          <div className="flex-1 p-5 space-y-6 overflow-y-auto">
-            {/* Core Workflow Controls */}
-            <section className="space-y-3">
-              <div className="flex items-center gap-2 text-admin-text-muted mb-1">
-                <div className="h-1 w-3 bg-zeronix-blue rounded-full" />
-                <h4 className="text-[10px] font-black uppercase tracking-widest">Workflow & Priority</h4>
-              </div>
-              <div className="grid grid-cols-2 gap-5">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Current Status</Label>
-                  <Select value={selectedEnquiry.status} onValueChange={(v) => {
-                    update.mutate({ id: selectedId!, data: { status: v as any } });
-                    toast.success(`Status updated to ${v.replace('_', ' ')}`);
-                  }}>
-                    <SelectTrigger className="h-12 bg-admin-bg/50 border-admin-border text-admin-text-primary rounded-xl font-bold hover:border-zeronix-blue/30 transition-all">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-admin-surface border-admin-border rounded-xl">
-                      {['new', 'in_progress', 'quoted', 'delivered', 'closed', 'won', 'lost', 'cancelled'].map(s => (
-                        <SelectItem key={s} value={s} className="capitalize font-bold text-sm">{s.replace('_', ' ')}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-admin-text-muted ml-1">Urgency Level</Label>
-                  <Select value={selectedEnquiry.priority} onValueChange={(v) => {
-                    update.mutate({ id: selectedId!, data: { priority: v as any } });
-                    toast.success(`Priority updated to ${v}`);
-                  }}>
-                    <SelectTrigger className="h-12 bg-admin-bg/50 border-admin-border text-admin-text-primary rounded-xl font-bold hover:border-zeronix-blue/30 transition-all">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-admin-surface border-admin-border rounded-xl">
-                      {['normal', 'high', 'urgent'].map(p => (
-                        <SelectItem key={p} value={p} className="capitalize font-bold text-sm">{p}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </section>
-
-            {/* Customer Details Segment */}
-            <section className="space-y-3">
-               <div className="flex items-center gap-2 text-admin-text-muted mb-1">
-                <div className="h-1 w-3 bg-purple-500 rounded-full" />
-                <h4 className="text-[10px] font-black uppercase tracking-widest">Client Identification</h4>
-              </div>
-              <div className="bg-admin-bg/30 border border-admin-border rounded-2xl p-5 flex items-center gap-5">
-                <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-zeronix-blue/20 to-purple-500/20 flex items-center justify-center text-admin-text-primary text-xl font-black border border-white/5">
-                  {selectedEnquiry.customer?.name?.[0] || 'U'}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-black text-admin-text-primary text-lg">{selectedEnquiry.customer?.name || 'Manual Lead'}</p>
-                  <div className="flex items-center gap-3 mt-1">
-                    <p className="text-xs font-bold text-admin-text-muted flex items-center gap-1.5">
-                      <Building2 size={13} className="text-zeronix-blue" /> {selectedEnquiry.customer?.company || 'Personal Account'}
-                    </p>
-                    <div className="h-1 w-1 bg-admin-border rounded-full" />
-                    <p className="text-xs font-bold text-admin-text-muted">
-                      Source: <span className="text-admin-text-primary capitalize">{selectedEnquiry.source}</span>
-                    </p>
+          <div className="p-6 space-y-6">
+            {/* SECTION 1: CONTACT INFO */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-6 w-6 rounded-lg bg-brand-accent-light dark:bg-brand-accent/20 flex items-center justify-center">
+                    <UserIcon size={14} className="text-brand-accent" />
                   </div>
+                  <h4 className="text-[13px] font-semibold text-brand-primary">Lead Origin</h4>
                 </div>
-              </div>
-            </section>
-
-
-
-            {/* Operational Notes Segment */}
-            <section className="space-y-3 pb-2">
-              <div className="flex items-center gap-2 text-admin-text-muted mb-1">
-                <div className="h-1 w-3 bg-green-500 rounded-full" />
-                <h4 className="text-[10px] font-black uppercase tracking-widest">Internal Collaboration</h4>
-              </div>
-              <div className="space-y-3">
-                <Textarea
-                  defaultValue={selectedEnquiry.notes || ''}
-                  id="enquiry-notes"
-                  className="bg-admin-bg/30 border-admin-border text-admin-text-primary focus:border-zeronix-blue focus:ring-zeronix-blue/5 rounded-2xl min-h-[140px] resize-none text-sm font-medium p-4"
-                  placeholder="Type internal notes, quality assessments, or follow-up details..."
-                />
                 <Button
-                  onClick={() => {
-                    const notes = (document.getElementById('enquiry-notes') as HTMLTextAreaElement).value;
-                    update.mutate({ id: selectedId!, data: { notes } });
-                    toast.success('Internal notes updated successfully');
-                  }}
-                  disabled={update.isPending}
-                  className="w-full bg-admin-surface border border-admin-border text-admin-text-primary hover:bg-admin-bg/50 h-11 rounded-xl font-black text-xs tracking-widest shadow-sm"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsNewCustomer(!isNewCustomer)}
+                  className="h-[28px] px-3 text-[11px] font-medium bg-brand-accent/10 text-brand-accent hover:bg-brand-accent/20 rounded-full transition-all"
                 >
-                  {update.isPending ? <Loader2 className="animate-spin" size={16} /> : 'UPDATE INTERNAL LOG'}
+                  {isNewCustomer ? 'Choose Existing Client' : 'Add as New Lead'}
                 </Button>
               </div>
-            </section>
-          </div>
-        </div>
-      )}
-    </DialogContent>
-  </Dialog>
 
-  {/* Add Enquiry Dialog */}
-  <Dialog open={addOpen} onOpenChange={setAddOpen}>
-    <DialogContent className="bg-admin-surface border-admin-border w-[95vw] sm:max-w-lg rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden p-0 max-h-[90vh] overflow-y-auto">
-      <div className="bg-admin-bg/30 p-4 sm:p-6 border-b border-admin-border">
-        <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl font-black text-admin-text-primary flex items-center gap-2">
-            <Plus size={20} className="text-zeronix-blue" />
-            NEW LEAD
-          </DialogTitle>
-          <DialogDescription className="text-[10px] font-bold text-admin-text-muted uppercase tracking-wider mt-1">
-            Capture manual enquiries from calls or external emails.
-          </DialogDescription>
-        </DialogHeader>
-      </div>
-
-      <div className="p-4 sm:p-6 space-y-6 sm:space-y-8">
-        {/* SECTION 1: CONTACT INFO */}
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <div className="h-5 w-5 rounded-lg bg-zeronix-blue/10 flex items-center justify-center">
-                <UserIcon size={12} className="text-zeronix-blue" />
-              </div>
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-admin-text-primary">Lead Origin</h4>
+              {isNewCustomer ? (
+                <div className="grid grid-cols-2 gap-4 p-4 bg-brand-surface rounded-xl border border-brand-border/50">
+                  <div className="space-y-1.5">
+                    <Label className="text-[12px] font-medium text-brand-secondary ml-1">Full Name *</Label>
+                    <Input value={addForm.customer_name} onChange={e => setAddForm({ ...addForm, customer_name: e.target.value })} className="h-[36px] text-[13px] bg-brand-white border-brand-border/50 rounded-lg" placeholder="John Doe" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[12px] font-medium text-brand-secondary ml-1">Email *</Label>
+                    <Input type="email" value={addForm.customer_email} onChange={e => setAddForm({ ...addForm, customer_email: e.target.value })} className="h-[36px] text-[13px] bg-brand-white border-brand-border/50 rounded-lg" placeholder="john@example.com" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[12px] font-medium text-brand-secondary ml-1">Company</Label>
+                    <Input value={addForm.customer_company} onChange={e => setAddForm({ ...addForm, customer_company: e.target.value })} className="h-[36px] text-[13px] bg-brand-white border-brand-border/50 rounded-lg" placeholder="Acme Corp" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[12px] font-medium text-brand-secondary ml-1">Phone</Label>
+                    <Input value={addForm.customer_phone} onChange={e => setAddForm({ ...addForm, customer_phone: e.target.value })} className="h-[36px] text-[13px] bg-brand-white border-brand-border/50 rounded-lg" placeholder="+971..." />
+                  </div>
+                </div>
+              ) : (
+                <Select value={addForm.customer_id} onValueChange={(v) => setAddForm({ ...addForm, customer_id: v })}>
+                  <SelectTrigger className="h-[36px] bg-brand-surface border-brand-border/50 text-brand-primary rounded-lg font-medium text-[13px] shadow-sm">
+                    <SelectValue placeholder="Search existing client profiles..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-brand-white border-brand-border/50 rounded-xl max-h-[300px]">
+                    {customersData.map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)} className="font-medium text-[13px]">
+                        {c.name} {c.company ? `— ${c.company}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsNewCustomer(!isNewCustomer)}
-              className="h-7 px-3 text-[9px] font-black bg-zeronix-blue/10 text-zeronix-blue hover:bg-zeronix-blue/20 rounded-full transition-all w-fit"
-            >
-              {isNewCustomer ? 'CHOOSE EXISTING CLIENT' : 'ADD AS NEW LEAD'}
-            </Button>
-          </div>
 
-          {isNewCustomer ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-admin-bg/50 rounded-2xl border border-admin-border border-dashed">
+            <Separator className="bg-brand-border/50" />
+
+            {/* SECTION 2: ENQUIRY DETAILS */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-lg bg-brand-info-bg flex items-center justify-center">
+                  <MessageSquare size={14} className="text-brand-info" />
+                </div>
+                <h4 className="text-[13px] font-semibold text-brand-primary">Enquiry Details</h4>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-[12px] font-medium text-brand-secondary ml-1">Channel Source</Label>
+                  <Select value={addForm.source} onValueChange={(v) => setAddForm({ ...addForm, source: v })}>
+                    <SelectTrigger className="h-[36px] bg-brand-surface border-brand-border/50 text-brand-primary rounded-lg font-medium text-[13px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-brand-white border-brand-border/50 rounded-xl shadow-lg">
+                      {['portal', 'email', 'phone', 'whatsapp', 'referral', 'chat'].map(s => (
+                        <SelectItem key={s} value={s} className="capitalize font-medium text-[13px]">{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[12px] font-medium text-brand-secondary ml-1">Initial Priority</Label>
+                  <Select value={addForm.priority} onValueChange={(v) => setAddForm({ ...addForm, priority: v })}>
+                    <SelectTrigger className="h-[36px] bg-brand-surface border-brand-border/50 text-brand-primary rounded-lg font-medium text-[13px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-brand-white border-brand-border/50 rounded-xl shadow-lg">
+                      {['normal', 'high', 'urgent'].map(p => (
+                        <SelectItem key={p} value={p} className="capitalize font-medium text-[13px]">{p}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-black text-admin-text-muted uppercase tracking-tighter">Full Name *</Label>
-                <Input value={addForm.customer_name} onChange={e => setAddForm({ ...addForm, customer_name: e.target.value })} className="h-10 text-xs bg-admin-surface border-admin-border rounded-xl focus:ring-zeronix-blue/10" placeholder="John Doe" />
+                <Label className="text-[12px] font-medium text-brand-secondary ml-1">Requirements & Notes</Label>
+                <Textarea
+                  value={addForm.notes}
+                  onChange={(e) => setAddForm({ ...addForm, notes: e.target.value })}
+                  className="bg-brand-surface border-brand-border/50 text-brand-primary rounded-xl resize-none min-h-[120px] text-[13px] p-4"
+                  placeholder="Describe what the client is looking for in detail..."
+                />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-[10px] font-black text-admin-text-muted uppercase tracking-tighter">Email *</Label>
-                <Input type="email" value={addForm.customer_email} onChange={e => setAddForm({ ...addForm, customer_email: e.target.value })} className="h-10 text-xs bg-admin-surface border-admin-border rounded-xl focus:ring-zeronix-blue/10" placeholder="john@example.com" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-[10px] font-black text-admin-text-muted uppercase tracking-tighter">Company</Label>
-                <Input value={addForm.customer_company} onChange={e => setAddForm({ ...addForm, customer_company: e.target.value })} className="h-10 text-xs bg-admin-surface border-admin-border rounded-xl focus:ring-zeronix-blue/10" placeholder="Acme Corp" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-[10px] font-black text-admin-text-muted uppercase tracking-tighter">Phone</Label>
-                <Input value={addForm.customer_phone} onChange={e => setAddForm({ ...addForm, customer_phone: e.target.value })} className="h-10 text-xs bg-admin-surface border-admin-border rounded-xl focus:ring-zeronix-blue/10" placeholder="+971..." />
-              </div>
-            </div>
-          ) : (
-            <Select value={addForm.customer_id} onValueChange={(v) => setAddForm({ ...addForm, customer_id: v })}>
-              <SelectTrigger className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl font-bold shadow-sm text-xs">
-                <SelectValue placeholder="Search client profiles..." />
-              </SelectTrigger>
-              <SelectContent className="bg-admin-surface border-admin-border rounded-xl max-h-[250px]">
-                {customersData.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)} className="font-medium text-xs">
-                    {c.name} {c.company ? `— ${c.company}` : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-
-        <Separator className="bg-admin-border/50" />
-
-        {/* SECTION 2: ENQUIRY DETAILS */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <div className="h-5 w-5 rounded-lg bg-purple-500/10 flex items-center justify-center">
-              <MessageSquare size={12} className="text-purple-500" />
-            </div>
-            <h4 className="text-[10px] font-black uppercase tracking-widest text-admin-text-primary">Enquiry Details</h4>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-[10px] font-black text-admin-text-muted uppercase tracking-tighter">Channel Source</Label>
-              <Select value={addForm.source} onValueChange={(v) => setAddForm({ ...addForm, source: v })}>
-                <SelectTrigger className="h-10 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl font-bold text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-admin-surface border-admin-border rounded-xl">
-                  {['portal', 'email', 'phone', 'whatsapp', 'referral', 'chat'].map(s => (
-                    <SelectItem key={s} value={s} className="capitalize font-medium text-xs">{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-[10px] font-black text-admin-text-muted uppercase tracking-tighter">Initial Priority</Label>
-              <Select value={addForm.priority} onValueChange={(v) => setAddForm({ ...addForm, priority: v })}>
-                <SelectTrigger className="h-10 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl font-bold text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-admin-surface border-admin-border rounded-xl">
-                  {['normal', 'high', 'urgent'].map(p => (
-                    <SelectItem key={p} value={p} className="capitalize font-medium text-xs">{p}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-[10px] font-black text-admin-text-muted uppercase tracking-tighter">Requirements & Notes</Label>
-            <Textarea
-              value={addForm.notes}
-              onChange={(e) => setAddForm({ ...addForm, notes: e.target.value })}
-              className="bg-admin-bg border-admin-border text-admin-text-primary rounded-2xl resize-none min-h-[100px] text-xs font-medium focus:ring-zeronix-blue/10"
-              placeholder="Describe requirements..."
-            />
+          <div className="p-6 pt-2">
+            <DialogFooter className="gap-2">
+              <Button variant="ghost" onClick={() => setAddOpen(false)} className="rounded-lg text-[13px] font-medium">Cancel</Button>
+              <Button
+                onClick={() => {
+                  const payload: any = { ...addForm };
+                  if (isNewCustomer) {
+                    delete payload.customer_id;
+                  } else {
+                    payload.customer_id = Number(addForm.customer_id);
+                    delete payload.customer_name;
+                    delete payload.customer_email;
+                    delete payload.customer_phone;
+                    delete payload.customer_company;
+                  }
+                  create.mutate(payload, {
+                    onSuccess: () => {
+                      setAddOpen(false);
+                      setIsNewCustomer(false);
+                      setAddForm({ customer_id: '', customer_name: '', customer_email: '', customer_phone: '', customer_company: '', source: 'portal', priority: 'normal', notes: '' });
+                    }
+                  });
+                }}
+                disabled={create.isPending || (isNewCustomer ? (!addForm.customer_name || !addForm.customer_email) : !addForm.customer_id)}
+                className="flex-1 bg-brand-primary text-brand-white hover:opacity-90 h-[36px] rounded-lg text-[13px] font-medium shadow-sm"
+              >
+                {create.isPending ? <Loader2 className="animate-spin mr-2" size={14} /> : null} Register Enquiry
+              </Button>
+            </DialogFooter>
           </div>
-        </div>
-      </div>
-
-      <div className="p-4 sm:p-6 pt-2">
-        <DialogFooter className="flex flex-col sm:flex-row gap-2">
-          <Button variant="ghost" onClick={() => setAddOpen(false)} className="rounded-xl font-bold text-xs order-2 sm:order-1 w-full sm:w-auto">CANCEL</Button>
-          <Button
-            onClick={() => {
-              const payload: any = { ...addForm };
-              if (isNewCustomer) {
-                delete payload.customer_id;
-              } else {
-                payload.customer_id = Number(addForm.customer_id);
-                delete payload.customer_name;
-                delete payload.customer_email;
-                delete payload.customer_phone;
-                delete payload.customer_company;
-              }
-              create.mutate(payload, {
-                onSuccess: () => {
-                  setAddOpen(false);
-                  setIsNewCustomer(false);
-                  setAddForm({ customer_id: '', customer_name: '', customer_email: '', customer_phone: '', customer_company: '', source: 'portal', priority: 'normal', notes: '' });
-                }
-              });
-            }}
-            disabled={create.isPending || (isNewCustomer ? (!addForm.customer_name || !addForm.customer_email) : !addForm.customer_id)}
-            className="flex-1 bg-zeronix-blue text-white hover:bg-zeronix-blue-hover h-11 sm:h-12 rounded-xl font-black shadow-lg shadow-zeronix-blue/20 order-1 sm:order-2 w-full sm:w-auto"
-          >
-            {create.isPending ? <Loader2 className="animate-spin" /> : 'REGISTER ENQUIRY'}
-          </Button>
-        </DialogFooter>
-      </div>
-    </DialogContent>
-  </Dialog>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

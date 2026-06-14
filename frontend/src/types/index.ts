@@ -12,10 +12,13 @@ export interface User {
   id: number;
   name: string;
   email: string;
+  phone?: string;
   role?: string;
   designation?: string;
   permissions?: string[];
   is_active?: boolean;
+  shift_start?: string;
+  shift_end?: string;
   smtp_host?: string;
   smtp_port?: number;
   smtp_username?: string;
@@ -26,6 +29,16 @@ export interface User {
   imap_username?: string;
   imap_password?: string;
   imap_encryption?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CustomerLabel {
+  id: number;
+  name: string;
+  color: string;
+  customers_count?: number;
+  created_by?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -43,13 +56,15 @@ export interface Customer {
   created_at?: string;
   updated_at?: string;
   is_portal_active?: boolean;
-  user_id?: number;
-  assigned_user?: User;
+  user_ids?: number[];
+  assigned_users?: User[];
+  labels?: CustomerLabel[];
   // Computed / relationship counts
   enquiries_count?: number;
   quotes_count?: number;
   invoices_count?: number;
 }
+
 
 export interface Supplier {
   id: number;
@@ -148,7 +163,7 @@ export interface Enquiry {
   // Relations
   customer?: Customer;
   user?: User;
-  assignedUser?: User;
+  assigned_users?: User[];
   items?: EnquiryItem[];
   items_count?: number;
 }
@@ -179,6 +194,9 @@ export interface Quote {
   valid_until?: string;
   reference_id?: string;
   email_sent_at?: string;
+  due_date?: string;
+  closing_ratio?: number;
+  last_notified_at?: string;
   created_at?: string;
   updated_at?: string;
   // Relations

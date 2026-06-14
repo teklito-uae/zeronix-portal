@@ -13,6 +13,9 @@ import { DataTable } from '@/components/shared/DataTable';
 import { CopyableText } from '@/components/shared/CopyableText';
 import { ActionGroup } from '@/components/shared/ActionGroup';
 import { ProductModal } from '@/components/shared/ProductModal';
+import Avatar from 'boring-avatars';
+import { useThemeStore } from '@/store/useThemeStore';
+import { Mail, Phone, Globe, MapPin, UserCircle, Package } from 'lucide-react';
 
 /**
  * Supplier Profile Detail View
@@ -21,6 +24,10 @@ import { ProductModal } from '@/components/shared/ProductModal';
 export const SupplierProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { theme } = useThemeStore();
+  const avatarColors = theme === 'dark' 
+    ? ['#ff4d6d', '#ff758f', '#ffbe0b', '#fdfcdc', '#48cae4']
+    : ['#cc063e', '#e83535', '#fd9407', '#e2d9c2', '#10898b'];
   
   const [page, setPage] = useState(1);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -58,8 +65,8 @@ export const SupplierProfile = () => {
 
   if (!supplier) {
     return (
-      <div className="flex items-center justify-center h-64 bg-admin-surface border border-dashed border-admin-border rounded-2xl">
-        <p className="text-sm font-bold text-admin-text-muted uppercase tracking-wider">Partner Identity Not Found</p>
+      <div className="flex items-center justify-center h-64 bg-brand-surface border border-dashed border-brand-border/50 rounded-2xl">
+        <p className="text-[13px] font-semibold text-brand-subtle uppercase tracking-wider">Partner Identity Not Found</p>
       </div>
     );
   }
@@ -74,7 +81,7 @@ export const SupplierProfile = () => {
       accessorKey: 'model_code',
       header: 'Code',
       cell: ({ row }) => (
-        <span className="font-mono text-[11px] font-medium text-zeronix-blue bg-zeronix-blue/5 px-2 py-0.5 rounded whitespace-nowrap border border-zeronix-blue/10">
+        <span className="font-mono text-[11px] font-medium text-brand-accent bg-brand-accent/5 px-2 py-0.5 rounded whitespace-nowrap border border-brand-accent/10">
           {row.original.model_code || '—'}
         </span>
       ),
@@ -88,8 +95,8 @@ export const SupplierProfile = () => {
       accessorKey: 'price',
       header: 'Price',
       cell: ({ row }) => (
-        <span className="font-mono text-sm font-bold text-admin-text-primary whitespace-nowrap">
-          {Number(row.original.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-[10px] text-admin-text-muted ml-0.5">{row.original.currency}</span>
+        <span className="font-mono text-[14px] font-semibold text-brand-primary whitespace-nowrap">
+          {Number(row.original.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-[11px] text-brand-subtle ml-0.5">{row.original.currency}</span>
         </span>
       ),
     },
@@ -97,7 +104,7 @@ export const SupplierProfile = () => {
       accessorKey: 'category',
       header: 'Category',
       cell: ({ row }) => (
-        <Badge variant="secondary" className="bg-zeronix-blue/5 text-zeronix-blue border-0 text-[10px] font-bold px-2 h-5 uppercase tracking-tight">
+        <Badge variant="secondary" className="bg-brand-surface text-brand-secondary border-brand-border/50 text-[10px] font-medium px-2 h-5">
           {row.original.category?.name || '—'}
         </Badge>
       ),
@@ -108,10 +115,10 @@ export const SupplierProfile = () => {
       cell: ({ row }) => (
         <Badge
           className={cn(
-            "rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider border",
+            "rounded-md px-2 py-0.5 text-[10px] font-medium border",
             row.original.availability
-              ? 'bg-emerald-500/5 text-emerald-600 border-emerald-500/10'
-              : 'bg-red-500/5 text-red-600 border-red-500/10'
+              ? 'bg-brand-success-bg text-brand-success border-brand-success/10'
+              : 'bg-brand-danger-bg text-brand-danger border-brand-danger/10'
           )}
         >
           {row.original.availability ? 'IN STOCK' : 'OUT OF STOCK'}
@@ -131,14 +138,40 @@ export const SupplierProfile = () => {
   ];
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-admin-text-primary tracking-tight uppercase">{supplier.name}</h1>
+    <div className="space-y-6 animate-in fade-in duration-500">
+      
+      {/* Premium Identity Header */}
+      <div className="bg-brand-surface border border-brand-border/50 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="flex items-center gap-5">
+           <Avatar
+             size={64}
+             name={supplier.name || 'Supplier'}
+             variant="marble"
+             colors={avatarColors}
+           />
+           <div>
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-semibold text-brand-primary tracking-tight">{supplier.name}</h1>
+                <Badge variant="secondary" className="bg-brand-accent/10 text-brand-accent border-0 text-[10px] font-medium h-5">SUPPLIER</Badge>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-[13px] text-brand-secondary font-medium">
+                 {supplier.supplier_code && (
+                   <span className="font-mono text-brand-subtle">{supplier.supplier_code}</span>
+                 )}
+                 {supplier.email && (
+                   <span className="flex items-center gap-1.5"><Mail size={14} className="opacity-50" /> {supplier.email}</span>
+                 )}
+                 {supplier.phone && (
+                   <span className="flex items-center gap-1.5"><Phone size={14} className="opacity-50" /> {supplier.phone}</span>
+                 )}
+              </div>
+           </div>
+        </div>
       </div>
 
-      <div className="bg-admin-surface border border-admin-border rounded-xl overflow-hidden shadow-sm">
-         <div className="px-6 py-4 border-b border-admin-border bg-admin-bg/10">
-            <h2 className="text-xs font-semibold text-admin-text-primary uppercase tracking-wider">Product Catalog</h2>
+      <div className="bg-brand-white border border-brand-border/50 rounded-xl overflow-hidden shadow-sm">
+         <div className="px-6 py-4 border-b border-brand-border/50 bg-brand-surface/30">
+            <h2 className="text-[13px] font-medium text-brand-primary flex items-center gap-2"><Package size={16} className="text-brand-accent" /> Product Catalog</h2>
          </div>
          <DataTable 
            columns={productColumns} 
@@ -146,8 +179,8 @@ export const SupplierProfile = () => {
            hidePagination={true}
          />
          
-         <div className="flex items-center justify-between px-6 py-4 border-t border-admin-border bg-admin-bg/10">
-            <p className="text-[10px] font-bold text-admin-text-muted uppercase tracking-wider">
+         <div className="flex items-center justify-between px-6 py-4 border-t border-brand-border/50 bg-brand-surface/30">
+            <p className="text-[12px] font-medium text-brand-subtle">
                Showing {products.length} of {productsResult?.total || 0} entries
             </p>
             <div className="flex items-center gap-3">
@@ -156,11 +189,11 @@ export const SupplierProfile = () => {
                 size="sm" 
                 onClick={() => setPage(p => Math.max(1, p - 1))} 
                 disabled={page === 1}
-                className="h-8 px-3 rounded-md border-admin-border bg-admin-surface font-bold text-[10px] uppercase tracking-wider shadow-sm"
+                className="h-8 px-3 rounded-lg border-brand-border/50 bg-brand-white font-medium text-[12px] shadow-sm text-brand-secondary hover:bg-brand-surface"
               >
-                Prev
+                Previous
               </Button>
-              <div className="h-8 px-3 rounded-md bg-admin-bg border border-admin-border flex items-center justify-center font-bold text-[10px] text-zeronix-blue">
+              <div className="h-8 px-3 rounded-lg bg-brand-surface border border-brand-border/50 flex items-center justify-center font-semibold text-[12px] text-brand-primary">
                  {page} / {productsResult?.last_page || 1}
               </div>
               <Button 
@@ -168,7 +201,7 @@ export const SupplierProfile = () => {
                 size="sm" 
                 onClick={() => setPage(p => p + 1)} 
                 disabled={page >= (productsResult?.last_page || 1)}
-                className="h-8 px-3 rounded-md border-admin-border bg-admin-surface font-bold text-[10px] uppercase tracking-wider shadow-sm"
+                className="h-8 px-3 rounded-lg border-brand-border/50 bg-brand-white font-medium text-[12px] shadow-sm text-brand-secondary hover:bg-brand-surface"
               >
                 Next
               </Button>

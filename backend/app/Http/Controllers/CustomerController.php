@@ -11,7 +11,7 @@ class CustomerController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Customer::with(['assigned_user'])->withCount(['quotes', 'invoices', 'enquiries']);
+        $query = Customer::with(['assigned_users', 'labels'])->withCount(['quotes', 'invoices', 'enquiries']);
 
         // Data Scoping
         $query->forUser($request->user());
@@ -28,28 +28,37 @@ class CustomerController extends Controller
             });
         }
 
+        // Filter by label
+        if ($request->filled('label_id')) {
+            $query->whereHas('labels', fn($q) => $q->where('customer_labels.id', $request->get('label_id')));
+        }
+
         $customers = $query->latest()->paginate($request->get('per_page', config('zeronix.default_per_page', 15)));
 
         return response()->json([
-            'data' => $customers->items(),
-            'total' => $customers->total(),
+            'data'         => $customers->items(),
+            'total'        => $customers->total(),
             'current_page' => $customers->currentPage(),
-            'last_page' => $customers->lastPage(),
-            'per_page' => $customers->perPage(),
+            'last_page'    => $customers->lastPage(),
+            'per_page'     => $customers->perPage(),
         ]);
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'company' => 'nullable|string|max:255',
-            'email' => 'required|email|unique:customers,email',
-            'phone' => 'nullable|string|max:50',
-            'address' => 'nullable|string',
-            'trn' => 'nullable|string|max:50',
-            'password' => 'nullable|string|min:6',
+            'name'             => 'required|string|max:255',
+            'company'          => 'nullable|string|max:255',
+            'email'            => 'nullable|email|max:255|unique:customers,email',
+            'phone'            => 'nullable|string|max:50',
+            'address'          => 'nullable|string',
+            'trn'              => 'nullable|string|max:50',
+            'password'         => 'nullable|string|min:6',
             'is_portal_active' => 'nullable|boolean',
+            'user_ids'         => 'nullable|array',
+            'user_ids.*'       => 'exists:users,id',
+            'label_ids'        => 'nullable|array',
+            'label_ids.*'      => 'exists:customer_labels,id',
         ]);
 
         if (!empty($validated['password'])) {
@@ -58,11 +67,26 @@ class CustomerController extends Controller
             $validated['password'] = Hash::make('zeronix@123');
         }
 
-        $validated['user_id'] = $request->user()->id;
+        $userIds = $request->input('user_ids');
+        if (is_null($userIds) || empty($userIds)) {
+            $userIds = [$request->user()->id];
+        }
+        unset($validated['user_ids']);
+
+        $labelIds = $validated['label_ids'] ?? [];
+        unset($validated['label_ids']);
 
         $customer = Customer::create($validated);
 
-        return response()->json($customer->load('assigned_user'), 201);
+        if ($userIds) {
+            $customer->assigned_users()->attach($userIds);
+        }
+
+        if ($labelIds) {
+            $customer->labels()->attach($labelIds);
+        }
+
+        return response()->json($customer->load(['assigned_users', 'labels']), 201);
     }
 
     public function show(Request $request, Customer $customer)
@@ -85,33 +109,51 @@ class CustomerController extends Controller
         $this->authorize('update', $customer);
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'company' => 'nullable|string|max:255',
-            'email' => 'required|email|unique:customers,email,' . $customer->id,
-            'phone' => 'nullable|string|max:50',
-            'address' => 'nullable|string',
-            'trn' => 'nullable|string|max:50',
+            'name'             => 'required|string|max:255',
+            'company'          => 'nullable|string|max:255',
+            'email'            => 'nullable|email|max:255|unique:customers,email,' . $customer->id,
+            'phone'            => 'nullable|string|max:50',
+            'address'          => 'nullable|string',
+            'trn'              => 'nullable|string|max:50',
             'is_portal_active' => 'nullable|boolean',
-            'user_id' => 'nullable|exists:users,id',
+            'user_ids'         => 'nullable|array',
+            'user_ids.*'       => 'exists:users,id',
+            'label_ids'        => 'nullable|array',
+            'label_ids.*'      => 'exists:customer_labels,id',
         ]);
 
-        $oldUserId = $customer->user_id;
+        $labelIds = $validated['label_ids'] ?? null;
+        unset($validated['label_ids']);
+        
+        $userIds = $request->input('user_ids');
+        unset($validated['user_ids']);
+
+        $oldUserIds = $customer->assigned_users()->pluck('users.id')->toArray();
         $customer->update($validated);
 
-        // Notify new staff if assignment changed
-        if (isset($validated['user_id']) && $validated['user_id'] != $oldUserId) {
-            $staff = \App\Models\User::find($validated['user_id']);
-            if ($staff) {
-                $staff->notify(new \App\Notifications\SystemNotification([
-                    'title' => 'New Customer Assigned',
-                    'message' => "You have been assigned to customer: {$customer->name} ({$customer->company})",
-                    'type' => 'info',
-                    'action_url' => "/staff/customers/{$customer->id}"
-                ]));
+        if (!is_null($labelIds)) {
+            $customer->labels()->sync($labelIds);
+        }
+
+        if (!is_null($userIds)) {
+            $customer->assigned_users()->sync($userIds);
+
+            // Notify newly assigned staff
+            $newUsers = array_diff($userIds, $oldUserIds);
+            if (!empty($newUsers)) {
+                $staffMembers = \App\Models\User::whereIn('id', $newUsers)->get();
+                foreach ($staffMembers as $staff) {
+                    $staff->notify(new \App\Notifications\SystemNotification([
+                        'title'      => 'New Customer Assigned',
+                        'message'    => "You have been assigned to customer: {$customer->name} ({$customer->company})",
+                        'type'       => 'info',
+                        'action_url' => "/staff/customers/{$customer->id}"
+                    ]));
+                }
             }
         }
 
-        return response()->json($customer->load('assigned_user'));
+        return response()->json($customer->load(['assigned_users', 'labels']));
     }
 
     public function destroy(Request $request, Customer $customer)
