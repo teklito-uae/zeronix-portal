@@ -1,6 +1,8 @@
 # Zeronix Portal — Project Knowledge Base
 
-> **Status:** Canonical, code-verified reference. Generated 2026-07-05 by direct inspection of the codebase (not from planning docs). Where older docs (`README.md`, `ROADMAP.md`, `project_plan.md`, `GEMINI.md`) disagree with this file, **this file is correct** — those docs describe intent/history and have drifted from the live code in several places (called out explicitly below).
+> **Status:** Canonical, code-verified reference. Generated 2026-07-05 by direct inspection of the codebase (not from planning docs). Where older docs (`README.md`) disagree with this file, **this file is correct** — those docs describe intent/history and have drifted from the live code in several places (called out explicitly below).
+>
+> **2026-07-05 update — modules removed:** The **Chat** module (admin↔customer realtime messaging via Pusher/Echo) and the **Bulk-Import** module (supplier product paste/parse importer) were removed in full (backend controllers/models/events/routes + frontend pages/routes/sidebar). The IMAP `emails:sync` command (`SyncCustomerEmails`), which only threaded inbound email into chat tables, was removed with it. The chat DB migrations remain in history (tables not dropped). The duplicate `/admin/attendance/report` route bug was fixed, and the sidebar's Attendance item now lives in its own **"Workforce"** group. References below have been updated to match.
 
 ---
 
@@ -25,8 +27,8 @@ Single shared codebase, single database, single deployed API — tenancy is a **
 - **Laravel 11**, PHP `^8.2`
 - **laravel/sanctum ^4.0** — bearer-token API auth (not session/cookie auth, despite `config/auth.php` still declaring unused session guards)
 - **barryvdh/laravel-dompdf ^3.1** — quote/invoice/receipt PDF rendering
-- **pusher/pusher-php-server ^7.2** — realtime broadcasting (chat, notifications)
-- **webklex/laravel-imap ^6.2** — inbound email sync (`SyncCustomerEmails` command)
+- **pusher/pusher-php-server ^7.2** — now **unused** (only the removed Chat module broadcast; kept in composer.json for now, prunable)
+- **webklex/laravel-imap ^6.2** — now **unused** (only the removed `SyncCustomerEmails` command used it; prunable)
 - Dev: PHPUnit 10.5, Pint, Sail, Faker, Mockery — present but essentially unused (see §9 Testing)
 - **Not present:** spatie/laravel-permission, laravel/passport, maatwebsite/excel, laravel/horizon, any multi-tenancy package (tenancy is hand-rolled)
 
@@ -39,7 +41,7 @@ Single shared codebase, single database, single deployed API — tenancy is a **
 - **react-router-dom 7.14** — classic `<Routes>/<Route>` JSX (no `createBrowserRouter`, no route-level code splitting)
 - **Radix UI + shadcn/ui pattern** (`components/ui/*`, `components.json`) — CVA, clsx, tailwind-merge, sonner (toasts), cmdk
 - **recharts 3.8** — dashboard charts
-- **laravel-echo 2.3 + pusher-js 8.5** — realtime chat/notifications
+- **laravel-echo 2.3 + pusher-js 8.5** — now **unused** (only the removed Chat module used Echo/Pusher; `lib/echo.ts` deleted; prunable from package.json)
 - **No form library** (no react-hook-form/zod) — forms are hand-rolled local state
 - **No test runner** declared (no vitest/jest/playwright/testing-library)
 
@@ -50,33 +52,34 @@ Single shared codebase, single database, single deployed API — tenancy is a **
 ### 3.1 Folder shape (actual, not layered by the book)
 ```
 backend/app/
-  Console/Commands/    QuoteFollowupNotification, SyncCustomerEmails
-  Events/               MessageSent
+  Console/Commands/    QuoteFollowupNotification  (SyncCustomerEmails removed with Chat)
   Helpers/              NumberHelper (amount-to-words for PDFs)
-  Http/Controllers/     30 files, flat — plus Admin/ (ChatController) and Customer/ (8 controllers)
+  Http/Controllers/     flat controllers — plus Customer/ (8 controllers). (Admin/ChatController + the
+                        two ChatControllers + BulkImportController removed; Admin/ and Events/ dirs now gone)
   Mail/                 InvoiceMail, PaymentReceiptMail, QuoteMail, WelcomeCustomerMail
-  Models/               28 models, flat
+  Models/               flat  (ChatConversation, ChatMessage removed)
   Notifications/        AdminNotification, SystemNotification
   Policies/             CustomerPolicy, EnquiryPolicy, InvoicePolicy, QuotePolicy, UserPolicy
   Providers/            AppServiceProvider only (Laravel 11 style, no RouteServiceProvider)
   Services/             DashboardService, MailConfigService
   Traits/               BelongsToCompany, HasUserScope, LogsActivity
 ```
+(The `Events/` directory and its `MessageSent` event were removed with the Chat module.)
 There is **no** `Http/Middleware/`, `Http/Requests/`, `Http/Resources/`, `Jobs/`, or `Listeners/` directory. `bootstrap/app.php`'s `withMiddleware()` and `withExceptions()` hooks are both empty. All validation is inline `$request->validate()`, all JSON shaping is inline `response()->json()` — there is no API Resource layer despite what design docs describe.
 
 There is also **no Platform/Workspace/Portal controller namespace split**. The three-domain concept exists only at the **route-prefix** level (`/admin`, `/staff`, `/customer`, `/portal/{number}`) and in the frontend's page folders — not as a backend directory taxonomy.
 
 ### 3.2 Routes (`backend/routes/api.php`)
-- `Broadcast::routes()` gated by `auth:sanctum,customer` — Pusher channel auth for both staff and customers.
-- `/customer/*` — public `register`/`login`, then `auth:sanctum` group: dashboard, logout, user, products, categories, enquiries, profile updates, invoices (index/show/confirm-delivery/download/view), quotes (index/show/update-status/download/view), notifications, chat.
+- `/customer/*` — public `register`/`login`, then `auth:sanctum` group: dashboard, logout, user, products, categories, enquiries, profile updates, invoices (index/show/confirm-delivery/download/view), quotes (index/show/update-status/download/view), notifications. (Customer chat routes removed.)
 - `throttle:public` group — the actual public "portal" surface: numbered (not ID-based) unauthenticated quote/invoice view+download by document number, public inventory (`/public/products|categories|brands`), `POST /public/rfq` (public enquiry submission), `POST /public/register-company` (self-service tenant onboarding).
-- Shared `foreach (['admin','staff'] as $prefix)` loop — both prefixes get an identical `auth:sanctum` route set: dashboard, enquiries CRUD+assign, customers CRUD+register-portal, companies resource, customer-labels, quotes CRUD+send-email, invoices CRUD+send-email, products/categories/brands (read), users (read), suppliers CRUD, notifications, chat, attendance (clock-in/out/status/statistics/export/report), tasks, sticky-notes.
-- `/admin/*`-only additions: login, product write/bulk-update/delete, bulk-import, customer-import, supplier-product update, users CRUD + SMTP settings + test-email, activity logs, `/platform/stats` (super-admin only), payment-receipts, templates, company approve/reject/suspend (tenant lifecycle).
+- Shared `foreach (['admin','staff'] as $prefix)` loop — both prefixes get an identical `auth:sanctum` route set: dashboard, enquiries CRUD+assign, customers CRUD+register-portal, companies resource, customer-labels, quotes CRUD+send-email, invoices CRUD+send-email, products/categories/brands (read), users (read), suppliers CRUD, notifications, attendance (clock-in/out/status/statistics/export), tasks, sticky-notes. (Chat routes removed.)
+- `/admin/*`-only additions: login, product write/bulk-update/delete, customer-import, supplier-product update, users CRUD + SMTP settings + test-email, activity logs, `/platform/stats` (super-admin only), `attendance/report` → `AttendanceController::index` (admin-only paginated report), payment-receipts, templates, company approve/reject/suspend (tenant lifecycle). (Bulk-import route removed.)
+- `Broadcast::routes()` and `routes/channels.php`'s `chat.{roomId}` channel were removed with Chat; only the generic `App.Models.User.{id}` channel remains in `channels.php`.
 
-**⚠ Known bug:** `GET /admin/attendance/report` is registered twice — once in the shared loop (→ `AttendanceController::report`) and again in the admin-only block (→ `AttendanceController::index`). The second registration wins, so the admin prefix silently resolves to the wrong action while `/staff/attendance/report` resolves correctly. Introduced by the "restore mobile responsive UI, attendance report..." commit — worth fixing before relying on that admin endpoint.
+**Note:** The previously-documented duplicate `/admin/attendance/report` registration (one pointing to a non-existent `AttendanceController::report`) has been **fixed** — the erroneous line in the shared loop was deleted; `attendance/report` now resolves unambiguously to `AttendanceController::index` (admin-only). The frontend `AttendanceReport` page calls `GET /admin/attendance/report` via `ResourceListingPage resource="attendance/report"`.
 
 ### 3.3 Database schema (chronological highlights)
-Core tables: `users`, `customers`, `brands`, `suppliers`, `categories`, `enquiries` (+ `enquiry_items`), `products`, `quotes`/`quote_items`, `invoices`/`invoice_items`, `chat_conversations`/`chat_messages`, `supplier_brands`/`supplier_broadcasts`/`supplier_products`/`supplier_price_history`, `personal_access_tokens` (Sanctum), `activity_logs`, `templates`, `payment_receipts`, `notifications`, `customer_labels` (+ pivot), `attendances`, `staff_points`, `tasks`, `sticky_notes`, and pivots `customer_user` / `enquiry_user` (salesman assignment).
+Core tables: `users`, `customers`, `brands`, `suppliers`, `categories`, `enquiries` (+ `enquiry_items`), `products`, `quotes`/`quote_items`, `invoices`/`invoice_items`, `supplier_brands`/`supplier_broadcasts`/`supplier_products`/`supplier_price_history`, `personal_access_tokens` (Sanctum), `activity_logs`, `templates`, `payment_receipts`, `notifications`, `customer_labels` (+ pivot), `attendances`, `staff_points`, `tasks`, `sticky_notes`, and pivots `customer_user` / `enquiry_user` (salesman assignment). (The `chat_conversations`/`chat_messages` tables' migrations remain in history but the Chat module and its models were removed; the tables are now unused and can be dropped with a follow-up migration.)
 
 **Multi-tenancy root:** `companies` table (added **2026-06-16**, the newest migration group in the repo) — its columns (`parent_client_id`, `stage_id`, `crm_source_id`, `opening_balance`, `show_job_amount_to_worker`, etc.) read as a repurposed generic CRM "client" schema, not a purpose-built tenant table. `company_id` FKs were then retrofitted onto ~14 existing tables (`users`, `quotes`, `invoices`, `enquiries`, `tasks`, `products`, `suppliers`, `categories`, `brands`, `customer_labels`, `payment_receipts`, `sticky_notes`, `customers`) via two follow-up migrations. `companies.status` + `rejection_reason` implement an approve/reject/suspend tenant lifecycle.
 
@@ -110,10 +113,9 @@ This is **single-database, shared-schema, row-level multi-tenancy** — not sche
 
 ### 3.7 Business logic services
 - **`DocumentController`** — the PDF hub. No Blade views; builds HTML by string-replacing placeholder tokens (`{items}`, `{tax_summary}`, `{logo_url}`, `{total_in_words}`) into a `Template` model's stored HTML, then renders via DomPDF. Payment receipts use fully hardcoded inline HTML instead of a template.
-- **`MailConfigService`** — dynamically swaps the active Laravel mailer to the *currently authenticated staff member's own SMTP credentials* per request ("send as yourself" design) and exposes IMAP client access for inbound sync.
+- **`MailConfigService`** — dynamically swaps the active Laravel mailer to the *currently authenticated staff member's own SMTP credentials* per request ("send as yourself" design). (Its IMAP client helper is now dead code — the only consumer, `SyncCustomerEmails`, was removed with Chat.)
 - **`DashboardService`** — tenant + user-scoped analytics (6-month trend, 30-day revenue, monthly activity, recent feed, staff leaderboard, gamification points via `StaffPoint`).
-- **`QuoteFollowupNotification`** (hourly cron) — only nags salesmen who are inside their shift window *and* currently clocked in, using a weighted random roll against each quote's `closing_ratio`.
-- **`SyncCustomerEmails`** (every 5 min) — IMAP inbox sync into customer/chat records.
+- **`QuoteFollowupNotification`** (hourly cron) — only nags salesmen who are inside their shift window *and* currently clocked in, using a weighted random roll against each quote's `closing_ratio`. This is now the **only** scheduled command (the `emails:sync` schedule entry was removed).
 - `NumberHelper::toWords()` — amount-in-words for PDFs.
 
 ### 3.8 Config gaps
@@ -143,23 +145,24 @@ hooks/
   useBreadcrumb.ts
 lib/
   axios.ts                  shared axios instance + interceptors
-  echo.ts                   Pusher/Laravel Echo factory
   mockData.ts                ⚠ dead code — every array empty, zero imports anywhere
   queryClient.ts
+                            (echo.ts + parsingUtils.ts removed with Chat / Bulk-Import)
 pages/
   UnifiedLogin.tsx, NotFound.tsx
   platform/                 PlatformDashboard, TenantManagement, SystemDocs, GlobalActivities, PlatformSettings
   workspace/                Dashboard, Customers(+Profile), Suppliers(+Profile), Products, Enquiries,
-                             Quotes(+Detail), Invoices(+Detail), PaymentReceipts, Chat, BulkImport,
+                             Quotes(+Detail), Invoices(+Detail), PaymentReceipts,
                              CustomerImport, Users, Settings, Notifications, AttendanceReport
     staff/StaffDashboard.tsx
   portal/                   CustomerDashboard, CustomerProducts, CustomerEnquiries, CustomerQuotes,
-                             CustomerInvoices, CustomerChat, CustomerProfile, CustomerNotifications,
+                             CustomerInvoices, CustomerProfile, CustomerNotifications,
                              Register, RequestForm
   public/Inventory.tsx      unauthenticated RFQ/inventory landing page (undocumented 4th domain)
 store/                      useAuthStore, useCartStore, useSidebarStore, useThemeStore,
-                             useBreadcrumbStore, useChatWidgetStore
-types/index.ts               ~324 lines of shared domain types
+                             useBreadcrumbStore
+                            (Chat.tsx, CustomerChat.tsx, BulkImport.tsx, useChatWidgetStore removed)
+types/index.ts               shared domain types (ChatRoom/ChatMessage removed)
 ```
 
 ### 4.2 Routing (`App.tsx`)
@@ -174,13 +177,13 @@ Classic `<Routes>/<Route>` tree (react-router-dom v7), no code splitting.
 
 /saas-admin/*  (AdminRoute) → dashboard, companies, system-docs, activities, settings
 /workspace/*   (AdminRoute) → dashboard, customers(+:id), suppliers(+:id), products, enquiries,
-                                quotes(+:id), invoices(+:id), payment-receipts, chat, bulk-import,
+                                quotes(+:id), invoices(+:id), payment-receipts,
                                 users, settings, notifications, customers/import, attendance
 /admin, /staff → redirect to /workspace   (legacy compat)
 
 /portal        (CustomerRoute)
   /portal            → PortalRedirect (derives company slug, redirects to /portal/:slug/dashboard)
-  /portal/:company/* → dashboard, products, request-form, enquiries, quotes, invoices, chat, profile, notifications
+  /portal/:company/* → dashboard, products, request-form, enquiries, quotes, invoices, profile, notifications
 
 *  → NotFound
 ```
@@ -198,7 +201,7 @@ Classic `<Routes>/<Route>` tree (react-router-dom v7), no code splitting.
   - `useResourceMutation(resource, extraKeys)` → `{ create, update, remove, bulkUpdate }`, auto-invalidates queries + fires `sonner` toasts
   - `usePublicResourceList<T>(resource, params)` → `GET /public/{resource}`
   - Consumed directly and via `components/shared/ResourceListingPage.tsx` (used by 11 pages).
-- Other stores: `useCartStore` (RFQ cart), `useSidebarStore`, `useThemeStore`, `useBreadcrumbStore`, `useChatWidgetStore`.
+- Other stores: `useCartStore` (RFQ cart), `useSidebarStore`, `useThemeStore`, `useBreadcrumbStore`.
 
 ### 4.4 API/HTTP layer (`lib/axios.ts`)
 - `baseURL` = `VITE_API_BASE_URL` or `http://localhost:8000/api`; `withCredentials: true`.
@@ -208,14 +211,14 @@ Classic `<Routes>/<Route>` tree (react-router-dom v7), no code splitting.
 
 ### 4.5 Auth & RBAC on the frontend
 `components/auth/ProtectedRoute.tsx`:
-- **`AdminRoute`** — redirects unauthenticated users appropriately; bounces `super_admin` away from `/workspace/*` to `/saas-admin/dashboard` and non-super-admins away from `/saas-admin/*` to `/workspace/dashboard`. For regular staff inside `/workspace/*`, gates by path segment against a hardcoded `publicModules` allowlist (`dashboard, settings, chat, profile, notifications`), a hardcoded `adminOnlyModules` blocklist (`users, bulk-import, activities, companies, system-docs`), and otherwise requires `admin.permissions.includes(path)`.
+- **`AdminRoute`** — redirects unauthenticated users appropriately; bounces `super_admin` away from `/workspace/*` to `/saas-admin/dashboard` and non-super-admins away from `/saas-admin/*` to `/workspace/dashboard`. For regular staff inside `/workspace/*`, gates by path segment against a hardcoded `publicModules` allowlist (`dashboard, settings, profile, notifications`), a hardcoded `adminOnlyModules` blocklist (`users, activities, companies, system-docs`), and otherwise requires `admin.permissions.includes(path)`.
 - **`CustomerRoute`** — redirects if no `customer` or `customer.is_portal_active === false`.
-- `Sidebar.tsx` builds nav per role (`getSuperAdminNavGroups`, `getTenantAdminNavGroups`, `getTenantStaffNavGroups` — filtered by `permissions`, `getCustomerNavGroups` — parameterized by company slug).
+- `Sidebar.tsx` builds nav per role (`getSuperAdminNavGroups`, `getTenantAdminNavGroups`, `getTenantStaffNavGroups` — filtered by `permissions`, `getCustomerNavGroups` — parameterized by company slug). Nav groups are `{ label, items }`; the tenant-admin sidebar groups are Overview / Management / Operations / **Workforce** (Attendance) / System.
 
 **Reminder:** this permission gating is UX only — the backend does not re-check `permissions` server-side (§3.6). Do not treat frontend route guards as a security boundary.
 
 ### 4.6 Mock data status
-`lib/mockData.ts` exists but every exported array is empty and **nothing imports it** anywhere in `frontend/src` (verified by repo-wide grep). All business pages (Customers, Enquiries, Quotes, Invoices, Products, Suppliers, Dashboard, Chat, Attendance) are fully wired to live `react-query` + `axios` calls against the Laravel API. Any doc (e.g. `ROADMAP.md`) claiming these are "mock data shells" is **stale** — that migration is complete.
+`lib/mockData.ts` exists but every exported array is empty and **nothing imports it** anywhere in `frontend/src` (verified by repo-wide grep). All business pages (Customers, Enquiries, Quotes, Invoices, Products, Suppliers, Dashboard, Attendance) are fully wired to live `react-query` + `axios` calls against the Laravel API — that migration is complete.
 
 ### 4.7 Design system
 Tailwind v4 CSS-first config in `src/index.css` — three coexisting token layers: `--brand-*` (current design system), legacy `--admin-*` (kept for "graceful degradation" during an apparent in-progress token migration), and shadcn-standard HSL tokens (`--background`, `--primary`, etc. for `components/ui/*`). Brand accent violet `#8B5CF6`. Mobile-specific CSS (16px inputs to prevent iOS zoom, safe-area padding) supports `MobileBottomNav.tsx`.

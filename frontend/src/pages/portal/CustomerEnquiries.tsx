@@ -6,6 +6,8 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { MessageSquareText, Package, Loader2, Calendar, ChevronRight, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SEO } from '@/components/shared/SEO';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { EmptyState } from '@/components/shared/EmptyState';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 export const CustomerEnquiries = () => {
@@ -48,29 +50,24 @@ export const CustomerEnquiries = () => {
     <div className="space-y-8 pb-20">
       <SEO title="My Enquiries" description="View and track your product enquiries." />
       
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">My Enquiries</h1>
-          <p className="text-slate-500 text-sm mt-1">Track the status of your procurement requests.</p>
-        </div>
-        <Button onClick={() => navigate(`/portal/${company}/products`)} className="bg-zeronix-blue hover:bg-zeronix-blue-hover text-white h-10 px-6 font-bold shadow-lg shadow-zeronix-blue/20">
-          <MessageSquareText size={18} className="mr-2" /> New Enquiry
-        </Button>
-      </div>
+      <PageHeader
+        title="My Enquiries"
+        description="Track the status of your procurement requests."
+        action={
+          <Button onClick={() => navigate(`/portal/${company}/products`)} className="bg-zeronix-blue hover:bg-zeronix-blue-hover text-white h-10 px-6 font-bold shadow-lg shadow-zeronix-blue/20">
+            <MessageSquareText size={18} className="mr-2" /> New Enquiry
+          </Button>
+        }
+      />
 
       {enquiries.length === 0 ? (
-        <div className="bg-admin-surface border border-admin-border rounded-2xl p-20 text-center shadow-sm">
-          <div className="w-24 h-24 bg-admin-bg rounded-full flex items-center justify-center mb-8 mx-auto border border-admin-border">
-            <MessageSquareText size={48} className="text-admin-text-muted/30" />
-          </div>
-          <h3 className="text-2xl font-bold text-admin-text-primary mb-3 uppercase tracking-tight">No Enquiries Yet</h3>
-          <p className="text-admin-text-secondary mb-10 max-w-sm mx-auto leading-relaxed">
-            Start browsing our product catalog to request quotes for your enterprise hardware needs.
-          </p>
-          <Button onClick={() => navigate(`/portal/${company}/products`)} className="h-12 px-8 bg-zeronix-blue hover:bg-zeronix-blue-hover text-white font-bold shadow-lg shadow-zeronix-blue/20">
-            Create your first enquiry
-          </Button>
-        </div>
+        <EmptyState
+          icon={MessageSquareText}
+          title="No Enquiries Yet"
+          description="Start browsing our product catalog to request quotes for your enterprise hardware needs."
+          actionLabel="Create your first enquiry"
+          onAction={() => navigate(`/portal/${company}/products`)}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {enquiries.map((enq: any) => {

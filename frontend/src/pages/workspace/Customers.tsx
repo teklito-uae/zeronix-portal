@@ -10,7 +10,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
-import { UserPlus, Download, Upload, Search, Building2, MoreHorizontal, ArrowRight, Users, Mail, Phone, Loader2, User as UserIcon } from 'lucide-react';
+import { UserPlus, Download, Upload, Search, Building2, MoreHorizontal, ArrowRight, Users, Mail, Phone, User as UserIcon } from 'lucide-react';
+import { Spinner } from '@/components/shared/Spinner';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import Avatar from 'boring-avatars';
 import { ActionGroup } from '@/components/shared/ActionGroup';
@@ -484,7 +485,7 @@ export const Customers = () => {
               disabled={!form.name || create.isPending || update.isPending}
               className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover min-w-[140px] rounded-xl font-bold shadow-lg shadow-zeronix-blue/20"
             >
-              {(create.isPending || update.isPending) ? <Loader2 className="h-4 w-4 animate-spin" /> : (editingCustomer ? 'Update Profile' : 'Register Client')}
+              {(create.isPending || update.isPending) ? <Spinner size={16} /> : (editingCustomer ? 'Update Profile' : 'Register Client')}
             </Button>
           </DialogFooter>
         </DialogContent>

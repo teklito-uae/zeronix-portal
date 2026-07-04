@@ -14,11 +14,12 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-import { 
-  Shield, Mail, Phone, Loader2, UserCog, CheckCircle2, Lock, Download,
-  LayoutDashboard, Users as UsersIcon, MessageSquareText, FileText, 
-  Receipt, Package, Truck, Clock, MessageCircle, Upload, Activity, Banknote
+import {
+  Shield, Mail, Phone, UserCog, CheckCircle2, Lock, Download,
+  LayoutDashboard, Users as UsersIcon, MessageSquareText, FileText,
+  Receipt, Package, Truck, Clock, Activity, Banknote
 } from 'lucide-react';
+import { Spinner } from '@/components/shared/Spinner';
 import type { User } from '@/types';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import { ActionGroup } from '@/components/shared/ActionGroup';
@@ -37,8 +38,6 @@ const AVAILABLE_MODULES = [
   { id: 'products', label: 'Inventory Management', icon: Package, desc: 'Manage product catalog' },
   { id: 'suppliers', label: 'Supplier Network', icon: Truck, desc: 'Manage vendor relationships' },
   { id: 'attendance', label: 'Attendance', icon: Clock, desc: 'Timesheets & clock-in' },
-  { id: 'chat', label: 'Internal Chat', icon: MessageCircle, desc: 'Team communication' },
-  { id: 'bulk-import', label: 'Bulk Import', icon: Upload, desc: 'Mass import data' },
   { id: 'activities', label: 'Activities Log', icon: Activity, desc: 'System audit trails' },
   { id: 'users', label: 'Team Management', icon: UsersIcon, desc: 'Manage staff accounts' },
 ];
@@ -379,7 +378,7 @@ export const Users = () => {
                 disabled={create.isPending || update.isPending || !form.name || !form.email || (!editId && !form.password)}
                 className="flex-1 bg-brand-primary text-brand-white hover:opacity-90 h-[36px] rounded-lg font-medium text-[13px] shadow-sm transition-all"
               >
-                {(create.isPending || update.isPending) ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
+                {(create.isPending || update.isPending) ? <Spinner size={16} className="mr-2" /> : null}
                 {editId ? 'Update Access' : 'Create User'}
               </Button>
             </DialogFooter>

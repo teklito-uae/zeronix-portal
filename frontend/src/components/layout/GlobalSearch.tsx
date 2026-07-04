@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Users, Package, MessageSquare, FileText,
-  Receipt, CreditCard, Settings, Activity, Truck, Import,
+  Receipt, CreditCard, Settings, Activity, Truck,
   User, Clock, Search, ArrowRight, Loader2, X,
 } from 'lucide-react';
 
@@ -47,7 +47,6 @@ const getNavItems = (): ResultItem[] => [
   { id: 'nav-usr',   label: 'Users',              href: `${getBasePath()}/users`,              icon: <User size={14} />,            group: 'Navigation' },
   { id: 'nav-act',   label: 'Activities',         href: `${getBasePath()}/activities`,         icon: <Activity size={14} />,        group: 'Navigation' },
   { id: 'nav-set',   label: 'Settings',           href: `${getBasePath()}/settings`,           icon: <Settings size={14} />,        group: 'Navigation' },
-  { id: 'nav-bulk',  label: 'Bulk Import',        href: `${getBasePath()}/bulk-import`,        icon: <Import size={14} />,          group: 'Navigation' },
 ];
 
 // ── Component ──────────────────────────────────────────────────────────────────

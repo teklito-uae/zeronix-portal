@@ -5,12 +5,13 @@ import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import { SEO } from '@/components/shared/SEO';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { PageLoader } from '@/components/shared/PageLoader';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 import { StaffDashboard } from './staff/StaffDashboard';
 import {
   FileText, MessageSquare, TrendingUp, Building2, Banknote,
-  Loader2, Package, Receipt, Users, Activity,
+  Package, Receipt, Users, Activity,
   AlertCircle, ArrowRight, User, CreditCard,
   Search, Mail, Calendar, Bell, Sun, Moon
 } from 'lucide-react';
@@ -96,12 +97,7 @@ const AdminDashboard = () => {
   ], [totals]);
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[300px] gap-2">
-        <Loader2 className="animate-spin text-zeronix-blue" size={22} />
-        <p className="text-sm text-brand-subtle">Loading dashboard…</p>
-      </div>
-    );
+    return <PageLoader label="Loading dashboard…" iconSize={22} className="min-h-[300px] gap-2" />;
   }
 
   if (error || !data) {

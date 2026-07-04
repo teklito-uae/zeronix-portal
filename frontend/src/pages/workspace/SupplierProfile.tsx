@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { SupplierProduct } from '@/types';
-import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
@@ -13,6 +12,7 @@ import { DataTable } from '@/components/shared/DataTable';
 import { CopyableText } from '@/components/shared/CopyableText';
 import { ActionGroup } from '@/components/shared/ActionGroup';
 import { ProductModal } from '@/components/shared/ProductModal';
+import { PageLoader } from '@/components/shared/PageLoader';
 import Avatar from 'boring-avatars';
 import { useThemeStore } from '@/store/useThemeStore';
 import { Mail, Phone, Globe, MapPin, UserCircle, Package } from 'lucide-react';
@@ -55,12 +55,7 @@ export const SupplierProfile = () => {
   const products = productsResult?.data || [];
 
   if (isLoading && page === 1) {
-    return (
-      <div className="flex flex-col items-center justify-center h-96 gap-3">
-        <Loader2 className="h-10 w-10 animate-spin text-zeronix-blue" />
-        <p className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted">Establishing Secure Link...</p>
-      </div>
-    );
+    return <PageLoader label="Establishing Secure Link..." iconSize={40} className="h-96 gap-3" />;
   }
 
   if (!supplier) {

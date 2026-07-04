@@ -25,9 +25,7 @@ graph TB
     end
 
     DB[(MySQL/SQLite\ncompanies + company_id-scoped tables)]
-    Pusher[[Pusher — realtime broadcast]]
     SMTP[[Per-user SMTP — outbound mail]]
-    IMAP[[IMAP inbox — inbound sync]]
 
     SAdmin -- "axios (Sanctum bearer)" --> Routes
     Workspace -- "axios (Sanctum bearer)" --> Routes
@@ -40,11 +38,10 @@ graph TB
     Controllers --> Models
     Models --> Traits
     Traits --> DB
-    Controllers -. "broadcast events" .-> Pusher
-    Pusher -. "laravel-echo/pusher-js" .-> Client
     Services -- "MailConfigService" --> SMTP
-    IMAP -- "SyncCustomerEmails (cron)" --> Controllers
 ```
+
+> Note: the Chat module (Pusher/Echo realtime broadcasting) and the IMAP `SyncCustomerEmails` cron were removed 2026-07-05; the app no longer has a realtime or inbound-email path. Notification badges refresh via axios response-interceptor refetch (see §6), not websockets.
 
 **Key facts baked into this diagram:**
 - Both `/saas-admin` and `/workspace` frontends call the **same** `/admin/*` backend routes — the axios request interceptor rewrites both prefixes to `/admin/` before the call leaves the browser. Role separation happens via the bearer token, not the URL.
@@ -71,15 +68,14 @@ graph TD
     subgraph "Tenant Workspace — Internal Staff"
         C --> C1[CRM: Customers, Labels]
         C --> C2[Sales: Enquiries -> Quotes -> Invoices -> Payment Receipts]
-        C --> C3[Catalog: Products, Suppliers, Bulk/Customer Import]
-        C --> C4[Ops: Chat, Attendance, Tasks, Sticky Notes, Users]
+        C --> C3[Catalog: Products, Suppliers, Customer Import]
+        C --> C4[Ops: Attendance Workforce, Tasks, Sticky Notes, Users]
     end
 
     subgraph "Customer Portal — External Client"
         D --> D1[Dashboard]
         D --> D2[Quotes / Invoices — view, download PDF, accept/reject]
         D --> D3[Enquiries — submit, track]
-        D --> D4[Chat with assigned salesman]
     end
 ```
 
@@ -98,7 +94,6 @@ sequenceDiagram
     participant QC as QuoteController
     participant TR as BelongsToCompany / HasUserScope
     participant DB as Database
-    participant PS as Pusher (optional)
 
     U->>FE: Submit "New Quote" form
     FE->>AX: POST /workspace/quotes
@@ -114,10 +109,7 @@ sequenceDiagram
     AX-->>FE: response
     FE->>FE: react-query invalidates ['quotes'], ['admin-dashboard']
     FE-->>U: toast success, list refetches
-    opt notification
-        QC-->>PS: broadcast (e.g. notification event)
-        PS-->>FE: laravel-echo receives, refetch ['unread-notifications']
-    end
+    Note over AX,FE: axios response interceptor also refetches ['unread-notifications', role]
 ```
 
 ---
@@ -212,7 +204,6 @@ graph TD
 
     AuthStore[store/useAuthStore\nzustand + manual localStorage] -.token.-> Axios
     Axios -->|refetch on success| Notif[['unread-notifications', role]]
-    Echo[lib/echo.ts — Pusher/Laravel Echo] -.realtime.-> RQ
 ```
 
 ---
@@ -245,12 +236,12 @@ sequenceDiagram
 
 ## 8. Known structural risks (see `PROJECT_KNOWLEDGE.md` for full detail)
 
-1. **Duplicate route registration** — `/admin/attendance/report` resolves to the wrong controller action due to a later duplicate route definition shadowing the first.
-2. **No API Resource/Middleware/Request layer** — all validation and serialization is inline in controllers; changes to response shape require touching every controller individually.
-3. **`permissions` enforcement is frontend-only** — the backend does not re-check the `users.permissions` JSON column; treat it as UX polish, not a security boundary.
-4. **`.env.example` is out of sync** — missing Pusher, IMAP, and `FRONTEND_URL` vars that the app requires at runtime.
-5. **No automated tests** on either side of the stack.
-6. **In-flight rename** — `/admin`+`/staff` → `/workspace`, legacy CSS token layer, possibly-dead `CustomerLayout.tsx` — verify before removing anything that looks like leftover scaffolding.
+1. **No API Resource/Middleware/Request layer** — all validation and serialization is inline in controllers; changes to response shape require touching every controller individually.
+2. **`permissions` enforcement is frontend-only** — the backend does not re-check the `users.permissions` JSON column; treat it as UX polish, not a security boundary.
+3. **`.env.example` is out of sync** — missing `FRONTEND_URL` (and, until pruned, stale Pusher/IMAP vars) relative to what the app requires at runtime.
+4. **No automated tests** on either side of the stack.
+5. **In-flight rename** — `/admin`+`/staff` → `/workspace`, legacy CSS token layer, possibly-dead `CustomerLayout.tsx` — verify before removing anything that looks like leftover scaffolding.
+6. **Orphaned artifacts from the 2026-07-05 Chat/Bulk-Import removal** — unused `chat_conversations`/`chat_messages` tables (migrations retained), and now-unused deps (`pusher/pusher-php-server`, `webklex/laravel-imap`, `laravel-echo`, `pusher-js`) plus `MailConfigService`'s dead IMAP helper — safe to prune in a follow-up.
 
 ---
 

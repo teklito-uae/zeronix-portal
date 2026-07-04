@@ -6,10 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import api from '@/lib/axios';
-import { 
-  Mail, 
-  Loader2, 
-  Save, 
+import { Spinner } from '@/components/shared/Spinner';
+import {
+  Mail,
+  Save,
   ArrowUpRight, 
   ArrowDownLeft, 
   User, 
@@ -340,12 +340,12 @@ export const Settings = () => {
                         const input = document.getElementById('test-email-input') as HTMLInputElement;
                         testMailMutation.mutate(input?.value || undefined);
                       }} disabled={testMailMutation.isPending} className="h-9 self-end border-admin-border">
-                      {testMailMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}
+                      {testMailMutation.isPending ? <Spinner size={16} /> : <Mail size={16} />}
                       <span className="ml-2 hidden sm:inline text-xs">Test Email</span>
                     </Button>
                   </div>
                   <Button type="submit" disabled={saveEmailMutation.isPending} className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover h-11 px-8 rounded-xl w-full sm:w-auto shadow-lg shadow-zeronix-blue/20">
-                    {saveEmailMutation.isPending ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                    {saveEmailMutation.isPending ? <Spinner size={18} /> : <Save size={18} />}
                     <span className="ml-2 font-medium">Save All Changes</span>
                   </Button>
                 </div>
@@ -377,7 +377,7 @@ export const Settings = () => {
                     </DialogContent>
                   </Dialog>
                   <Button onClick={handleTemplateSave} disabled={updateTemplateMutation.isPending} className="flex-1 md:flex-none bg-zeronix-blue text-white hover:bg-zeronix-blue-hover h-10 px-8 rounded-xl shadow-lg shadow-zeronix-blue/20">
-                    {updateTemplateMutation.isPending ? <Loader2 size={16} className="animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
+                    {updateTemplateMutation.isPending ? <Spinner size={16} className="mr-2" /> : <Save size={16} className="mr-2" />}
                     Save Template
                   </Button>
                 </div>

@@ -12,10 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Search, Loader2, Filter, X, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Mail, Calendar, Bell, Sun, Moon } from 'lucide-react';
+import { Plus, Search, Filter, X, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Mail, Calendar, Bell, Sun, Moon } from 'lucide-react';
 import { useThemeStore } from '@/store/useThemeStore';
 import { cn } from '@/lib/utils';
 import { SEO } from './SEO';
+import { PageLoader } from './PageLoader';
+import { EmptyState } from './EmptyState';
 
 interface FilterConfig {
   name: string;
@@ -355,27 +357,19 @@ export function ResourceListingPage<T extends { id: number }>({
         {customContent ? (
           customContent
         ) : isLoading && page === 1 ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3 min-h-[300px]">
-            <Loader2 className="h-8 w-8 animate-spin text-brand-primary" />
-            <p className="text-[13px] font-medium text-brand-subtle animate-pulse">Loading data...</p>
-          </div>
+          <PageLoader label="Loading data..." iconSize={32} className="h-full min-h-[300px] gap-3" />
         ) : data.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-center">
-            <div className="p-4 bg-brand-surface rounded-full mb-4 text-brand-subtle">
-              <Search size={32} />
-            </div>
-            <h3 className="text-[16px] font-semibold text-brand-primary mb-1">No results found</h3>
-            <p className="text-[13px] text-brand-subtle max-w-sm mx-auto">
-              {search || Object.values(activeFilters).some(v => v !== '')
+          <EmptyState
+            icon={Search}
+            title="No results found"
+            description={
+              search || Object.values(activeFilters).some(v => v !== '')
                 ? "We couldn't find any results matching your filters. Try adjusting your search."
-                : `Start by creating your first ${title}.`}
-            </p>
-            {hasActiveFilters && (
-              <Button variant="outline" onClick={clearFilters} className="mt-4 text-[13px]">
-                Clear all filters
-              </Button>
-            )}
-          </div>
+                : `Start by creating your first ${title}.`
+            }
+            actionLabel={hasActiveFilters ? 'Clear all filters' : undefined}
+            onAction={hasActiveFilters ? clearFilters : undefined}
+          />
         ) : (
           <DataTable
             columns={columns}

@@ -13,8 +13,6 @@ import {
   MessageSquareText,
   FileText,
   Receipt,
-  MessageCircle,
-  Upload,
   Settings,
   Activity,
   Menu,
@@ -41,14 +39,14 @@ const getAdminPrimaryTabs = (basePath: string) => [
   { id: 'dashboard', label: 'Home', icon: LayoutDashboard, path: `${basePath}/dashboard` },
   { id: 'enquiries', label: 'Enquiries', icon: MessageSquareText, path: `${basePath}/enquiries` },
   { id: 'quotes', label: 'Quotes', icon: FileText, path: `${basePath}/quotes` },
-  { id: 'chat', label: 'Chat', icon: MessageCircle, path: `${basePath}/chat` },
+  { id: 'invoices', label: 'Invoices', icon: Receipt, path: `${basePath}/invoices` },
 ];
 
 const getCustomerPrimaryTabs = (slug: string) => [
   { id: 'dashboard', label: 'Home', icon: LayoutDashboard, path: `/portal/${slug}/dashboard` },
   { id: 'products', label: 'Catalog', icon: Package, path: `/portal/${slug}/products` },
   { id: 'enquiries', label: 'Requests', icon: MessageSquareText, path: `/portal/${slug}/enquiries` },
-  { id: 'chat', label: 'Chat', icon: MessageCircle, path: `/portal/${slug}/chat` },
+  { id: 'quotes', label: 'Quotes', icon: FileText, path: `/portal/${slug}/quotes` },
 ];
 
 // Full grouped navigation for the drawer
@@ -66,8 +64,6 @@ const getAdminDrawerGroups = (basePath: string): NavGroup[] => [
       { id: 'suppliers', label: 'Suppliers', icon: Truck, path: `${basePath}/suppliers` },
       { id: 'products', label: 'Products', icon: Package, path: `${basePath}/products` },
       { id: 'users', label: 'Team', icon: Users, path: `${basePath}/users`, adminOnly: true },
-      { id: 'bulk-import', label: 'Bulk Import', icon: Upload, path: `${basePath}/bulk-import`, adminOnly: true },
-      { id: 'attendance', label: 'Attendance', icon: Clock, path: `${basePath}/attendance`, adminOnly: true },
     ],
   },
   {
@@ -80,9 +76,9 @@ const getAdminDrawerGroups = (basePath: string): NavGroup[] => [
     ],
   },
   {
-    label: 'Communication',
+    label: 'Workforce',
     items: [
-      { id: 'chat', label: 'Chat', icon: MessageCircle, path: `${basePath}/chat` },
+      { id: 'attendance', label: 'Attendance', icon: Clock, path: `${basePath}/attendance`, adminOnly: true },
     ],
   },
   {
@@ -108,12 +104,6 @@ const getCustomerDrawerGroups = (slug: string): NavGroup[] => [
       { id: 'enquiries', label: 'My Enquiries', icon: MessageSquareText, path: `/portal/${slug}/enquiries` },
       { id: 'quotes', label: 'Quotes', icon: FileText, path: `/portal/${slug}/quotes` },
       { id: 'invoices', label: 'Invoices', icon: Receipt, path: `/portal/${slug}/invoices` },
-    ],
-  },
-  {
-    label: 'Communication',
-    items: [
-      { id: 'chat', label: 'Chat Support', icon: MessageCircle, path: `/portal/${slug}/chat` },
     ],
   },
 ];
@@ -159,7 +149,6 @@ export const MobileBottomNav = ({ isVisible = true }: { isVisible?: boolean }) =
     items: group.items.filter(item => {
       if (adminUser?.role === 'admin') return true;
       if (item.id === 'dashboard') return true;
-      if (item.id === 'chat') return true;
       if (item.id === 'settings') return true;
       return adminUser?.permissions?.includes(item.id);
     })

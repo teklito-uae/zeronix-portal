@@ -17,13 +17,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { PageLoader } from '@/components/shared/PageLoader';
 import { useResourceMutation } from '@/hooks/useApi';
 import Avatar from 'boring-avatars';
 import { useThemeStore } from '@/store/useThemeStore';
 
 import type { ColumnDef } from '@tanstack/react-table';
 import type { Enquiry, Quote, Invoice } from '@/types';
-import { Mail, Phone, Building2, Calendar, FileText, MessageSquare, Receipt, Loader2, MapPin, ShieldCheck, Wallet, ArrowUpRight, Edit, User as UserIcon } from 'lucide-react';
+import { Mail, Phone, Building2, Calendar, FileText, MessageSquare, Receipt, MapPin, ShieldCheck, Wallet, ArrowUpRight, Edit, User as UserIcon } from 'lucide-react';
+import { Spinner } from '@/components/shared/Spinner';
 
 
 export const CustomerProfile = () => {
@@ -86,12 +88,7 @@ export const CustomerProfile = () => {
   });
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-96 gap-3">
-        <Loader2 className="animate-spin text-zeronix-blue" size={32} />
-        <p className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted">Analyzing Relationship Data...</p>
-      </div>
-    );
+    return <PageLoader label="Analyzing Relationship Data..." iconSize={32} className="h-96 gap-3" />;
   }
 
   if (error || !data) return null;
@@ -225,7 +222,7 @@ export const CustomerProfile = () => {
                    disabled={registerPortalMutation.isPending}
                    className="h-[36px] rounded-lg bg-brand-success hover:bg-brand-success/90 text-white px-5 font-medium text-[12px] shadow-sm gap-2"
                  >
-                   {registerPortalMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
+                   {registerPortalMutation.isPending ? <Spinner size={14} /> : <ShieldCheck size={14} />}
                    Initialize Access
                  </Button>
                ) : (
@@ -262,9 +259,6 @@ export const CustomerProfile = () => {
             </TabsTrigger>
             <TabsTrigger value="quotes" className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-brand-accent data-[state=active]:bg-transparent data-[state=active]:text-brand-primary data-[state=active]:shadow-none text-brand-subtle hover:text-brand-primary px-1 font-semibold text-[13px] flex items-center gap-2 transition-colors">
               <Receipt size={16} className="text-brand-success" /> Financial Ledger
-            </TabsTrigger>
-            <TabsTrigger value="chat" className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-brand-accent data-[state=active]:bg-transparent data-[state=active]:text-brand-primary data-[state=active]:shadow-none text-brand-subtle hover:text-brand-primary px-1 font-semibold text-[13px] flex items-center gap-2 transition-colors">
-              <MessageSquare size={16} className="text-brand-warning" /> Client Chat
             </TabsTrigger>
           </TabsList>
 
@@ -352,14 +346,6 @@ export const CustomerProfile = () => {
             </div>
           </div>
         </TabsContent>
-
-        <TabsContent value="chat" className="p-6 m-0 border-none outline-none flex-1 overflow-auto">
-          <div className="bg-brand-white border border-brand-border/50 rounded-xl p-12 flex flex-col items-center justify-center text-center shadow-sm">
-            <MessageSquare size={48} className="text-brand-border mb-4" />
-            <h3 className="text-[14px] font-semibold text-brand-primary">Communications Hub</h3>
-            <p className="text-[13px] text-brand-subtle max-w-xs mt-1">Messaging is currently in development.</p>
-          </div>
-        </TabsContent>
       </Tabs>
       </div>
 
@@ -405,7 +391,7 @@ export const CustomerProfile = () => {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setEditOpen(false)} className="text-[13px] font-medium">Cancel</Button>
             <Button onClick={handleUpdate} disabled={update.isPending} className="bg-brand-primary text-brand-white hover:opacity-90 rounded-lg text-[13px] font-medium px-6">
-              {update.isPending ? <Loader2 className="animate-spin mr-2" size={14} /> : null} Sync Changes
+              {update.isPending ? <Spinner className="mr-2" size={14} /> : null} Sync Changes
             </Button>
           </DialogFooter>
         </DialogContent>

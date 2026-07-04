@@ -14,7 +14,8 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import type { Product } from '@/types';
-import { Plus, Loader2, Package } from 'lucide-react';
+import { Plus, Package } from 'lucide-react';
+import { Spinner } from '@/components/shared/Spinner';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { useResourceMutation } from '@/hooks/useApi';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
@@ -273,7 +274,7 @@ export const Products = () => {
                 disabled={(!bulkUpdateForm.brand_id && !bulkUpdateForm.category_id) || bulkUpdate.isPending}
                 className="bg-brand-primary text-brand-white hover:opacity-90 rounded-lg text-[13px] font-medium px-6 shadow-sm"
               >
-                {bulkUpdate.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null} Apply Updates
+                {bulkUpdate.isPending ? <Spinner size={16} className="mr-2" /> : null} Apply Updates
               </Button>
             </DialogFooter>
           </div>

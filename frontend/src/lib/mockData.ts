@@ -1,6 +1,6 @@
-import type { 
-  Customer, Brand, Category, Supplier, Product, Enquiry, SupplierProduct, 
-  Quote, QuoteItem, Invoice, InvoiceItem, ChatRoom, ChatMessage 
+import type {
+  Customer, Brand, Category, Supplier, Product, Enquiry, SupplierProduct,
+  Quote, QuoteItem, Invoice, InvoiceItem
 } from '@/types';
 
 // ── Mock Customers ─────────────────────────────────────
@@ -31,7 +31,3 @@ export const mockQuoteItems: QuoteItem[] = [];
 // ── Mock Invoices ──────────────────────────────────────
 export const mockInvoices: Invoice[] = [];
 export const mockInvoiceItems: InvoiceItem[] = [];
-
-// ── Mock Chat Data ──────────────────────────────────────
-export const mockChatRooms: ChatRoom[] = [];
-export const mockChatMessages: ChatMessage[] = [];

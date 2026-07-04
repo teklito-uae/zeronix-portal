@@ -4,6 +4,8 @@ import { SEO } from '@/components/shared/SEO';
 import { useCartStore } from '@/store/useCartStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import { Logo } from '@/components/shared/Logo';
+import { PageLoader } from '@/components/shared/PageLoader';
+import { EmptyState } from '@/components/shared/EmptyState';
 import { 
   Search, 
   Loader2,
@@ -460,10 +462,11 @@ export const PublicInventory = () => {
           {/* Main Content */}
           <main className="flex-1 min-w-0">
             {productsLoading ? (
-              <div className="flex flex-col items-center justify-center py-40 gap-4">
-                <Loader2 className="animate-spin text-zeronix-blue h-10 w-10" />
-                <p className="text-sm font-medium text-admin-text-muted animate-pulse uppercase tracking-widest">Loading Catalog...</p>
-              </div>
+              <PageLoader
+                label="Loading Catalog..."
+                iconSize={40}
+                className="py-40 gap-4"
+              />
             ) : products.length > 0 ? (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -568,21 +571,13 @@ export const PublicInventory = () => {
                 </div>
               </>
             ) : (
-              <div className="flex flex-col items-center justify-center py-32 bg-admin-surface border border-dashed border-admin-border rounded-[2rem]">
-                <div className="h-16 w-16 bg-admin-bg rounded-2xl flex items-center justify-center mb-6 border border-admin-border shadow-inner">
-                  <X size={24} className="text-admin-text-muted/30" />
-                </div>
-                <h3 className="text-lg font-bold text-admin-text-primary mb-2">No hardware found</h3>
-                <p className="text-admin-text-secondary text-[11px] max-w-xs text-center leading-relaxed mb-8">
-                  Try adjusting your filters or search terms to find what you're looking for.
-                </p>
-                <Button 
-                  onClick={() => { setSearchInput(''); setSelectedCategory(null); setSelectedBrand(null); setPage(1); }}
-                  className="bg-zeronix-blue hover:bg-zeronix-blue-hover text-white px-8 h-10 rounded-xl font-black uppercase tracking-widest text-[10px]"
-                >
-                  Clear filters
-                </Button>
-              </div>
+              <EmptyState
+                icon={X}
+                title="No hardware found"
+                description="Try adjusting your filters or search terms to find what you're looking for."
+                actionLabel="Clear filters"
+                onAction={() => { setSearchInput(''); setSelectedCategory(null); setSelectedBrand(null); setPage(1); }}
+              />
             )}
           </main>
         </div>

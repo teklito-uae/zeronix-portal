@@ -9,7 +9,6 @@ use App\Http\Controllers\BrandController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProductController;
-use App\Http\Controllers\BulkImportController;
 use App\Http\Controllers\SupplierProductController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\EnquiryController;
@@ -32,15 +31,9 @@ use App\Http\Controllers\Customer\DashboardController as CustomerDashboardContro
 use App\Http\Controllers\Customer\EnquiryController as CustomerEnquiryController;
 use App\Http\Controllers\Customer\ProfileController as CustomerProfileController;
 use App\Http\Controllers\Customer\NotificationController as CustomerNotificationController;
-use App\Http\Controllers\Admin\ChatController as AdminChatController;
-use App\Http\Controllers\Customer\ChatController as CustomerChatController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\StickyNoteController;
-use Illuminate\Support\Facades\Broadcast;
-
-// Allow both Admins and Customers to authenticate for Pusher private channels
-Broadcast::routes(['middleware' => ['auth:sanctum,customer']]);
 
 // Customer Auth Routes (Moved to top for priority)
 Route::prefix('customer')->group(function () {
@@ -78,11 +71,6 @@ Route::prefix('customer')->group(function () {
         Route::get('/notifications/unread', [CustomerNotificationController::class, 'unread']);
         Route::post('/notifications/mark-read', [CustomerNotificationController::class, 'markAsRead']);
         Route::post('/notifications/{id}/mark-read', [CustomerNotificationController::class, 'markOneAsRead']);
-
-        // Chat
-        Route::get('/chat/room', [CustomerChatController::class, 'index']);
-        Route::post('/chat/room/messages', [CustomerChatController::class, 'store']);
-        Route::post('/chat/room/read', [CustomerChatController::class, 'markAsRead']);
     });
 });
 
@@ -177,15 +165,8 @@ foreach (['admin', 'staff'] as $prefix) {
         Route::post('/notifications/mark-read', [NotificationController::class, 'markAsRead']);
         Route::post('/notifications/{id}/mark-read', [NotificationController::class, 'markOneAsRead']);
 
-        // Chat
-        Route::get('/chat/rooms', [AdminChatController::class, 'index']);
-        Route::get('/chat/rooms/{id}/messages', [AdminChatController::class, 'show']);
-        Route::post('/chat/rooms/{id}/messages', [AdminChatController::class, 'store']);
-        Route::post('/chat/rooms/{id}/read', [AdminChatController::class, 'markAsRead']);
-
         // Attendance (for staff/salesman to Clock In / Out)
         Route::get('/attendance/export', [AttendanceController::class, 'export']);
-        Route::get('/attendance/report', [AttendanceController::class, 'report']);
         Route::get('/attendance/status', [AttendanceController::class, 'status']);
         Route::get('/attendance/statistics', [AttendanceController::class, 'statistics']);
         Route::post('/attendance/clock-in', [AttendanceController::class, 'clockIn']);
@@ -215,9 +196,6 @@ Route::prefix('admin')->group(function () {
         Route::post('/products/bulk-update', [ProductController::class, 'bulkUpdate']);
         Route::put('/products/{product}', [ProductController::class, 'update']);
         Route::delete('/products/{product}', [ProductController::class, 'destroy']);
-
-        // Bulk Import (supplier products)
-        Route::post('/bulk-import/sync', [BulkImportController::class, 'sync']);
 
         // Customer Contact Import (admin-only)
         Route::post('/customers/import/preview', [CustomerImportController::class, 'preview']);
@@ -261,8 +239,5 @@ Route::prefix('admin')->group(function () {
         Route::post('/companies/{id}/approve', [CompanyController::class, 'approve']);
         Route::post('/companies/{id}/reject', [CompanyController::class, 'reject']);
         Route::post('/companies/{id}/suspend', [CompanyController::class, 'suspend']);
-
-        // Chat
-        // Moved to shared loop
     });
 });

@@ -42,8 +42,6 @@ const routeLabels: Record<string, string> = {
   users: 'Users',
   settings: 'Settings',
   activities: 'Activities',
-  chat: 'Chat',
-  'bulk-import': 'Bulk Import',
 };
 
 export const Topbar = () => {

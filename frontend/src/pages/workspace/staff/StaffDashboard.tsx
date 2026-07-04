@@ -5,15 +5,17 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  ArrowRight, Loader2, AlertCircle, LogIn, LogOut,
+  ArrowRight, AlertCircle, LogIn, LogOut,
   Users, MessageSquare, FileText, Receipt, Package, DollarSign,
   Search, Bell, Sun, Moon, Mail, Calendar
 } from 'lucide-react';
+import { PageLoader } from '@/components/shared/PageLoader';
+import { Spinner } from '@/components/shared/Spinner';
 
 import {
   FcAreaChart, FcConferenceCall, FcCustomerSupport, FcDocument,
   FcRules, FcMoneyTransfer, FcPackage, FcShipped, FcPlanner,
-  FcSms, FcFlowChart, FcTimeline, FcReading
+  FcTimeline, FcReading
 } from 'react-icons/fc';
 import Avatar from 'boring-avatars';
 import {
@@ -39,8 +41,6 @@ const MODULE_REGISTRY: Record<string, any> = {
   products: { label: 'Products', icon: FcPackage, path: '/products' },
   suppliers: { label: 'Suppliers', icon: FcShipped, path: '/suppliers' },
   attendance: { label: 'Attendance', icon: FcPlanner, path: '/attendance' },
-  chat: { label: 'Chat', icon: FcSms, path: '/chat' },
-  'bulk-import': { label: 'Bulk Import', icon: FcFlowChart, path: '/bulk-import' },
   activities: { label: 'Activities', icon: FcTimeline, path: '/activities' },
   users: { label: 'Team', icon: FcReading, path: '/users' },
 };
@@ -133,10 +133,7 @@ export const StaffDashboard = () => {
 
   // ── Loading / Error ──────────────────────────────────────────────────────
   if (isLoading) return (
-    <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
-      <Loader2 className="animate-spin text-zeronix-blue" size={28} />
-      <p className="text-sm text-brand-subtle animate-pulse">Synchronizing data…</p>
-    </div>
+    <PageLoader label="Synchronizing data…" iconSize={28} className="min-h-[400px] gap-3" />
   );
 
   if (error || !data) return (
@@ -309,7 +306,7 @@ export const StaffDashboard = () => {
                 className="w-full md:w-auto justify-center group flex items-center gap-2 bg-white text-emerald-700 font-semibold text-[13px] px-6 py-3 md:py-2.5 rounded-xl hover:bg-emerald-50 transition-all duration-150 disabled:opacity-60 shadow-lg shadow-emerald-900/20"
               >
                 {clockInMutation.isPending
-                  ? <Loader2 size={16} className="animate-spin" />
+                  ? <Spinner size={16} />
                   : <LogIn size={16} className="group-hover:-translate-x-0.5 transition-transform" />}
                 Clock In
               </button>
@@ -401,7 +398,7 @@ export const StaffDashboard = () => {
               disabled={clockOutMutation.isPending || (clockOutReason === 'Other' && !customReason.trim())}
               className="flex-1 bg-brand-danger hover:bg-red-600 text-white h-9 rounded-lg text-[13px] font-medium"
             >
-              {clockOutMutation.isPending ? <Loader2 className="animate-spin" size={14} /> : 'Confirm Checkout'}
+              {clockOutMutation.isPending ? <Spinner size={14} /> : 'Confirm Checkout'}
             </Button>
           </DialogFooter>
         </DialogContent>

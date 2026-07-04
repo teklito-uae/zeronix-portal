@@ -16,7 +16,8 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import type { Supplier } from '@/types';
-import { Building2, Mail, Phone, Globe, Loader2, UserPlus } from 'lucide-react';
+import { Building2, Mail, Phone, Globe, UserPlus } from 'lucide-react';
+import { Spinner } from '@/components/shared/Spinner';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import { useResourceMutation } from '@/hooks/useApi';
 import { ActionGroup } from '@/components/shared/ActionGroup';
@@ -252,7 +253,7 @@ export const Suppliers = () => {
                 disabled={!form.name || !form.email || create.isPending || update.isPending}
                 className="flex-1 bg-brand-primary text-brand-white hover:opacity-90 h-[36px] rounded-lg font-medium text-[13px] shadow-sm transition-all"
               >
-                {(create.isPending || update.isPending) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                {(create.isPending || update.isPending) ? <Spinner size={16} className="mr-2" /> : null}
                 {editingSupplier ? 'Update Profile' : 'Register Partner'}
               </Button>
             </DialogFooter>

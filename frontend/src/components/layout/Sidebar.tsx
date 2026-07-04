@@ -23,10 +23,8 @@ import {
   MessageSquareText,
   FileText,
   Receipt,
-  MessageCircle,
   ChevronsLeft,
   ChevronsRight,
-  Upload,
   Settings,
   Activity,
   Clock,
@@ -92,8 +90,6 @@ const getTenantAdminNavGroups = (basePath: string): NavGroup[] => [
       { id: 'suppliers', label: 'Suppliers', icon: <Truck size={18} />, path: `${basePath}/suppliers` },
       { id: 'products', label: 'Products', icon: <Package size={18} />, path: `${basePath}/products` },
       { id: 'users', label: 'Team', icon: <Users size={18} />, path: `${basePath}/users` },
-      { id: 'bulk-import', label: 'Bulk Import', icon: <Upload size={18} />, path: `${basePath}/bulk-import` },
-      { id: 'attendance', label: 'Attendance', icon: <Clock size={18} />, path: `${basePath}/attendance` },
     ],
   },
   {
@@ -106,9 +102,9 @@ const getTenantAdminNavGroups = (basePath: string): NavGroup[] => [
     ],
   },
   {
-    label: 'Communication',
+    label: 'Workforce',
     items: [
-      { id: 'chat', label: 'Chat', icon: <MessageCircle size={18} />, path: `${basePath}/chat` },
+      { id: 'attendance', label: 'Attendance', icon: <Clock size={18} />, path: `${basePath}/attendance` },
     ],
   },
   {
@@ -143,12 +139,6 @@ const getTenantStaffNavGroups = (basePath: string): NavGroup[] => [
       { id: 'receipts', label: 'Payment Receipts', icon: <Receipt size={18} />, path: `${basePath}/payment-receipts` },
     ],
   },
-  {
-    label: 'Communication',
-    items: [
-      { id: 'chat', label: 'Chat', icon: <MessageCircle size={18} />, path: `${basePath}/chat` },
-    ],
-  },
 ];
 
 const getCustomerNavGroups = (companySlug: string): NavGroup[] => [
@@ -165,12 +155,6 @@ const getCustomerNavGroups = (companySlug: string): NavGroup[] => [
       { id: 'my-enquiries', label: 'My Enquiries', icon: <MessageSquareText size={18} />, path: `/portal/${companySlug}/enquiries` },
       { id: 'quotes', label: 'Quotes', icon: <FileText size={18} />, path: `/portal/${companySlug}/quotes` },
       { id: 'invoices', label: 'Invoices', icon: <Receipt size={18} />, path: `/portal/${companySlug}/invoices` },
-    ],
-  },
-  {
-    label: 'Communication',
-    items: [
-      { id: 'chat', label: 'Chat Support', icon: <MessageCircle size={18} />, path: `/portal/${companySlug}/chat` },
     ],
   },
 ];
@@ -207,7 +191,6 @@ export const Sidebar = () => {
       ...group,
       items: group.items.filter(item => {
         if (item.id === 'dashboard') return true; // Everyone sees dashboard
-        if (item.id === 'chat') return true; // Chat is generic
         return adminUser.permissions?.includes(item.id);
       })
     })).filter(group => group.items.length > 0);

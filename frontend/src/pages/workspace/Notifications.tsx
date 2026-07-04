@@ -2,8 +2,9 @@ import { getBasePath } from '@/hooks/useBasePath';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import { Button } from '@/components/ui/button';
-import { Bell, CheckCircle2, Loader2, Calendar, Link as LinkIcon, MailOpen, AlertTriangle } from 'lucide-react';
+import { Bell, CheckCircle2, Calendar, Link as LinkIcon, MailOpen, AlertTriangle } from 'lucide-react';
 import { SEO } from '@/components/shared/SEO';
+import { PageLoader } from '@/components/shared/PageLoader';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -75,10 +76,11 @@ export const Notifications = () => {
 
       <div className="space-y-3">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3 bg-admin-surface border border-dashed border-admin-border rounded-xl">
-             <Loader2 size={32} className="animate-spin text-zeronix-blue" />
-             <p className="text-[10px] font-bold text-admin-text-muted uppercase tracking-widest">Loading Notifications...</p>
-          </div>
+          <PageLoader
+            label="Loading Notifications..."
+            iconSize={32}
+            className="py-20 bg-admin-surface border border-dashed border-admin-border rounded-xl"
+          />
         ) : notifications?.notifications?.length > 0 ? (
           notifications.notifications.map((notif: any) => (
             <Card key={notif.id} className={`bg-admin-surface border-admin-border shadow-sm transition-all hover:border-zeronix-blue/20 ${notif.read_at ? 'opacity-70' : 'border-l-4 border-l-zeronix-blue'}`}>

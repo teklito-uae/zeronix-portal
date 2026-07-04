@@ -30,8 +30,6 @@ import { QuoteDetail } from './pages/workspace/QuoteDetail';
 import { Invoices } from './pages/workspace/Invoices';
 import { InvoiceDetail } from './pages/workspace/InvoiceDetail';
 import { PaymentReceipts } from './pages/workspace/PaymentReceipts';
-import { Chat } from './pages/workspace/Chat';
-import { BulkImport } from './pages/workspace/BulkImport';
 import { Users } from './pages/workspace/Users';
 import { Settings as WorkspaceSettings } from './pages/workspace/Settings';
 import { Notifications } from './pages/workspace/Notifications';
@@ -45,7 +43,6 @@ import { CustomerEnquiries } from './pages/portal/CustomerEnquiries';
 import { CustomerDashboard } from './pages/portal/CustomerDashboard';
 import { CustomerQuotes } from './pages/portal/CustomerQuotes';
 import { CustomerInvoices } from './pages/portal/CustomerInvoices';
-import { CustomerChat } from './pages/portal/CustomerChat';
 import { CustomerProfile } from './pages/portal/CustomerProfile';
 import { CustomerNotifications } from './pages/portal/CustomerNotifications';
 
@@ -79,8 +76,6 @@ const WorkspaceRoutes = () => (
     <Route path="invoices" element={<Invoices />} />
     <Route path="invoices/:id" element={<InvoiceDetail />} />
     <Route path="payment-receipts" element={<PaymentReceipts />} />
-    <Route path="chat" element={<Chat />} />
-    <Route path="bulk-import" element={<BulkImport />} />
     <Route path="users" element={<Users />} />
     <Route path="settings" element={<WorkspaceSettings />} />
     <Route path="notifications" element={<Notifications />} />
@@ -183,7 +178,6 @@ function App() {
           <Route path="enquiries" element={<CustomerEnquiries />} />
           <Route path="quotes" element={<CustomerQuotes />} />
           <Route path="invoices" element={<CustomerInvoices />} />
-          <Route path="chat" element={<CustomerChat />} />
           <Route path="profile" element={<CustomerProfile />} />
           <Route path="notifications" element={<CustomerNotifications />} />
           <Route index element={<PortalRedirect />} />

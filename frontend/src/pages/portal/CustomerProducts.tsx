@@ -5,7 +5,7 @@ import type { Product, Category, PaginatedResponse } from '@/types';
 import { DataTable } from '@/components/shared/DataTable';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Search, Loader2, Plus, AlertCircle, Send, Filter } from 'lucide-react';
+import { ShoppingCart, Search, Loader2, Plus, AlertCircle, Filter } from 'lucide-react';
 import { useCartStore } from '@/store/useCartStore';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { SEO } from '@/components/shared/SEO';
+import { EmptyState } from '@/components/shared/EmptyState';
 
 export const CustomerProducts = () => {
   const addItem = useCartStore((state) => state.addItem);
@@ -248,16 +249,13 @@ export const CustomerProducts = () => {
             </div>
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center py-20 text-center px-4 bg-admin-surface/30 rounded-lg border border-dashed border-admin-border">
-            <AlertCircle className="h-10 w-10 text-admin-text-muted/30 mb-4" />
-            <h3 className="text-sm font-bold text-admin-text-primary mb-2">No results found</h3>
-            <p className="text-xs text-admin-text-secondary max-w-[250px] mb-6">
-              Couldn't find what you need? Use the manual enquiry option.
-            </p>
-            <Button onClick={() => setManualModalOpen(true)} className="bg-zeronix-blue text-white h-9 px-6 text-xs font-bold rounded-md gap-2">
-              <Send size={14} /> Manual Request
-            </Button>
-          </div>
+          <EmptyState
+            icon={AlertCircle}
+            title="No results found"
+            description="Couldn't find what you need? Use the manual enquiry option."
+            actionLabel="Manual Request"
+            onAction={() => setManualModalOpen(true)}
+          />
         )}
       </div>
 

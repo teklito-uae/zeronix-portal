@@ -287,29 +287,6 @@ export interface PaginatedResponse<T> {
   total: number;
 }
 
-// ── Chat System ────────────────────────────────────────
-
-export interface ChatRoom {
-  id: number;
-  customer_id: number;
-  last_message?: string;
-  last_message_at?: string;
-  unread_count?: number;
-  customer?: Customer;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface ChatMessage {
-  id: number;
-  chat_conversation_id: number;
-  sender_id?: number; // admin user id if sender_type is user
-  sender_type: 'user' | 'customer';
-  message: string;
-  is_read: boolean;
-  created_at: string;
-  updated_at?: string;
-}
 export interface Template {
   id: number;
   name: string;

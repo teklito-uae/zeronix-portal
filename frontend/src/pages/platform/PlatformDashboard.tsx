@@ -1,7 +1,8 @@
 import React from 'react';
 import { SEO } from '@/components/shared/SEO';
-import { LayoutDashboard, Building2, Activity, Users, ShoppingCart, DollarSign, Loader2 } from 'lucide-react';
+import { LayoutDashboard, Building2, Activity, Users, ShoppingCart, DollarSign } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageLoader } from '@/components/shared/PageLoader';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/axios';
 
@@ -12,11 +13,7 @@ export const PlatformDashboard = () => {
   });
 
   if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="animate-spin text-zeronix-blue h-8 w-8" />
-      </div>
-    );
+    return <PageLoader className="h-screen" iconSize={32} />;
   }
 
   return (

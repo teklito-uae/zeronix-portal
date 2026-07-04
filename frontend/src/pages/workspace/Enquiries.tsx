@@ -31,7 +31,8 @@ import { toast } from 'sonner';
 import api from '@/lib/axios';
 import { timeAgo } from '@/lib/utils';
 import type { Enquiry, Customer, User as UserType } from '@/types';
-import { MessageSquare, Building2, Loader2, Plus, User as UserIcon, ArrowDown, ArrowUp, Zap, Phone, Mail, Globe, MessageCircle, LayoutList, Kanban } from 'lucide-react';
+import { MessageSquare, Building2, Plus, User as UserIcon, ArrowDown, ArrowUp, Zap, Phone, Mail, Globe, MessageCircle, LayoutList, Kanban } from 'lucide-react';
+import { Spinner } from '@/components/shared/Spinner';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import Avatar from 'boring-avatars';
 import { useThemeStore } from '@/store/useThemeStore';
@@ -476,7 +477,7 @@ export const Enquiries = () => {
         <DialogContent className="sm:max-w-lg bg-brand-white border-brand-border/50 p-0 overflow-hidden shadow-xl rounded-xl">
           {isEnquiryLoading ? (
             <div className="flex justify-center items-center w-full h-80">
-              <Loader2 className="animate-spin text-brand-accent" size={40} />
+              <Spinner size={40} className="text-brand-accent" />
             </div>
           ) : selectedEnquiry && (
             <div className="flex flex-col h-full max-h-[85vh]">
@@ -663,7 +664,7 @@ export const Enquiries = () => {
                       disabled={update.isPending}
                       className="w-full bg-brand-primary text-brand-white hover:opacity-90 h-[36px] rounded-lg font-medium text-[13px] shadow-sm"
                     >
-                      {update.isPending ? <Loader2 className="animate-spin mr-2" size={14} /> : null} Sync Internal Log
+                      {update.isPending ? <Spinner className="mr-2" size={14} /> : null} Sync Internal Log
                     </Button>
                   </div>
                 </section>
@@ -842,7 +843,7 @@ export const Enquiries = () => {
                 disabled={create.isPending || update.isPending || (isNewCustomer ? (!addForm.customer_name || !addForm.customer_email) : !addForm.customer_id)}
                 className="flex-1 bg-brand-primary text-brand-white hover:opacity-90 h-[36px] rounded-lg text-[13px] font-medium shadow-sm"
               >
-                {(create.isPending || update.isPending) ? <Loader2 size={14} className="animate-spin mr-2" /> : null} 
+                {(create.isPending || update.isPending) ? <Spinner size={14} className="mr-2" /> : null} 
                 {isEditing ? 'Save Changes' : 'Create Lead'}
               </Button>
             </DialogFooter>
