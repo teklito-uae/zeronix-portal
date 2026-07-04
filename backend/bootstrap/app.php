@@ -13,7 +13,6 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule) {
-        $schedule->command('emails:sync')->everyFiveMinutes();
         $schedule->command('quotes:notify-followup')->hourly();
     })
     ->withMiddleware(function (Middleware $middleware) {
