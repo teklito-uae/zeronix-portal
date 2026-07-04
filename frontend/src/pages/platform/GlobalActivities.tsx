@@ -38,7 +38,7 @@ interface ActivityLog {
  * Activity Logs Module
  * Refactored to use the standardized State-Driven architecture.
  */
-export const Activities = () => {
+export const GlobalActivities = () => {
   const { data: usersData } = useQuery({
     queryKey: ['users-list'],
     queryFn: async () => (await api.get('/admin/users', { params: { per_page: 100 } })).data,

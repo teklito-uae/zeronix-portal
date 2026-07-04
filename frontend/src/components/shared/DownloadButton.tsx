@@ -43,8 +43,25 @@ export const DownloadButton = ({
 
     if (mode === 'view') {
       const endpoint = `${role}/${type}s/${id}/view`;
-      window.open(`${apiBase}/${endpoint}`, '_blank');
-      setLoading(false);
+      const newWindow = window.open('', '_blank');
+      try {
+        const response = await api.get(`/${endpoint}`, { 
+          responseType: 'blob',
+          headers: { 'Accept': 'application/pdf' }
+        });
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        if (newWindow) {
+          newWindow.location.href = url;
+        } else {
+          window.open(url, '_blank');
+        }
+      } catch (error) {
+        if (newWindow) newWindow.close();
+        console.error('Failed to view PDF', error);
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 

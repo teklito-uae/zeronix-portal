@@ -5,41 +5,49 @@ import { AdminLayout } from './components/layout/AdminLayout';
 import { AdminRoute, CustomerRoute } from './components/auth/ProtectedRoute';
 import api from './lib/axios';
 import { Loader2 } from 'lucide-react';
-import { AdminLogin } from './pages/admin/Login';
-import { CustomerLogin } from './pages/customer/Login';
-import { CustomerRegister } from './pages/customer/Register';
-import { Dashboard } from './pages/admin/Dashboard';
-
-import { Customers } from './pages/admin/Customers';
-import { CustomerProfile as AdminCustomerProfile } from './pages/admin/CustomerProfile';
-import { Suppliers } from './pages/admin/Suppliers';
-import { SupplierProfile } from './pages/admin/SupplierProfile';
-import { Products } from './pages/admin/Products';
-import { Enquiries } from './pages/admin/Enquiries';
-import { Quotes } from './pages/admin/Quotes';
-import { QuoteDetail } from './pages/admin/QuoteDetail';
-import { Invoices } from './pages/admin/Invoices';
-import { InvoiceDetail } from './pages/admin/InvoiceDetail';
-import { PaymentReceipts } from './pages/admin/PaymentReceipts';
-import { Chat } from './pages/admin/Chat';
-import { BulkImport } from './pages/admin/BulkImport';
-import { Users } from './pages/admin/Users';
-import { Settings } from './pages/admin/Settings';
-import { Activities } from './pages/admin/Activities';
-import { Notifications } from './pages/admin/Notifications';
-import { CustomerImport } from './pages/admin/CustomerImport';
-import { AttendanceReport } from './pages/admin/AttendanceReport';
-import { CustomerProducts } from './pages/customer/CustomerProducts';
-import { RequestForm } from './pages/customer/RequestForm';
-import { CustomerEnquiries } from './pages/customer/CustomerEnquiries';
-import { CustomerDashboard } from './pages/customer/CustomerDashboard';
-import { CustomerQuotes } from './pages/customer/CustomerQuotes';
-import { CustomerInvoices } from './pages/customer/CustomerInvoices';
-import { CustomerChat } from './pages/customer/CustomerChat';
-import { CustomerProfile } from './pages/customer/CustomerProfile';
-import { CustomerNotifications } from './pages/customer/CustomerNotifications';
+import { UnifiedLogin } from './pages/UnifiedLogin';
+import { CustomerRegister } from './pages/portal/Register';
 import { PublicInventory } from './pages/public/Inventory';
 import { NotFound } from './pages/NotFound';
+
+// --- PLATFORM IMPORTS (Super Admin) ---
+import { PlatformDashboard } from './pages/platform/PlatformDashboard';
+import { TenantManagement } from './pages/platform/TenantManagement';
+import { SystemDocs } from './pages/platform/SystemDocs';
+import { GlobalActivities } from './pages/platform/GlobalActivities';
+import { PlatformSettings } from './pages/platform/PlatformSettings';
+
+// --- WORKSPACE IMPORTS (Tenant Admin & Staff) ---
+import { Dashboard as WorkspaceDashboard } from './pages/workspace/Dashboard';
+import { Customers } from './pages/workspace/Customers';
+import { CustomerProfile as AdminCustomerProfile } from './pages/workspace/CustomerProfile';
+import { Suppliers } from './pages/workspace/Suppliers';
+import { SupplierProfile } from './pages/workspace/SupplierProfile';
+import { Products } from './pages/workspace/Products';
+import { Enquiries } from './pages/workspace/Enquiries';
+import { Quotes } from './pages/workspace/Quotes';
+import { QuoteDetail } from './pages/workspace/QuoteDetail';
+import { Invoices } from './pages/workspace/Invoices';
+import { InvoiceDetail } from './pages/workspace/InvoiceDetail';
+import { PaymentReceipts } from './pages/workspace/PaymentReceipts';
+import { Chat } from './pages/workspace/Chat';
+import { BulkImport } from './pages/workspace/BulkImport';
+import { Users } from './pages/workspace/Users';
+import { Settings as WorkspaceSettings } from './pages/workspace/Settings';
+import { Notifications } from './pages/workspace/Notifications';
+import { CustomerImport } from './pages/workspace/CustomerImport';
+import { AttendanceReport } from './pages/workspace/AttendanceReport';
+
+// --- PORTAL IMPORTS (End Customers) ---
+import { CustomerProducts } from './pages/portal/CustomerProducts';
+import { RequestForm } from './pages/portal/RequestForm';
+import { CustomerEnquiries } from './pages/portal/CustomerEnquiries';
+import { CustomerDashboard } from './pages/portal/CustomerDashboard';
+import { CustomerQuotes } from './pages/portal/CustomerQuotes';
+import { CustomerInvoices } from './pages/portal/CustomerInvoices';
+import { CustomerChat } from './pages/portal/CustomerChat';
+import { CustomerProfile } from './pages/portal/CustomerProfile';
+import { CustomerNotifications } from './pages/portal/CustomerNotifications';
 
 const PortalRedirect = () => {
   const customer = useAuthStore((state) => state.customer);
@@ -47,9 +55,19 @@ const PortalRedirect = () => {
   return <Navigate to={`/portal/${companySlug}/dashboard`} replace />;
 };
 
-const CoreRoutes = () => (
+const PlatformRoutes = () => (
   <Route element={<AdminLayout />}>
-    <Route path="dashboard" element={<Dashboard />} />
+    <Route path="dashboard" element={<PlatformDashboard />} />
+    <Route path="companies" element={<TenantManagement />} />
+    <Route path="system-docs" element={<SystemDocs />} />
+    <Route path="activities" element={<GlobalActivities />} />
+    <Route path="settings" element={<PlatformSettings />} />
+  </Route>
+);
+
+const WorkspaceRoutes = () => (
+  <Route element={<AdminLayout />}>
+    <Route path="dashboard" element={<WorkspaceDashboard />} />
     <Route path="customers" element={<Customers />} />
     <Route path="customers/:id" element={<AdminCustomerProfile />} />
     <Route path="suppliers" element={<Suppliers />} />
@@ -64,8 +82,7 @@ const CoreRoutes = () => (
     <Route path="chat" element={<Chat />} />
     <Route path="bulk-import" element={<BulkImport />} />
     <Route path="users" element={<Users />} />
-    <Route path="settings" element={<Settings />} />
-    <Route path="activities" element={<Activities />} />
+    <Route path="settings" element={<WorkspaceSettings />} />
     <Route path="notifications" element={<Notifications />} />
     <Route path="customers/import" element={<CustomerImport />} />
     <Route path="attendance" element={<AttendanceReport />} />
@@ -77,7 +94,6 @@ function App() {
 
   useEffect(() => {
     const initAuth = async () => {
-      // If no tokens at all, stop loading
       if (!adminToken && !customerToken) {
         setIsLoading(false);
         return;
@@ -85,7 +101,6 @@ function App() {
 
       const tasks: Promise<void>[] = [];
 
-      // Hydrate Admin if token exists
       if (adminToken && !useAuthStore.getState().admin) {
         tasks.push((async () => {
           try {
@@ -100,7 +115,6 @@ function App() {
         })());
       }
 
-      // Hydrate Customer if token exists
       if (customerToken && !useAuthStore.getState().customer) {
         tasks.push((async () => {
           try {
@@ -136,23 +150,30 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/portal/login" replace />} />
-      <Route path="/admin/login" element={<AdminLogin type="admin" />} />
-      <Route path="/staff/login" element={<AdminLogin type="staff" />} />
-      <Route path="/portal/login" element={<CustomerLogin />} />
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/login" element={<UnifiedLogin />} />
+      
+      <Route path="/saas-admin/login" element={<UnifiedLogin />} />
+      
       <Route path="/register" element={<CustomerRegister />} />
       <Route path="/inventory" element={<PublicInventory />} />
 
-      <Route path="/admin" element={<AdminRoute />}>
-        {CoreRoutes()}
-        <Route index element={<Navigate to="/admin/dashboard" replace />} />
+      {/* PLATFORM ROUTES (Super Admin) */}
+      <Route path="/saas-admin" element={<AdminRoute />}>
+        {PlatformRoutes()}
+        <Route index element={<Navigate to="/saas-admin/dashboard" replace />} />
       </Route>
 
-      <Route path="/staff" element={<AdminRoute />}>
-        {CoreRoutes()}
-        <Route index element={<Navigate to="/staff/dashboard" replace />} />
+      {/* WORKSPACE ROUTES (Tenant Admin & Staff) */}
+      <Route path="/workspace" element={<AdminRoute />}>
+        {WorkspaceRoutes()}
+        <Route index element={<Navigate to="/workspace/dashboard" replace />} />
       </Route>
 
+      <Route path="/admin" element={<Navigate to="/workspace" replace />} />
+      <Route path="/staff" element={<Navigate to="/workspace" replace />} />
+
+      {/* PORTAL ROUTES (End Customers) */}
       <Route path="/portal" element={<CustomerRoute />}>
         <Route index element={<PortalRedirect />} />
         <Route path=":company" element={<AdminLayout />}>

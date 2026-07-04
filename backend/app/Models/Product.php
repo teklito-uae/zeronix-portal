@@ -3,12 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 use App\Traits\LogsActivity;
+use App\Traits\HasUserScope;
+use App\Traits\BelongsToCompany;
 
 class Product extends Model
 {
-    use LogsActivity;
+    use HasFactory, LogsActivity, HasUserScope, BelongsToCompany;
+
     protected $fillable = [
         'category_id',
         'brand_id',

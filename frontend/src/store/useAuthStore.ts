@@ -30,8 +30,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   
   setAdmin: (admin, token) => {
     if (admin) {
-      const key = admin.role === 'admin' ? 'zeronix_admin_token' : 'zeronix_staff_token';
-      const otherKey = admin.role === 'admin' ? 'zeronix_staff_token' : 'zeronix_admin_token';
+      const isAdminType = ['admin', 'super_admin'].includes(admin.role);
+      const key = isAdminType ? 'zeronix_admin_token' : 'zeronix_staff_token';
+      const otherKey = isAdminType ? 'zeronix_staff_token' : 'zeronix_admin_token';
       
       if (token) {
         localStorage.setItem(key, token);

@@ -16,7 +16,7 @@ class AdminAuthController extends Controller
         ]);
 
         $user = User::where('email', $request->email)
-                    ->whereIn('role', ['admin', 'staff', 'salesman'])
+                    ->whereIn('role', ['admin', 'staff', 'salesman', 'super_admin'])
                     ->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {

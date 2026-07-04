@@ -104,7 +104,7 @@ export const Customers = () => {
   // CSV Export (admin only)
   const handleExportCsv = async () => {
     try {
-      const res = await fetch(`${window.location.origin}/api/${getBasePath()}/customers?per_page=5000`, {
+      const res = await fetch(`${window.location.origin}/api/admin/customers?per_page=5000`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('zeronix_admin_token') || localStorage.getItem('zeronix_staff_token')}` },
       });
       const json = await res.json();

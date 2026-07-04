@@ -31,6 +31,3 @@ Zeronix Portal is transitioning from a mock-data UI shell to a fully functional,
 - [ ] **Products View** — Live feed of available products for wholesale viewing.
 - [ ] **Customer Quote/Invoice Viewer** — Allow customers to securely view their PDFs and update invoice status to "Received".
 
-## Phase 5 — Real-time Chat
-- [ ] **Pusher/Laravel Echo** — Setup WebSocket infrastructure.
-- [ ] **Admin & Customer Chat UI** — Connect the existing chat shells to live websockets for real-time messaging and notifications.

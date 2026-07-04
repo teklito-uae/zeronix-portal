@@ -9,8 +9,8 @@ class ActivityController extends Controller
 {
     public function index(Request $request)
     {
-        // Only admins can see the global activity log
-        if ($request->user() && $request->user()->role !== 'admin') {
+        // Only admins or super_admins can see the global activity log
+        if ($request->user() && !in_array($request->user()->role, ['admin', 'super_admin'])) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 

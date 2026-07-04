@@ -12,7 +12,7 @@ export function useResourceList<_T>(resource: string, params: any) {
   return useQuery({
     queryKey: [resource, params],
     queryFn: async () => {
-      const res = await api.get(`${getBasePath()}/${resource}`, { params });
+      const res = await api.get(`/admin/${resource}`, { params });
       return res.data;
     },
   });
@@ -26,7 +26,7 @@ export function useResourceDetail<_T>(resource: string, id: string | number | un
     queryKey: [resource, id],
     queryFn: async () => {
       if (!id) return null;
-      const res = await api.get(`${getBasePath()}/${resource}/${id}`);
+      const res = await api.get(`/admin/${resource}/${id}`);
       return res.data;
     },
     enabled: !!id,
@@ -39,8 +39,8 @@ export function useResourceDetail<_T>(resource: string, id: string | number | un
 export function useResourceMutation(resource: string, additionalQueryKeys: string[][] = []) {
   const queryClient = useQueryClient();
   const basePath = getBasePath();
-  // Only invalidate admin-dashboard when operating in the admin context
-  const baseKeys = [[resource], ...(basePath === '/admin' ? [['admin-dashboard']] : []), ...additionalQueryKeys];
+  // Only invalidate dashboard when operating in the workspace context
+  const baseKeys = [[resource], ...(basePath === '/workspace' ? [['admin-dashboard']] : []), ...additionalQueryKeys];
 
   const invalidateAll = () => {
     baseKeys.forEach(key => queryClient.invalidateQueries({ queryKey: key }));
@@ -48,7 +48,7 @@ export function useResourceMutation(resource: string, additionalQueryKeys: strin
 
   // Create
   const create = useMutation({
-    mutationFn: (data: any) => api.post(`${getBasePath()}/${resource}`, data),
+    mutationFn: (data: any) => api.post(`/admin/${resource}`, data),
     onSuccess: () => {
       invalidateAll();
       toast.success(`${resource.charAt(0).toUpperCase() + resource.slice(1)} created`);
@@ -59,7 +59,7 @@ export function useResourceMutation(resource: string, additionalQueryKeys: strin
   // Update
   const update = useMutation({
     mutationFn: ({ id, data }: { id: number | string; data: any }) => 
-      api.put(`${getBasePath()}/${resource}/${id}`, data),
+      api.put(`/admin/${resource}/${id}`, data),
     onSuccess: () => {
       invalidateAll();
       toast.success(`${resource.charAt(0).toUpperCase() + resource.slice(1)} updated`);
@@ -69,7 +69,7 @@ export function useResourceMutation(resource: string, additionalQueryKeys: strin
 
   // Delete
   const remove = useMutation({
-    mutationFn: (id: number | string) => api.delete(`${getBasePath()}/${resource}/${id}`),
+    mutationFn: (id: number | string) => api.delete(`/admin/${resource}/${id}`),
     onSuccess: () => {
       invalidateAll();
       toast.success(`${resource.charAt(0).toUpperCase() + resource.slice(1)} deleted`);
@@ -79,7 +79,7 @@ export function useResourceMutation(resource: string, additionalQueryKeys: strin
 
   // Bulk Update
   const bulkUpdate = useMutation({
-    mutationFn: (data: any) => api.post(`${getBasePath()}/${resource}/bulk-update`, data),
+    mutationFn: (data: any) => api.post(`/admin/${resource}/bulk-update`, data),
     onSuccess: () => {
       invalidateAll();
       toast.success('Bulk update successful');

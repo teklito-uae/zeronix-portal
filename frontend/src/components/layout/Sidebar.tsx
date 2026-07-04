@@ -37,7 +37,9 @@ import {
   Sparkles,
   User,
   LogOut,
-  UserCircle2
+  UserCircle2,
+  Building2,
+  BookOpen
 } from 'lucide-react';
 
 interface NavItem {
@@ -53,7 +55,30 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const getAdminNavGroups = (basePath: string): NavGroup[] => [
+const getSuperAdminNavGroups = (basePath: string): NavGroup[] => [
+  {
+    label: 'Overview',
+    items: [
+      { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} />, path: `${basePath}/dashboard` },
+    ],
+  },
+  {
+    label: 'Platform Management',
+    items: [
+      { id: 'companies', label: 'Companies', icon: <Building2 size={18} />, path: `${basePath}/companies` },
+    ],
+  },
+  {
+    label: 'System',
+    items: [
+      { id: 'activities', label: 'Activities', icon: <Activity size={18} />, path: `${basePath}/activities` },
+      { id: 'system-docs', label: 'Architecture Docs', icon: <BookOpen size={18} />, path: `${basePath}/system-docs` },
+      { id: 'settings', label: 'Settings', icon: <Settings size={18} />, path: `${basePath}/settings` },
+    ],
+  },
+];
+
+const getTenantAdminNavGroups = (basePath: string): NavGroup[] => [
   {
     label: 'Overview',
     items: [
@@ -66,9 +91,9 @@ const getAdminNavGroups = (basePath: string): NavGroup[] => [
       { id: 'customers', label: 'Customers', icon: <Users size={18} />, path: `${basePath}/customers` },
       { id: 'suppliers', label: 'Suppliers', icon: <Truck size={18} />, path: `${basePath}/suppliers` },
       { id: 'products', label: 'Products', icon: <Package size={18} />, path: `${basePath}/products` },
-      { id: 'users', label: 'Team', icon: <Users size={18} />, path: `${basePath}/users`, adminOnly: true },
-      { id: 'bulk-import', label: 'Bulk Import', icon: <Upload size={18} />, path: `${basePath}/bulk-import`, adminOnly: true },
-      { id: 'attendance', label: 'Attendance', icon: <Clock size={18} />, path: `${basePath}/attendance`, adminOnly: true },
+      { id: 'users', label: 'Team', icon: <Users size={18} />, path: `${basePath}/users` },
+      { id: 'bulk-import', label: 'Bulk Import', icon: <Upload size={18} />, path: `${basePath}/bulk-import` },
+      { id: 'attendance', label: 'Attendance', icon: <Clock size={18} />, path: `${basePath}/attendance` },
     ],
   },
   {
@@ -89,8 +114,39 @@ const getAdminNavGroups = (basePath: string): NavGroup[] => [
   {
     label: 'System',
     items: [
-      { id: 'activities', label: 'Activities', icon: <Activity size={18} />, path: `${basePath}/activities`, adminOnly: true },
       { id: 'settings', label: 'Settings', icon: <Settings size={18} />, path: `${basePath}/settings` },
+    ],
+  },
+];
+
+const getTenantStaffNavGroups = (basePath: string): NavGroup[] => [
+  {
+    label: 'Overview',
+    items: [
+      { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} />, path: `${basePath}/dashboard` },
+    ],
+  },
+  {
+    label: 'Management',
+    items: [
+      { id: 'customers', label: 'Customers', icon: <Users size={18} />, path: `${basePath}/customers` },
+      { id: 'suppliers', label: 'Suppliers', icon: <Truck size={18} />, path: `${basePath}/suppliers` },
+      { id: 'products', label: 'Products', icon: <Package size={18} />, path: `${basePath}/products` },
+    ],
+  },
+  {
+    label: 'Operations',
+    items: [
+      { id: 'enquiries', label: 'Enquiries', icon: <MessageSquareText size={18} />, path: `${basePath}/enquiries` },
+      { id: 'quotes', label: 'Quotes', icon: <FileText size={18} />, path: `${basePath}/quotes` },
+      { id: 'invoices', label: 'Invoices', icon: <Receipt size={18} />, path: `${basePath}/invoices` },
+      { id: 'receipts', label: 'Payment Receipts', icon: <Receipt size={18} />, path: `${basePath}/payment-receipts` },
+    ],
+  },
+  {
+    label: 'Communication',
+    items: [
+      { id: 'chat', label: 'Chat', icon: <MessageCircle size={18} />, path: `${basePath}/chat` },
     ],
   },
 ];
@@ -134,19 +190,24 @@ export const Sidebar = () => {
   const parts = location.pathname.split('/');
   const companySlug = isCustomer && parts.length > 2 ? parts[2] : 'company';
 
-  // Filter groups based on permissions
+  // Filter groups based on role
   const filterAdminGroups = () => {
     if (!adminUser) return [];
-    const basePath = adminUser.role === 'salesman' ? '/staff' : '/admin';
-    const groups = getAdminNavGroups(basePath);
-    if (adminUser.role === 'admin') return groups;
-
+    
+    if (adminUser.role === 'super_admin') {
+      return getSuperAdminNavGroups('/saas-admin');
+    }
+    if (adminUser.role === 'admin') {
+      return getTenantAdminNavGroups('/workspace');
+    }
+    
+    // For staff, we use the staff arrays
+    const groups = getTenantStaffNavGroups('/workspace');
     return groups.map(group => ({
       ...group,
       items: group.items.filter(item => {
         if (item.id === 'dashboard') return true; // Everyone sees dashboard
         if (item.id === 'chat') return true; // Chat is generic
-        if (item.id === 'settings') return true; // Settings is for personal config
         return adminUser.permissions?.includes(item.id);
       })
     })).filter(group => group.items.length > 0);

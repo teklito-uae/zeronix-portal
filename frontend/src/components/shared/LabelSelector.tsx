@@ -37,13 +37,13 @@ export const LabelSelector = ({ selectedIds, onChange, disabled }: LabelSelector
 
   const { data: labels = [], isLoading } = useQuery<CustomerLabel[]>({
     queryKey: ['customer-labels'],
-    queryFn: async () => (await api.get(`${getBasePath()}/customer-labels`)).data,
+    queryFn: async () => (await api.get(`/admin/customer-labels`)).data,
     staleTime: 120_000,
   });
 
   const createLabel = useMutation({
     mutationFn: (data: { name: string; color: string }) =>
-      api.post(`${getBasePath()}/customer-labels`, data),
+      api.post(`/admin/customer-labels`, data),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['customer-labels'] });
       onChange([...selectedIds, res.data.id]);

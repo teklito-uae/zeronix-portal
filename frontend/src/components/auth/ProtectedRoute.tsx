@@ -7,28 +7,35 @@ export const AdminRoute = () => {
   
   if (isLoading) return null;
   if (!admin) {
-    const isStaffPath = location.pathname.startsWith('/staff');
-    return <Navigate to={isStaffPath ? "/staff/login" : "/admin/login"} replace />;
+    const isPlatformPath = location.pathname.startsWith('/saas-admin');
+    return <Navigate to={isPlatformPath ? "/saas-admin/login" : "/login"} replace />;
   }
 
   // Enforce Route Segregation
-  const isStaffPath = location.pathname.startsWith('/staff');
-  if (isStaffPath && admin.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
-  if (!isStaffPath && admin.role !== 'admin') return <Navigate to="/staff/dashboard" replace />;
+  const isPlatformPath = location.pathname.startsWith('/saas-admin');
+  const isWorkspacePath = location.pathname.startsWith('/workspace');
 
-  // Permission Check for Salesmen
-  if (admin.role !== 'admin') {
-    const path = location.pathname.split('/')[2]; // /staff/customers -> customers
+  if (isPlatformPath && admin.role !== 'super_admin') {
+    return <Navigate to="/workspace/dashboard" replace />;
+  }
+  
+  if (isWorkspacePath && admin.role === 'super_admin') {
+    return <Navigate to="/saas-admin/dashboard" replace />;
+  }
+
+  // Permission Check for Salesmen/Staff in Workspace
+  if (isWorkspacePath && admin.role !== 'admin' && admin.role !== 'super_admin') {
+    const path = location.pathname.split('/')[2]; // /workspace/customers -> customers
     
     const publicModules = ['dashboard', 'settings', 'chat', 'profile', 'notifications'];
-    const adminOnlyModules = ['users', 'bulk-import', 'activities'];
+    const adminOnlyModules = ['users', 'bulk-import', 'activities', 'companies', 'system-docs'];
 
     if (path && !publicModules.includes(path)) {
         if (adminOnlyModules.includes(path)) {
-            return <Navigate to="/staff/dashboard" replace />;
+            return <Navigate to="/workspace/dashboard" replace />;
         }
         if (admin.permissions && !admin.permissions.includes(path)) {
-            return <Navigate to="/staff/dashboard" replace />;
+            return <Navigate to="/workspace/dashboard" replace />;
         }
     }
   }

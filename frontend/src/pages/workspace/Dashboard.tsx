@@ -79,7 +79,7 @@ const AdminDashboard = () => {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin-dashboard'],
-    queryFn: async () => (await api.get(`${getBasePath()}/dashboard`)).data,
+    queryFn: async () => (await api.get(`/admin/dashboard`)).data,
     refetchInterval: 60_000,
   });
 

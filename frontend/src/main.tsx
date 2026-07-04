@@ -18,7 +18,7 @@ createRoot(document.getElementById('root')!).render(
             <App />
           </ErrorBoundary>
         </TooltipProvider>
-        <Toaster position="top-right" richColors />
+        <Toaster position="bottom-center" richColors />
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,

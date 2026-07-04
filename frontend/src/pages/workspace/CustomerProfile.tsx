@@ -43,7 +43,7 @@ export const CustomerProfile = () => {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['customer', id],
-    queryFn: async () => (await api.get(`${getBasePath()}/customers/${id}`)).data,
+    queryFn: async () => (await api.get(`/admin/customers/${id}`)).data,
     enabled: !!id,
   });
 
@@ -77,7 +77,7 @@ export const CustomerProfile = () => {
   };
 
   const registerPortalMutation = useMutation({
-    mutationFn: async () => api.post(`${getBasePath()}/customers/${id}/register-portal`),
+    mutationFn: async () => api.post(`/admin/customers/${id}/register-portal`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customer', id] });
       toast.success('Client registered for portal access.');

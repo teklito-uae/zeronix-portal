@@ -93,24 +93,24 @@ export const StaffDashboard = () => {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin-dashboard'],
-    queryFn: async () => (await api.get(`${getBasePath()}/dashboard`)).data,
+    queryFn: async () => (await api.get(`/admin/dashboard`)).data,
     refetchInterval: 60_000,
   });
 
   const { data: attendanceStatus, refetch: refetchAttendance } = useQuery({
     queryKey: ['attendance-status'],
-    queryFn: async () => (await api.get(`${getBasePath()}/attendance/status`)).data,
+    queryFn: async () => (await api.get(`/admin/attendance/status`)).data,
     refetchInterval: 30_000,
   });
 
   const clockInMutation = useMutation({
-    mutationFn: async () => (await api.post(`${getBasePath()}/attendance/clock-in`)).data,
+    mutationFn: async () => (await api.post(`/admin/attendance/clock-in`)).data,
     onSuccess: () => { toast.success('Clocked in successfully.'); refetchAttendance(); queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] }); },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to clock in.'),
   });
 
   const clockOutMutation = useMutation({
-    mutationFn: async (reason: string) => (await api.post(`${getBasePath()}/attendance/clock-out`, { reason })).data,
+    mutationFn: async (reason: string) => (await api.post(`/admin/attendance/clock-out`, { reason })).data,
     onSuccess: () => { toast.success('Clocked out successfully.'); refetchAttendance(); setIsClockOutOpen(false); setClockOutReason('Shift ended'); setCustomReason(''); queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] }); },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to clock out.'),
   });

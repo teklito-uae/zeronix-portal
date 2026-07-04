@@ -44,13 +44,13 @@ export const Products = () => {
   // Fetch static data for filters/forms
   const { data: brandsData } = useQuery({
     queryKey: ['brands'],
-    queryFn: async () => (await api.get(`${getBasePath()}/brands`)).data,
+    queryFn: async () => (await api.get(`/admin/brands`)).data,
   });
   const brands = brandsData?.data || [];
 
   const { data: categoriesData } = useQuery({
     queryKey: ['categories'],
-    queryFn: async () => (await api.get(`${getBasePath()}/categories`)).data,
+    queryFn: async () => (await api.get(`/admin/categories`)).data,
   });
   const categories = categoriesData?.data || [];
 

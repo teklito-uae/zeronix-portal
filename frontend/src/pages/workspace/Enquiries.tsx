@@ -31,7 +31,7 @@ import { toast } from 'sonner';
 import api from '@/lib/axios';
 import { timeAgo } from '@/lib/utils';
 import type { Enquiry, Customer, User as UserType } from '@/types';
-import { MessageSquare, Building2, Loader2, Plus, User as UserIcon } from 'lucide-react';
+import { MessageSquare, Building2, Loader2, Plus, User as UserIcon, ArrowDown, ArrowUp, Zap, Phone, Mail, Globe, MessageCircle, LayoutList, Kanban } from 'lucide-react';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import Avatar from 'boring-avatars';
 import { useThemeStore } from '@/store/useThemeStore';
@@ -57,6 +57,7 @@ export const Enquiries = () => {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [isNewCustomer, setIsNewCustomer] = useState(false);
   // View mode toggle between table and kanban
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
@@ -82,25 +83,25 @@ export const Enquiries = () => {
   // Queries
   const { data: usersList = [] } = useQuery({
     queryKey: ['users', 'all'],
-    queryFn: async () => (await api.get(`${getBasePath()}/users?per_page=100`)).data.data as UserType[],
+    queryFn: async () => (await api.get(`/admin/users?per_page=100`)).data.data as UserType[],
   });
 
   const { data: customersData = [] } = useQuery({
     queryKey: ['customers', 'all'],
-    queryFn: async () => (await api.get(`${getBasePath()}/customers?per_page=100`)).data.data as Customer[],
+    queryFn: async () => (await api.get(`/admin/customers?per_page=100`)).data.data as Customer[],
   });
 
   // Fetch all enquiries for kanban view
   const { data: enquiries = [] } = useQuery({
     queryKey: ['enquiries', 'all'],
-    queryFn: async () => (await api.get(`${getBasePath()}/enquiries?per_page=1000`)).data.data as Enquiry[],
+    queryFn: async () => (await api.get(`/admin/enquiries?per_page=1000`)).data.data as Enquiry[],
   });
 
   const { data: selectedEnquiry, isLoading: isEnquiryLoading } = useQuery({
     queryKey: ['enquiry', selectedId],
     queryFn: async () => {
       if (!selectedId) return null;
-      const res = await api.get(`${getBasePath()}/enquiries/${selectedId}`);
+      const res = await api.get(`/admin/enquiries/${selectedId}`);
       return res.data;
     },
     enabled: !!selectedId && sheetOpen,
@@ -111,7 +112,7 @@ export const Enquiries = () => {
 
   const assignMutation = useMutation({
     mutationFn: async ({ id, userIds }: { id: number; userIds: number[] }) =>
-      api.put(`${getBasePath()}/enquiries/${id}/assign`, { user_ids: userIds }),
+      api.put(`/admin/enquiries/${id}/assign`, { user_ids: userIds }),
     onSuccess: (res) => {
       // Optimistic/Instant cache update across all paginated lists
       const updatedEnquiry = res.data;
@@ -287,27 +288,59 @@ export const Enquiries = () => {
         className="p-4 bg-admin-surface rounded-xl border border-admin-border cursor-grab active:cursor-grabbing hover:shadow-lg hover:border-zeronix-blue/30 transition-all flex flex-col gap-2"
       >
         <div className="flex justify-between items-start gap-2">
-          <p className="font-bold text-sm text-admin-text-primary leading-tight">
-            {enquiry.customer?.name || 'Manual Lead'}
-          </p>
-          <span className="text-[10px] font-black text-zeronix-blue bg-zeronix-blue/10 px-1.5 py-0.5 rounded">
+          <div className="min-w-0 flex-1">
+            <p className="font-bold text-sm text-admin-text-primary leading-tight truncate">
+              {enquiry.customer?.name || 'Manual Lead'}
+            </p>
+            {enquiry.customer?.company && (
+              <p className="text-[11px] text-brand-subtle flex items-center gap-1 mt-0.5 truncate font-medium">
+                <Building2 size={10} /> {enquiry.customer.company}
+              </p>
+            )}
+          </div>
+          <span className="text-[10px] font-black text-zeronix-blue bg-zeronix-blue/10 px-1.5 py-0.5 rounded shrink-0">
             #{enquiry.id}
           </span>
         </div>
-        <div className="flex justify-between items-center mt-1">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <p className="text-[11px] font-medium text-admin-text-muted capitalize mr-1">
-              {enquiry.source}
-            </p>
-            {/* Show dynamic tags if available, otherwise infer from status */}
-            {['quoted', 'won', 'invoiced', 'closed'].includes(enquiry.status) && (
-              <Badge variant="outline" className="text-[9px] px-1 h-4 bg-purple-500/10 text-purple-600 border-purple-500/20">QUOTED</Badge>
-            )}
-            {['won', 'invoiced', 'closed'].includes(enquiry.status) && (
-              <Badge variant="outline" className="text-[9px] px-1 h-4 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">INVOICED</Badge>
+
+        {enquiry.notes && (
+          <p className="text-[11px] text-brand-secondary line-clamp-2 leading-relaxed" title={enquiry.notes}>
+            {enquiry.notes}
+          </p>
+        )}
+
+        <div className="flex justify-between items-end mt-1 pt-2 border-t border-brand-border/30">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <p className="text-[10px] font-medium text-admin-text-muted capitalize mr-1">
+                {enquiry.source}
+              </p>
+              {/* Show dynamic tags if available, otherwise infer from status */}
+              {['quoted', 'won', 'invoiced', 'closed'].includes(enquiry.status) && (
+                <Badge variant="outline" className="text-[9px] px-1 h-4 bg-purple-500/10 text-purple-600 border-purple-500/20">QUOTED</Badge>
+              )}
+              {['won', 'invoiced', 'closed'].includes(enquiry.status) && (
+                <Badge variant="outline" className="text-[9px] px-1 h-4 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">INVOICED</Badge>
+              )}
+            </div>
+
+            {/* Avatars */}
+            {admin?.role !== 'salesman' && enquiry.assigned_users && enquiry.assigned_users.length > 0 && (
+              <div className="flex -space-x-1.5 mt-1">
+                {enquiry.assigned_users.slice(0, 3).map((u: any, i: number) => (
+                  <div key={u.id} className="relative border border-brand-white rounded-full bg-brand-surface shadow-sm" style={{ zIndex: 10 - i }}>
+                    <Avatar size={20} name={u.name} variant="beam" colors={avatarColors} />
+                  </div>
+                ))}
+                {enquiry.assigned_users.length > 3 && (
+                  <div className="relative z-0 h-[20px] w-[20px] rounded-full bg-brand-surface border border-brand-border/50 flex items-center justify-center text-[8px] font-bold text-brand-subtle shadow-sm cursor-default">
+                    +{enquiry.assigned_users.length - 3}
+                  </div>
+                )}
+              </div>
             )}
           </div>
-          <StatusBadge status={enquiry.priority} className="scale-75 origin-right" />
+          <StatusBadge status={enquiry.priority} className="scale-[0.8] origin-bottom-right" />
         </div>
       </div>
     );
@@ -388,7 +421,12 @@ export const Enquiries = () => {
         onRowClick={(row) => { setSelectedId(row.id); setSheetOpen(true); }}
         createLabel="Add Enquiry"
         createPath="#" // Using modal
-        onCreateClick={() => setAddOpen(true)}
+        onCreateClick={() => {
+          setIsEditing(false);
+          setIsNewCustomer(false);
+          setAddForm({ customer_id: '', customer_name: '', customer_email: '', customer_phone: '', customer_company: '', source: 'portal', priority: 'normal', notes: '' });
+          setAddOpen(true);
+        }}
         searchPlaceholder="Search leads by name, company, or ID..."
         tabs={enquiryTabs}
         activeTab={activeTab}
@@ -396,9 +434,18 @@ export const Enquiries = () => {
         baseFilters={{ status: activeTab !== 'all' ? activeTab : undefined }}
         extraActions={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setViewMode(viewMode === 'table' ? 'kanban' : 'table')} className="h-[34px] px-3 font-medium text-[13px]">
-              {viewMode === 'table' ? 'Kanban View' : 'Table View'}
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="icon" onClick={() => setViewMode(viewMode === 'table' ? 'kanban' : 'table')} className="h-[34px] w-[34px] text-brand-secondary hover:text-brand-primary border-brand-border/50 bg-brand-surface shadow-sm">
+                    {viewMode === 'table' ? <Kanban size={16} /> : <LayoutList size={16} />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Switch to {viewMode === 'table' ? 'Kanban' : 'Table'} View</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             {viewMode === 'kanban' && (
               <Button variant="secondary" size="sm" onClick={() => {
                 const name = prompt('Enter new stage name');
@@ -452,9 +499,28 @@ export const Enquiries = () => {
                         </DialogDescription>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <StatusBadge status={selectedEnquiry.status} />
-                    </div>
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-[28px] text-[11px] font-medium border-brand-border/50 text-brand-secondary"
+                          onClick={() => {
+                            setIsEditing(true);
+                            setAddForm({
+                              customer_id: String(selectedEnquiry.customer_id || ''),
+                              customer_name: '', customer_email: '', customer_phone: '', customer_company: '',
+                              source: selectedEnquiry.source || 'portal',
+                              priority: selectedEnquiry.priority || 'normal',
+                              notes: selectedEnquiry.notes || ''
+                            });
+                            setIsNewCustomer(false);
+                            setAddOpen(true);
+                          }}
+                        >
+                          Edit Lead
+                        </Button>
+                        <StatusBadge status={selectedEnquiry.status} />
+                      </div>
                   </div>
                 </DialogHeader>
               </div>
@@ -609,67 +675,78 @@ export const Enquiries = () => {
 
       {/* Add Enquiry Dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="bg-brand-white border-brand-border/50 sm:max-w-lg rounded-xl shadow-xl overflow-hidden p-0">
-          <div className="bg-brand-surface p-6 border-b border-brand-border/50">
-            <DialogHeader>
-              <DialogTitle className="text-[16px] font-semibold text-brand-primary flex items-center gap-2">
-                <Plus size={18} className="text-brand-accent" />
-                New Lead
-              </DialogTitle>
-              <DialogDescription className="text-[13px] font-medium text-brand-subtle mt-0.5">
-                Capture manual enquiries from calls or external emails.
-              </DialogDescription>
+        <DialogContent className="bg-brand-white border-brand-border/50 sm:max-w-lg rounded-2xl shadow-2xl overflow-hidden p-0">
+          {/* Premium Header */}
+          <div className="bg-brand-surface p-5 border-b border-brand-border/50 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <MessageSquare size={100} />
+            </div>
+            <DialogHeader className="relative z-10">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-brand-accent-light dark:bg-brand-accent/20 flex items-center justify-center">
+                  <Plus size={20} className="text-brand-accent" />
+                </div>
+                <div>
+                  <DialogTitle className="text-[16px] font-bold text-brand-primary">
+                    {isEditing ? 'Edit Lead Details' : 'Register New Lead'}
+                  </DialogTitle>
+                  <DialogDescription className="text-[13px] font-medium text-brand-subtle mt-0.5">
+                    {isEditing ? 'Update client linkage and core details.' : 'Capture manual enquiries from calls or external channels.'}
+                  </DialogDescription>
+                </div>
+              </div>
             </DialogHeader>
           </div>
 
-          <div className="p-6 space-y-6">
+          <div className="p-5 space-y-6 max-h-[60vh] overflow-y-auto">
             {/* SECTION 1: CONTACT INFO */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="h-6 w-6 rounded-lg bg-brand-accent-light dark:bg-brand-accent/20 flex items-center justify-center">
-                    <UserIcon size={14} className="text-brand-accent" />
-                  </div>
-                  <h4 className="text-[13px] font-semibold text-brand-primary">Lead Origin</h4>
+                <div className="flex items-center gap-2 text-brand-secondary mb-1">
+                  <div className="h-1.5 w-3 bg-brand-info rounded-full" />
+                  <h4 className="text-[13px] font-semibold text-brand-primary">Client Details</h4>
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsNewCustomer(!isNewCustomer)}
-                  className="h-[28px] px-3 text-[11px] font-medium bg-brand-accent/10 text-brand-accent hover:bg-brand-accent/20 rounded-full transition-all"
+                  className="h-[28px] px-3 text-[11px] font-bold bg-brand-accent/10 text-brand-accent hover:bg-brand-accent hover:text-brand-white rounded-full transition-all"
                 >
-                  {isNewCustomer ? 'Choose Existing Client' : 'Add as New Lead'}
+                  {isNewCustomer ? 'Select Existing Client' : 'Create New Client Instead'}
                 </Button>
               </div>
 
               {isNewCustomer ? (
                 <div className="grid grid-cols-2 gap-4 p-4 bg-brand-surface rounded-xl border border-brand-border/50">
                   <div className="space-y-1.5">
-                    <Label className="text-[12px] font-medium text-brand-secondary ml-1">Full Name *</Label>
-                    <Input value={addForm.customer_name} onChange={e => setAddForm({ ...addForm, customer_name: e.target.value })} className="h-[36px] text-[13px] bg-brand-white border-brand-border/50 rounded-lg" placeholder="John Doe" />
+                    <Label className="text-[12px] font-medium text-brand-secondary ml-1">Full Name <span className="text-brand-danger">*</span></Label>
+                    <Input value={addForm.customer_name} onChange={e => setAddForm({ ...addForm, customer_name: e.target.value })} className="h-[38px] text-[13px] bg-brand-white border-brand-border/50 rounded-lg focus-visible:ring-brand-accent/30" placeholder="e.g. John Doe" />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-[12px] font-medium text-brand-secondary ml-1">Email *</Label>
-                    <Input type="email" value={addForm.customer_email} onChange={e => setAddForm({ ...addForm, customer_email: e.target.value })} className="h-[36px] text-[13px] bg-brand-white border-brand-border/50 rounded-lg" placeholder="john@example.com" />
+                    <Label className="text-[12px] font-medium text-brand-secondary ml-1">Email <span className="text-brand-danger">*</span></Label>
+                    <Input type="email" value={addForm.customer_email} onChange={e => setAddForm({ ...addForm, customer_email: e.target.value })} className="h-[38px] text-[13px] bg-brand-white border-brand-border/50 rounded-lg focus-visible:ring-brand-accent/30" placeholder="john@example.com" />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-[12px] font-medium text-brand-secondary ml-1">Company</Label>
-                    <Input value={addForm.customer_company} onChange={e => setAddForm({ ...addForm, customer_company: e.target.value })} className="h-[36px] text-[13px] bg-brand-white border-brand-border/50 rounded-lg" placeholder="Acme Corp" />
+                    <Input value={addForm.customer_company} onChange={e => setAddForm({ ...addForm, customer_company: e.target.value })} className="h-[38px] text-[13px] bg-brand-white border-brand-border/50 rounded-lg focus-visible:ring-brand-accent/30" placeholder="e.g. Acme Corp" />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-[12px] font-medium text-brand-secondary ml-1">Phone</Label>
-                    <Input value={addForm.customer_phone} onChange={e => setAddForm({ ...addForm, customer_phone: e.target.value })} className="h-[36px] text-[13px] bg-brand-white border-brand-border/50 rounded-lg" placeholder="+971..." />
+                    <Input value={addForm.customer_phone} onChange={e => setAddForm({ ...addForm, customer_phone: e.target.value })} className="h-[38px] text-[13px] bg-brand-white border-brand-border/50 rounded-lg focus-visible:ring-brand-accent/30" placeholder="+971 50 123 4567" />
                   </div>
                 </div>
               ) : (
                 <Select value={addForm.customer_id} onValueChange={(v) => setAddForm({ ...addForm, customer_id: v })}>
-                  <SelectTrigger className="h-[36px] bg-brand-surface border-brand-border/50 text-brand-primary rounded-lg font-medium text-[13px] shadow-sm">
+                  <SelectTrigger className="h-[42px] bg-brand-surface border-brand-border/50 text-brand-primary rounded-xl font-medium text-[13px] shadow-sm focus:ring-brand-accent/30">
                     <SelectValue placeholder="Search existing client profiles..." />
                   </SelectTrigger>
-                  <SelectContent className="bg-brand-white border-brand-border/50 rounded-xl max-h-[300px]">
+                  <SelectContent className="bg-brand-white border-brand-border/50 rounded-xl shadow-xl max-h-[300px]">
                     {customersData.map((c) => (
-                      <SelectItem key={c.id} value={String(c.id)} className="font-medium text-[13px]">
-                        {c.name} {c.company ? `— ${c.company}` : ''}
+                      <SelectItem key={c.id} value={String(c.id)} className="font-medium text-[13px] cursor-pointer focus:bg-brand-surface">
+                        <div className="flex items-center gap-2 py-1">
+                           <Avatar size={20} name={c.name} variant="marble" colors={avatarColors} />
+                           <span>{c.name} {c.company ? <span className="text-brand-subtle font-normal ml-1">— {c.company}</span> : ''}</span>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -681,37 +758,38 @@ export const Enquiries = () => {
 
             {/* SECTION 2: ENQUIRY DETAILS */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="h-6 w-6 rounded-lg bg-brand-info-bg flex items-center justify-center">
-                  <MessageSquare size={14} className="text-brand-info" />
-                </div>
-                <h4 className="text-[13px] font-semibold text-brand-primary">Enquiry Details</h4>
+              <div className="flex items-center gap-2 text-brand-secondary mb-1">
+                <div className="h-1.5 w-3 bg-brand-warning rounded-full" />
+                <h4 className="text-[13px] font-semibold text-brand-primary">Enquiry Context</h4>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-5">
                 <div className="space-y-1.5">
                   <Label className="text-[12px] font-medium text-brand-secondary ml-1">Channel Source</Label>
                   <Select value={addForm.source} onValueChange={(v) => setAddForm({ ...addForm, source: v })}>
-                    <SelectTrigger className="h-[36px] bg-brand-surface border-brand-border/50 text-brand-primary rounded-lg font-medium text-[13px]">
+                    <SelectTrigger className="h-[38px] bg-brand-surface border-brand-border/50 text-brand-primary rounded-lg font-medium text-[13px] focus:ring-brand-accent/30">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-brand-white border-brand-border/50 rounded-xl shadow-lg">
-                      {['portal', 'email', 'phone', 'whatsapp', 'referral', 'chat'].map(s => (
-                        <SelectItem key={s} value={s} className="capitalize font-medium text-[13px]">{s}</SelectItem>
-                      ))}
+                    <SelectContent className="bg-brand-white border-brand-border/50 rounded-xl shadow-xl">
+                      <SelectItem value="portal" className="font-medium text-[13px] cursor-pointer"><div className="flex items-center gap-2"><Globe size={14} className="text-blue-500" /> Portal</div></SelectItem>
+                      <SelectItem value="email" className="font-medium text-[13px] cursor-pointer"><div className="flex items-center gap-2"><Mail size={14} className="text-orange-500" /> Email</div></SelectItem>
+                      <SelectItem value="phone" className="font-medium text-[13px] cursor-pointer"><div className="flex items-center gap-2"><Phone size={14} className="text-purple-500" /> Phone</div></SelectItem>
+                      <SelectItem value="whatsapp" className="font-medium text-[13px] cursor-pointer"><div className="flex items-center gap-2"><MessageCircle size={14} className="text-emerald-500" /> WhatsApp</div></SelectItem>
+                      <SelectItem value="chat" className="font-medium text-[13px] cursor-pointer"><div className="flex items-center gap-2"><MessageSquare size={14} className="text-indigo-500" /> Chat</div></SelectItem>
+                      <SelectItem value="referral" className="font-medium text-[13px] cursor-pointer"><div className="flex items-center gap-2"><UserIcon size={14} className="text-brand-subtle" /> Referral</div></SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[12px] font-medium text-brand-secondary ml-1">Initial Priority</Label>
                   <Select value={addForm.priority} onValueChange={(v) => setAddForm({ ...addForm, priority: v })}>
-                    <SelectTrigger className="h-[36px] bg-brand-surface border-brand-border/50 text-brand-primary rounded-lg font-medium text-[13px]">
+                    <SelectTrigger className="h-[38px] bg-brand-surface border-brand-border/50 text-brand-primary rounded-lg font-medium text-[13px] focus:ring-brand-accent/30">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-brand-white border-brand-border/50 rounded-xl shadow-lg">
-                      {['normal', 'high', 'urgent'].map(p => (
-                        <SelectItem key={p} value={p} className="capitalize font-medium text-[13px]">{p}</SelectItem>
-                      ))}
+                    <SelectContent className="bg-brand-white border-brand-border/50 rounded-xl shadow-xl">
+                      <SelectItem value="normal" className="font-medium text-[13px] cursor-pointer"><div className="flex items-center gap-2"><ArrowDown size={14} className="text-blue-500" /> Normal</div></SelectItem>
+                      <SelectItem value="high" className="font-medium text-[13px] cursor-pointer"><div className="flex items-center gap-2"><ArrowUp size={14} className="text-orange-500" /> High</div></SelectItem>
+                      <SelectItem value="urgent" className="font-medium text-[13px] cursor-pointer"><div className="flex items-center gap-2"><Zap size={14} className="text-red-500" /> Urgent</div></SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -744,18 +822,28 @@ export const Enquiries = () => {
                     delete payload.customer_phone;
                     delete payload.customer_company;
                   }
-                  create.mutate(payload, {
-                    onSuccess: () => {
-                      setAddOpen(false);
-                      setIsNewCustomer(false);
-                      setAddForm({ customer_id: '', customer_name: '', customer_email: '', customer_phone: '', customer_company: '', source: 'portal', priority: 'normal', notes: '' });
-                    }
-                  });
+                  
+                  const onSuccessCallback = () => {
+                    setAddOpen(false);
+                    setIsNewCustomer(false);
+                    setIsEditing(false);
+                    setAddForm({ customer_id: '', customer_name: '', customer_email: '', customer_phone: '', customer_company: '', source: 'portal', priority: 'normal', notes: '' });
+                    toast(isEditing ? "Lead updated" : "Lead has been registered", {
+                      description: isEditing ? "The enquiry was updated successfully." : "The new enquiry was created successfully.",
+                    });
+                  };
+
+                  if (isEditing) {
+                    update.mutate({ id: selectedId!, data: payload }, { onSuccess: onSuccessCallback });
+                  } else {
+                    create.mutate(payload, { onSuccess: onSuccessCallback });
+                  }
                 }}
-                disabled={create.isPending || (isNewCustomer ? (!addForm.customer_name || !addForm.customer_email) : !addForm.customer_id)}
+                disabled={create.isPending || update.isPending || (isNewCustomer ? (!addForm.customer_name || !addForm.customer_email) : !addForm.customer_id)}
                 className="flex-1 bg-brand-primary text-brand-white hover:opacity-90 h-[36px] rounded-lg text-[13px] font-medium shadow-sm"
               >
-                {create.isPending ? <Loader2 className="animate-spin mr-2" size={14} /> : null} Register Enquiry
+                {(create.isPending || update.isPending) ? <Loader2 size={14} className="animate-spin mr-2" /> : null} 
+                {isEditing ? 'Save Changes' : 'Create Lead'}
               </Button>
             </DialogFooter>
           </div>

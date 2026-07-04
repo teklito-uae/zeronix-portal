@@ -55,28 +55,28 @@ export const ProductivitySuite = ({ activities = [] }: { activities: Activity[] 
   // ── Queries ─────────────────────────────────────────────────────────────────
   const { data: tasksData, isLoading: tasksLoading } = useQuery({
     queryKey: ['tasks'],
-    queryFn: async () => (await api.get(`${getBasePath()}/tasks`)).data,
+    queryFn: async () => (await api.get(`/admin/tasks`)).data,
   });
 
   const { data: stickyNotes = [], isLoading: notesLoading } = useQuery<Note[]>({
     queryKey: ['sticky-notes'],
-    queryFn: async () => (await api.get(`${getBasePath()}/sticky-notes`)).data,
+    queryFn: async () => (await api.get(`/admin/sticky-notes`)).data,
   });
 
   const { data: usersList = [] } = useQuery({
     queryKey: ['users', 'all'],
-    queryFn: async () => (await api.get(`${getBasePath()}/users?per_page=100`)).data.data || [],
+    queryFn: async () => (await api.get(`/admin/users?per_page=100`)).data.data || [],
   });
 
   // ── Mutations ────────────────────────────────────────────────────────────────
   const addTaskMutation = useMutation({
-    mutationFn: async (title: string) => (await api.post(`${getBasePath()}/tasks`, { title })).data,
+    mutationFn: async (title: string) => (await api.post(`/admin/tasks`, { title })).data,
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['tasks'] }); toast.success('Task added.'); },
   });
 
   const createTaskMutation = useMutation({
     mutationFn: async (payload: { title: string; description?: string; due_date?: string; assigned_to?: number | null }) => 
-      (await api.post(`${getBasePath()}/tasks`, payload)).data,
+      (await api.post(`/admin/tasks`, payload)).data,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       toast.success('Task created successfully.');
@@ -90,25 +90,25 @@ export const ProductivitySuite = ({ activities = [] }: { activities: Activity[] 
 
   const toggleTaskMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) =>
-      (await api.put(`${getBasePath()}/tasks/${id}`, { status })).data,
+      (await api.put(`/admin/tasks/${id}`, { status })).data,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
   });
 
   const addNoteMutation = useMutation({
     mutationFn: async (color: string) =>
-      (await api.post(`${getBasePath()}/sticky-notes`, { content: '', color })).data,
+      (await api.post(`/admin/sticky-notes`, { content: '', color })).data,
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['sticky-notes'] }); },
     onError: () => toast.error('Failed to create note.'),
   });
 
   const updateNoteMutation = useMutation({
     mutationFn: async ({ id, content, color }: { id: number; content?: string; color?: string }) =>
-      (await api.put(`${getBasePath()}/sticky-notes/${id}`, { content, color })).data,
+      (await api.put(`/admin/sticky-notes/${id}`, { content, color })).data,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sticky-notes'] }),
   });
 
   const deleteNoteMutation = useMutation({
-    mutationFn: async (id: number) => (await api.delete(`${getBasePath()}/sticky-notes/${id}`)).data,
+    mutationFn: async (id: number) => (await api.delete(`/admin/sticky-notes/${id}`)).data,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sticky-notes'] }),
     onError: () => toast.error('Failed to delete note.'),
   });

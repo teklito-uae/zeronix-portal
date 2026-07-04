@@ -97,6 +97,15 @@ export const CustomerImport = () => {
       toast.error('Only .vcf and .json files are supported');
       return;
     }
+    
+    // PHP's default upload_max_filesize is 2MB. 
+    // We validate client-side to prevent generic "failed to upload" errors.
+    const maxSizeMB = 2;
+    if (f.size > maxSizeMB * 1024 * 1024) {
+      toast.error(`File is too large. Maximum size is ${maxSizeMB}MB.`);
+      return;
+    }
+
     setFile(f);
     setRows([]);
   }, []);
@@ -116,9 +125,7 @@ export const CustomerImport = () => {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const res = await api.post(`${getBasePath()}/customers/import/preview`, fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const res = await api.post(`/admin/customers/import/preview`, fd);
       const parsed: ParsedRow[] = res.data.rows.map((r: any) => ({
         ...r,
         action: r.conflict ? 'skip' : 'create',
@@ -142,7 +149,7 @@ export const CustomerImport = () => {
   const handleCommit = async () => {
     setIsCommitting(true);
     try {
-      const res = await api.post(`${getBasePath()}/customers/import/commit`, {
+      const res = await api.post(`/admin/customers/import/commit`, {
         rows,
         label_ids: labelIds,
         user_id: assignUserId || undefined,

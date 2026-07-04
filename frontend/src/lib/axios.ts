@@ -12,6 +12,20 @@ const api = axios.create({
 
 // Request interceptor to attach bearer token based on route
 api.interceptors.request.use((config) => {
+  // Rewrite UI-based path prefixes to the actual backend API prefix
+  if (config.url?.includes('/workspace/')) {
+    config.url = config.url.replace('/workspace/', '/admin/');
+  } else if (config.url?.includes('/saas-admin/')) {
+    config.url = config.url.replace('/saas-admin/', '/admin/');
+  }
+
+  // For FormData uploads, remove the global Content-Type so the browser
+  // auto-generates the multipart/form-data boundary. Without this, the
+  // global 'application/json' override strips the boundary and PHP sees no file.
+  if (config.data instanceof FormData && config.headers) {
+    delete (config.headers as any)['Content-Type'];
+  }
+
   const isCustomerRoute = config.url?.includes('/customer/');
   const isAdminRoute = config.url?.includes('/admin/');
   
@@ -20,20 +34,10 @@ api.interceptors.request.use((config) => {
   if (isCustomerRoute) {
     token = localStorage.getItem('zeronix_customer_portal_token');
   } else if (isAdminRoute) {
-    const isStaffPath = window.location.pathname.startsWith('/staff');
-    const adminToken = localStorage.getItem('zeronix_admin_token');
-    const staffToken = localStorage.getItem('zeronix_staff_token');
-    
-    // Prioritize the token matching the current UI path
-    if (isStaffPath) {
-      token = staffToken || adminToken;
-    } else {
-      token = adminToken || staffToken;
-    }
+    token = localStorage.getItem('zeronix_admin_token') || localStorage.getItem('zeronix_staff_token');
   } else {
     // Fallback for ambiguous routes
     token = localStorage.getItem('zeronix_admin_token') || 
-            localStorage.getItem('zeronix_staff_token') || 
             localStorage.getItem('zeronix_customer_portal_token');
   }
 

@@ -287,9 +287,6 @@ export function ResourceListingPage<T extends { id: number }>({
             </div>
 
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-              <Button variant="outline" className="h-[32px] px-3 text-[12px] font-medium border-brand-border shadow-sm text-brand-secondary">
-                <Filter size={13} className="mr-1.5" /> Filter
-              </Button>
 
               {filters.length > 0 && filters.map((filter) => (
                 <Select
@@ -297,8 +294,8 @@ export function ResourceListingPage<T extends { id: number }>({
                   value={activeFilters[filter.name] || 'all'}
                   onValueChange={(val) => handleFilterChange(filter.name, val)}
                 >
-                  <SelectTrigger className="h-[32px] text-[12px] bg-brand-white border-brand-border rounded-lg hover:bg-brand-bg px-3 min-w-[120px] font-medium text-brand-secondary shadow-sm">
-                    {filter.label}
+                  <SelectTrigger className="h-[32px] w-auto text-[12px] bg-brand-white border-brand-border rounded-lg hover:bg-brand-bg px-3 min-w-[140px] max-w-[200px] font-medium text-brand-secondary shadow-sm">
+                    <SelectValue placeholder={filter.label} />
                   </SelectTrigger>
                   <SelectContent className="bg-brand-white border-brand-border rounded-xl shadow-sm">
                     <SelectItem value="all" className="text-[12px] font-medium">All {filter.label}</SelectItem>

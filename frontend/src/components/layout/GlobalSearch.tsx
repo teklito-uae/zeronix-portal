@@ -88,11 +88,11 @@ export const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
     setIsSearching(true);
     try {
       const [customers, suppliers, products, quotes, invoices] = await Promise.allSettled([
-        api.get(`${getBasePath()}/customers`, { params: { search: q, per_page: 5 } }),
-        api.get(`${getBasePath()}/suppliers`,  { params: { search: q, per_page: 5 } }),
-        api.get(`${getBasePath()}/products`,   { params: { search: q, per_page: 5 } }),
-        api.get(`${getBasePath()}/quotes`,     { params: { search: q, per_page: 5 } }),
-        api.get(`${getBasePath()}/invoices`,   { params: { search: q, per_page: 5 } }),
+        api.get(`/admin/customers`, { params: { search: q, per_page: 5 } }),
+        api.get(`/admin/suppliers`,  { params: { search: q, per_page: 5 } }),
+        api.get(`/admin/products`,   { params: { search: q, per_page: 5 } }),
+        api.get(`/admin/quotes`,     { params: { search: q, per_page: 5 } }),
+        api.get(`/admin/invoices`,   { params: { search: q, per_page: 5 } }),
       ]);
 
       const items: ResultItem[] = [...navMatches];
