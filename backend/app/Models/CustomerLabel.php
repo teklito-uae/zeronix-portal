@@ -5,9 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use App\Traits\BelongsToCompany;
 
 class CustomerLabel extends Model
 {
+    use BelongsToCompany;
+
     protected $fillable = [
         'name',
         'color',

@@ -23,6 +23,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\CustomerLabelController;
 use App\Http\Controllers\CustomerImportController;
+use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\Customer\ProductController as CustomerProductController;
 use App\Http\Controllers\Customer\QuoteController as CustomerQuoteController;
 use App\Http\Controllers\Customer\InvoiceController as CustomerInvoiceController;
@@ -106,6 +107,7 @@ Route::middleware('throttle:public')->group(function () {
     Route::get('/public/categories', [CategoryController::class, 'index']);
     Route::get('/public/brands', [BrandController::class, 'index']);
     Route::post('/public/rfq', [EnquiryController::class, 'publicStore']);
+    Route::post('/public/register-company', [CompanyController::class, 'publicStore']);
 });
 
 // Common routes for both Admin and Staff (using getBasePath() on frontend)
@@ -128,6 +130,9 @@ foreach (['admin', 'staff'] as $prefix) {
         Route::put('/customers/{customer}', [CustomerController::class, 'update']);
         Route::delete('/customers/{customer}', [CustomerController::class, 'destroy']);
         Route::post('/customers/{customer}/register-portal', [CustomerController::class, 'registerPortal']);
+
+        // Companies
+        Route::apiResource('companies', CompanyController::class);
 
         // Customer Labels
         Route::get('/customer-labels', [CustomerLabelController::class, 'index']);
@@ -233,6 +238,9 @@ Route::prefix('admin')->group(function () {
         // Activity Logs
         Route::get('/activities', [ActivityController::class, 'index']);
 
+        // Platform Stats (Super Admin Only)
+        Route::get('/platform/stats', [\App\Http\Controllers\PlatformController::class, 'stats']);
+
         // Attendance report (Admin only)
         Route::get('/attendance/report', [AttendanceController::class, 'index']);
 
@@ -248,6 +256,11 @@ Route::prefix('admin')->group(function () {
 
         // Notifications
         // Moved to shared loop
+
+        // Company Management (God Mode)
+        Route::post('/companies/{id}/approve', [CompanyController::class, 'approve']);
+        Route::post('/companies/{id}/reject', [CompanyController::class, 'reject']);
+        Route::post('/companies/{id}/suspend', [CompanyController::class, 'suspend']);
 
         // Chat
         // Moved to shared loop

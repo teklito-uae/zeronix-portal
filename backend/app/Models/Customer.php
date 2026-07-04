@@ -11,10 +11,11 @@ use Illuminate\Support\Carbon;
 
 use App\Traits\LogsActivity;
 use App\Traits\HasUserScope;
+use App\Traits\BelongsToCompany;
 
 class Customer extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, LogsActivity, HasUserScope;
+    use HasApiTokens, HasFactory, Notifiable, LogsActivity, HasUserScope, BelongsToCompany;
 
     protected $fillable = [
         'customer_code',
@@ -25,7 +26,9 @@ class Customer extends Authenticatable
         'address',
         'trn',
         'password',
-        'is_portal_active'
+        'is_portal_active',
+        'company_id',
+        'is_company_admin'
     ];
 
     protected $hidden = [
@@ -36,6 +39,7 @@ class Customer extends Authenticatable
     {
         return [
             'is_portal_active' => 'boolean',
+            'is_company_admin' => 'boolean',
         ];
     }
 

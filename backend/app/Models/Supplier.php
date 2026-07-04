@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
 use App\Traits\LogsActivity;
+use App\Traits\BelongsToCompany;
 
 class Supplier extends Model
 {
-    use LogsActivity;
+    use LogsActivity, BelongsToCompany;
     protected $fillable = [
         'supplier_code',
         'name',

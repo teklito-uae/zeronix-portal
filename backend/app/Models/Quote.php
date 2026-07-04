@@ -5,13 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 use App\Traits\LogsActivity;
 use App\Traits\HasUserScope;
+use App\Traits\BelongsToCompany;
 
 class Quote extends Model
 {
-    use LogsActivity, HasUserScope;
+    use HasFactory, LogsActivity, HasUserScope, BelongsToCompany;
 
     protected $fillable = [
         'quote_number',

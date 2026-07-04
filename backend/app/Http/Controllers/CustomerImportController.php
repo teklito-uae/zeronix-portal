@@ -16,6 +16,10 @@ class CustomerImportController extends Controller
      */
     public function preview(Request $request)
     {
+        if ($request->hasFile('file') && !$request->file('file')->isValid()) {
+            \Log::error('Upload failed with error code: ' . $request->file('file')->getError());
+        }
+
         $request->validate([
             'file' => [
                 'required',

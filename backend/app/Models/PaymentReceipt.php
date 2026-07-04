@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BelongsToCompany;
 
 class PaymentReceipt extends Model
 {
+    use BelongsToCompany;
+
     protected $fillable = [
         'invoice_id',
         'customer_id',

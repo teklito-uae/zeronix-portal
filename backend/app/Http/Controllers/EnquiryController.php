@@ -154,9 +154,8 @@ class EnquiryController extends Controller
         return response()->json(['message' => 'Enquiry deleted']);
     }
 
-    public function assign(Request $request, $id)
+    public function assign(Request $request, Enquiry $enquiry)
     {
-        $enquiry = Enquiry::findOrFail($id);
 
         $validated = $request->validate([
             'user_ids'   => 'nullable|array',
