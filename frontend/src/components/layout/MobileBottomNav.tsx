@@ -199,11 +199,11 @@ export const MobileBottomNav = ({ isVisible = true }: { isVisible?: boolean }) =
                 onClick={() => navigate(item.path)}
                 className={cn(
                   'flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-all duration-150 relative',
-                  active ? 'text-zeronix-blue' : 'text-admin-text-muted'
+                  active ? 'text-brand-accent' : 'text-brand-subtle'
                 )}
               >
                 {active && (
-                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-zeronix-blue rounded-full" />
+                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-brand-accent rounded-full" />
                 )}
                 <Icon size={22} className={active ? 'scale-110 transition-transform' : 'transition-transform'} />
                 <span className="text-[10px] font-semibold">{item.label}</span>
@@ -216,11 +216,11 @@ export const MobileBottomNav = ({ isVisible = true }: { isVisible?: boolean }) =
             onClick={() => setDrawerOpen(true)}
             className={cn(
               'flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-all duration-150 relative',
-              isMenuActive || drawerOpen ? 'text-zeronix-blue' : 'text-admin-text-muted'
+              isMenuActive || drawerOpen ? 'text-brand-accent' : 'text-brand-subtle'
             )}
           >
             {(isMenuActive || drawerOpen) && (
-              <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-zeronix-blue rounded-full" />
+              <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-brand-accent rounded-full" />
             )}
             <Menu size={22} />
             <span className="text-[10px] font-semibold">More</span>
@@ -238,24 +238,24 @@ export const MobileBottomNav = ({ isVisible = true }: { isVisible?: boolean }) =
 
       {/* Navigation Drawer — slides from bottom */}
       <div className={cn(
-        "md:hidden fixed bottom-0 left-0 right-0 z-[70] bg-admin-surface rounded-t-2xl border-t border-admin-border transition-transform duration-300 ease-out flex flex-col",
+        "md:hidden fixed bottom-0 left-0 right-0 z-[70] bg-brand-white rounded-t-2xl border-t border-brand-border transition-transform duration-300 ease-out flex flex-col",
         drawerOpen ? "translate-y-0" : "translate-y-full"
       )} style={{ maxHeight: '85dvh' }}>
         {/* Header Section (Fixed) */}
         <div className="shrink-0">
           <div className="flex justify-center pt-3 pb-1">
-            <div className="w-10 h-1 bg-admin-border rounded-full" />
+            <div className="w-10 h-1 bg-brand-border rounded-full" />
           </div>
           <div className="flex items-center justify-between px-5 pb-3">
-            <h3 className="text-base font-bold text-admin-text-primary">Navigation</h3>
+            <h3 className="text-base font-bold text-brand-primary">Navigation</h3>
             <button
               onClick={() => setDrawerOpen(false)}
-              className="h-8 w-8 flex items-center justify-center rounded-lg text-admin-text-muted hover:bg-admin-surface-hover hover:text-admin-text-primary transition-colors"
+              className="h-8 w-8 flex items-center justify-center rounded-lg text-brand-subtle hover:bg-brand-surface hover:text-brand-primary transition-colors"
             >
               <X size={18} />
             </button>
           </div>
-          <Separator className="bg-admin-border" />
+          <Separator className="bg-brand-border" />
         </div>
 
         {/* Grouped Navigation (Scrollable) */}
@@ -263,7 +263,7 @@ export const MobileBottomNav = ({ isVisible = true }: { isVisible?: boolean }) =
           <div className="p-4 space-y-6 pb-16">
             {filteredGroups.map((group) => (
               <div key={group.label}>
-                <p className="px-2 mb-2 text-[11px] font-semibold uppercase tracking-wider text-admin-text-muted">
+                <p className="px-2 mb-2 text-[11px] font-semibold uppercase tracking-wider text-brand-subtle">
                   {group.label}
                 </p>
                 <div className="space-y-0.5">
@@ -280,13 +280,13 @@ export const MobileBottomNav = ({ isVisible = true }: { isVisible?: boolean }) =
                         className={cn(
                           'w-full flex items-center gap-3 h-12 px-3 rounded-xl transition-all duration-150',
                           active
-                            ? 'bg-zeronix-blue text-white shadow-sm'
-                            : 'text-admin-text-secondary hover:bg-admin-surface-hover'
+                            ? 'bg-brand-accent text-white shadow-sm'
+                            : 'text-brand-secondary hover:bg-brand-surface'
                         )}
                       >
                         <Icon size={20} />
                         <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
-                        <ChevronRight size={14} className={active ? 'text-white/60' : 'text-admin-text-muted/50'} />
+                        <ChevronRight size={14} className={active ? 'text-white/60' : 'text-brand-subtle/50'} />
                       </button>
                     );
                   })}
