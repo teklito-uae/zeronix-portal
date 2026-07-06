@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -12,6 +13,31 @@ class CustomerController extends Controller
     public function index(Request $request)
     {
         $query = Customer::with(['assigned_users', 'labels'])->withCount(['quotes', 'invoices', 'enquiries']);
+
+        // Outstanding balance: sum of (invoice total - amount already received) across
+        // this customer's unsettled invoices, computed in one correlated subquery per
+        // page load rather than N+1'ing Invoice::balance across every row.
+        $paidPerInvoice = DB::table('payment_receipts')
+            ->selectRaw('invoice_id, SUM(amount) as paid')
+            ->groupBy('invoice_id');
+
+        $balanceSub = DB::table('invoices as inv')
+            ->leftJoinSub($paidPerInvoice, 'pr', 'pr.invoice_id', '=', 'inv.id')
+            ->selectRaw('COALESCE(SUM(inv.total - COALESCE(pr.paid, 0)), 0)')
+            ->whereColumn('inv.customer_id', 'customers.id')
+            ->whereNotIn('inv.status', ['paid', 'cancelled']);
+
+        $overdueSub = DB::table('invoices as inv2')
+            ->selectRaw('COUNT(*)')
+            ->whereColumn('inv2.customer_id', 'customers.id')
+            ->whereNotIn('inv2.status', ['paid', 'cancelled'])
+            ->whereNotNull('inv2.due_date')
+            ->where('inv2.due_date', '<', now());
+
+        $query->addSelect([
+            'outstanding_balance' => $balanceSub,
+            'overdue_invoices_count' => $overdueSub,
+        ]);
 
         // Data Scoping
         $query->forUser($request->user());

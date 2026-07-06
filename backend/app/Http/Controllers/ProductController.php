@@ -60,6 +60,8 @@ class ProductController extends Controller
         $validated = $request->validate([
             'name' => 'required|string',
             'model_code' => 'nullable|string',
+            'sku' => 'nullable|string|unique:products,sku',
+            'stock_quantity' => 'nullable|integer',
             'brand_id' => 'nullable|exists:brands,id',
             'category_id' => 'nullable|exists:categories,id',
             'description' => 'nullable|string',
@@ -89,6 +91,8 @@ class ProductController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|required|string',
             'model_code' => 'nullable|string',
+            'sku' => 'nullable|string|unique:products,sku,' . $product->id,
+            'stock_quantity' => 'nullable|integer',
             'brand_id' => 'nullable|exists:brands,id',
             'category_id' => 'nullable|exists:categories,id',
             'description' => 'nullable|string',

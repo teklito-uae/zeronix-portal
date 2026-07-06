@@ -19,6 +19,7 @@ class Enquiry extends Model
     protected $userScopeRelation = 'assigned_users';
     protected $fillable = [
         'customer_id',
+        'lead_id',
         'user_id',
         'source',
         'priority',
@@ -33,6 +34,11 @@ class Enquiry extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function lead(): BelongsTo
+    {
+        return $this->belongsTo(Lead::class);
     }
 
     public function user(): BelongsTo

@@ -20,6 +20,8 @@ class Product extends Model
         'slug',
         'description',
         'model_code',
+        'sku',
+        'stock_quantity',
         'price',
         'specs',
         'image',
@@ -29,7 +31,15 @@ class Product extends Model
     protected $casts = [
         'specs' => 'json',
         'is_active' => 'boolean',
+        'stock_quantity' => 'integer',
     ];
+
+    protected $appends = ['is_low_stock'];
+
+    public function getIsLowStockAttribute()
+    {
+        return $this->stock_quantity <= 5;
+    }
 
     public function category()
     {
