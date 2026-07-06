@@ -34,12 +34,26 @@ class PurchaseBillItem extends Model
         static::created(function ($item) {
             if ($item->product_id) {
                 Product::where('id', $item->product_id)->increment('stock_quantity', (int) $item->quantity);
+                StockMovement::create([
+                    'product_id' => $item->product_id,
+                    'quantity' => (int) $item->quantity,
+                    'movement_type' => 'purchase',
+                    'reference_type' => self::class,
+                    'reference_id' => $item->id,
+                ]);
             }
         });
 
         static::deleted(function ($item) {
             if ($item->product_id) {
                 Product::where('id', $item->product_id)->decrement('stock_quantity', (int) $item->quantity);
+                StockMovement::create([
+                    'product_id' => $item->product_id,
+                    'quantity' => -(int) $item->quantity,
+                    'movement_type' => 'purchase',
+                    'reference_type' => self::class,
+                    'reference_id' => $item->id,
+                ]);
             }
         });
     }

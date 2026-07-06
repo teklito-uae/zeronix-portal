@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Customer;
+use App\Models\Delivery;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Quote;
+use App\Models\SalesOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
@@ -49,17 +52,28 @@ class InvoiceController extends Controller
     {
         $validated = $request->validate([
             'customer_id' => 'required|exists:customers,id',
+            'customer_contact_id' => 'nullable|exists:customer_contacts,id',
             'quote_id' => 'nullable|exists:quotes,id',
+            'sales_order_id' => 'nullable|exists:sales_orders,id',
+            'delivery_id' => 'nullable|exists:deliveries,id',
             'date' => 'required|date',
             'due_date' => 'nullable|date',
             'status' => 'nullable|string',
-            'items' => 'required|array|min:1',
+            // Invoice may be created ad hoc (no sales order/delivery) — items are only
+            // optional when a sales_order_id/delivery_id is given, in which case they
+            // are copied from that record below.
+            'items' => 'nullable|array|min:1',
             'items.*.product_id' => 'nullable|exists:products,id',
-            'items.*.description' => 'required|string',
-            'items.*.quantity' => 'required|numeric|min:0.01',
-            'items.*.unit_price' => 'required|numeric|min:0',
+            'items.*.description' => 'required_with:items|string',
+            'items.*.quantity' => 'required_with:items|numeric|min:0.01',
+            'items.*.unit_price' => 'required_with:items|numeric|min:0',
             'items.*.tax_percent' => 'nullable|numeric|min:0',
         ]);
+
+        $items = $validated['items'] ?? $this->itemsFromLinkedRecord($validated);
+        if (empty($items)) {
+            return response()->json(['message' => 'Provide items, or a sales_order_id/delivery_id to copy them from.'], 422);
+        }
 
         DB::beginTransaction();
         try {
@@ -71,26 +85,31 @@ class InvoiceController extends Controller
             $subtotal = 0;
             $vatAmount = 0;
 
-            foreach ($validated['items'] as $item) {
+            foreach ($items as $item) {
                 $itemSubtotal = $item['quantity'] * $item['unit_price'];
                 $subtotal += $itemSubtotal;
                 $vatAmount += $itemSubtotal * (($item['tax_percent'] ?? 5) / 100);
             }
 
+            $customer = Customer::find($validated['customer_id']);
+
             $invoice = Invoice::create([
                 'invoice_number' => $invoiceNumber,
                 'customer_id' => $validated['customer_id'],
+                'customer_contact_id' => $validated['customer_contact_id'] ?? $customer?->primaryContact()?->id,
                 'quote_id' => $validated['quote_id'] ?? null,
+                'sales_order_id' => $validated['sales_order_id'] ?? null,
+                'delivery_id' => $validated['delivery_id'] ?? null,
                 'user_id' => $request->user()->id,
                 'date' => $validated['date'],
                 'due_date' => $validated['due_date'] ?? Carbon::parse($validated['date'])->addDays(7),
                 'subtotal' => $subtotal,
                 'vat_amount' => $vatAmount,
                 'total' => $subtotal + $vatAmount,
-                'status' => $validated['status'] ?? 'unpaid',
+                'status' => $validated['status'] ?? 'posted',
             ]);
 
-            foreach ($validated['items'] as $item) {
+            foreach ($items as $item) {
                 $itemSubtotal = $item['quantity'] * $item['unit_price'];
                 $itemTax = $itemSubtotal * (($item['tax_percent'] ?? 5) / 100);
 
@@ -156,6 +175,7 @@ class InvoiceController extends Controller
 
         $validated = $request->validate([
             'customer_id' => 'required|exists:customers,id',
+            'customer_contact_id' => 'nullable|exists:customer_contacts,id',
             'date' => 'required|date',
             'due_date' => 'nullable|date',
             'status' => 'nullable|string',
@@ -180,6 +200,7 @@ class InvoiceController extends Controller
 
             $invoice->update([
                 'customer_id' => $validated['customer_id'],
+                'customer_contact_id' => $validated['customer_contact_id'] ?? $invoice->customer_contact_id,
                 'date' => $validated['date'],
                 'due_date' => $validated['due_date'] ?? Carbon::parse($validated['date'])->addDays(7),
                 'subtotal' => $subtotal,
@@ -351,5 +372,36 @@ class InvoiceController extends Controller
         } catch (\Exception $e) {
             return response()->json(['message' => 'Failed to send email', 'error' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * When an invoice is created from a Sales Order/Delivery without resending line
+     * items, copy them across server-side rather than requiring the client to.
+     */
+    private function itemsFromLinkedRecord(array $validated): array
+    {
+        if (!empty($validated['delivery_id'])) {
+            $delivery = Delivery::with('items')->find($validated['delivery_id']);
+            return $delivery ? $delivery->items->map(fn ($i) => [
+                'product_id' => $i->product_id,
+                'description' => $i->product_name,
+                'quantity' => $i->quantity,
+                'unit_price' => $i->product?->price ?? 0,
+                'tax_percent' => 5,
+            ])->all() : [];
+        }
+
+        if (!empty($validated['sales_order_id'])) {
+            $order = SalesOrder::with('items')->find($validated['sales_order_id']);
+            return $order ? $order->items->map(fn ($i) => [
+                'product_id' => $i->product_id,
+                'description' => $i->description,
+                'quantity' => $i->quantity,
+                'unit_price' => $i->unit_price,
+                'tax_percent' => $i->tax_percent,
+            ])->all() : [];
+        }
+
+        return [];
     }
 }

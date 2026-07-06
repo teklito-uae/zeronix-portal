@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\CustomerContact;
 use App\Models\Enquiry;
 use App\Models\EnquiryItem;
 use App\Models\Lead;
@@ -11,40 +12,50 @@ use Illuminate\Support\Facades\DB;
 
 class EnquiryController extends Controller
 {
+    private const SOURCES = ['manual', 'website', 'email', 'referral', 'import', 'other'];
+    private const STATUSES = ['new', 'assigned', 'in_progress', 'quoted', 'won', 'lost', 'closed', 'cancelled'];
+
     /**
-     * Resolve a brand-new contact (no customer_id supplied) to either an existing
-     * Customer (dedup by email — a repeat customer must not spawn a duplicate Lead)
-     * or a Lead (a new prospect, not yet an accounting entity).
+     * Resolve a brand-new contact (no customer_id supplied) to, in priority order:
+     * an existing Customer Contact (dedup by email — a known contact at a company
+     * must not spawn a duplicate Lead), an existing Customer without contacts yet
+     * (backward compatibility for pre-Contact-feature customers), or a Lead (a new
+     * prospect, not yet an accounting entity).
      *
-     * @return array{customer_id: int|null, lead_id: int|null}
+     * @return array{customer_id: int|null, lead_id: int|null, contact_id: int|null}
      */
     private function resolveContact(?string $email, array $attrs): array
     {
-        if (!empty($email)) {
-            $customer = Customer::where('email', $email)->first();
-            if ($customer) {
-                return ['customer_id' => $customer->id, 'lead_id' => null];
-            }
-
-            $lead = Lead::firstOrCreate(
-                ['email' => $email],
-                [
-                    'name' => $attrs['name'] ?? 'Unknown',
-                    'phone' => $attrs['phone'] ?? null,
-                    'company' => $attrs['company'] ?? null,
-                    'source' => $attrs['source'] ?? null,
-                    'user_id' => $attrs['user_id'] ?? null,
-                ]
-            );
-            return ['customer_id' => null, 'lead_id' => $lead->id];
+        if (empty($email)) {
+            return ['customer_id' => null, 'lead_id' => null, 'contact_id' => null];
         }
 
-        return ['customer_id' => null, 'lead_id' => null];
+        $contact = CustomerContact::where('email', $email)->where('is_active', true)->first();
+        if ($contact) {
+            return ['customer_id' => $contact->customer_id, 'lead_id' => null, 'contact_id' => $contact->id];
+        }
+
+        $customer = Customer::where('email', $email)->first();
+        if ($customer) {
+            return ['customer_id' => $customer->id, 'lead_id' => null, 'contact_id' => $customer->primaryContact()?->id];
+        }
+
+        $lead = Lead::firstOrCreate(
+            ['email' => $email],
+            [
+                'name' => $attrs['name'] ?? 'Unknown',
+                'phone' => $attrs['phone'] ?? null,
+                'company' => $attrs['company'] ?? null,
+                'source' => $attrs['source'] ?? null,
+                'user_id' => $attrs['user_id'] ?? null,
+            ]
+        );
+        return ['customer_id' => null, 'lead_id' => $lead->id, 'contact_id' => null];
     }
 
     public function index(Request $request)
     {
-        $query = Enquiry::with(['customer', 'lead', 'user', 'assigned_users'])->withCount('items');
+        $query = Enquiry::with(['customer', 'lead', 'customerContact', 'user', 'assigned_users'])->withCount('items');
 
         // Data Scoping
         $query->forUser($request->user());
@@ -87,47 +98,62 @@ class EnquiryController extends Controller
     {
         $validated = $request->validate([
             'customer_id' => 'nullable|exists:customers,id',
+            'customer_contact_id' => 'nullable|exists:customer_contacts,id',
             'customer_name' => 'required_without:customer_id|string|max:255',
             'customer_email' => 'required_without:customer_id|email',
             'customer_phone' => 'nullable|string|max:50',
             'customer_company' => 'nullable|string|max:255',
-            'source' => 'nullable|string',
+            'source' => 'nullable|string|in:' . implode(',', self::SOURCES),
             'priority' => 'nullable|string',
-            'status' => 'nullable|string',
+            'status' => 'nullable|string|in:' . implode(',', self::STATUSES),
             'notes' => 'nullable|string',
             'items' => 'nullable|array',
             'items.*.product_id' => 'nullable|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.description' => 'nullable|string',
+            'attachments' => 'nullable|array',
+            'attachments.*' => 'file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
         DB::beginTransaction();
         try {
             $customerId = $validated['customer_id'] ?? null;
+            $contactId = $validated['customer_contact_id'] ?? null;
             $leadId = null;
 
-            // CRM Flow: resolve a brand-new contact to an existing Customer (dedup)
-            // or a new Lead — a prospect is not an accounting entity until converted.
+            // CRM Flow: resolve a brand-new contact to an existing Customer Contact
+            // (dedup), an existing Customer without contacts yet, or a new Lead — a
+            // prospect is not an accounting entity until converted.
             if (!$customerId && !empty($validated['customer_email'])) {
                 $resolved = $this->resolveContact($validated['customer_email'], [
                     'name' => $validated['customer_name'] ?? 'Unknown',
                     'phone' => $validated['customer_phone'] ?? null,
                     'company' => $validated['customer_company'] ?? null,
-                    'source' => $validated['source'] ?? 'portal',
+                    'source' => $validated['source'] ?? 'manual',
                     'user_id' => $request->user()->id ?? null,
                 ]);
                 $customerId = $resolved['customer_id'];
+                $contactId = $resolved['contact_id'];
                 $leadId = $resolved['lead_id'];
+            }
+
+            $attachmentPaths = [];
+            if ($request->hasFile('attachments')) {
+                foreach ($request->file('attachments') as $file) {
+                    $attachmentPaths[] = $file->store('enquiry_attachments', 'public');
+                }
             }
 
             $enquiry = Enquiry::create([
                 'customer_id' => $customerId,
                 'lead_id' => $leadId,
+                'customer_contact_id' => $contactId,
                 'user_id' => $request->user()->id ?? null,
-                'source' => $validated['source'] ?? 'portal',
+                'source' => $validated['source'] ?? 'manual',
                 'priority' => $validated['priority'] ?? 'normal',
                 'status' => $validated['status'] ?? 'new',
                 'notes' => $validated['notes'] ?? null,
+                'attachments' => $attachmentPaths,
             ]);
 
             if ($request->user() && $request->user()->role === 'salesman') {
@@ -146,8 +172,8 @@ class EnquiryController extends Controller
 
             DB::commit();
 
-            $enquiry->load(['customer', 'lead', 'items.product', 'user', 'assigned_users']);
-            
+            $enquiry->load(['customer', 'lead', 'customerContact', 'items.product', 'user', 'assigned_users']);
+
             return response()->json($enquiry, 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -158,7 +184,7 @@ class EnquiryController extends Controller
     public function show(Request $request, Enquiry $enquiry)
     {
         $this->authorize('view', $enquiry);
-        return response()->json($enquiry->load(['customer', 'lead', 'items.product', 'user', 'assigned_users']));
+        return response()->json($enquiry->load(['customer', 'lead', 'customerContact', 'items.product', 'user', 'assigned_users']));
     }
 
     public function update(Request $request, Enquiry $enquiry)
@@ -166,9 +192,10 @@ class EnquiryController extends Controller
         $this->authorize('update', $enquiry);
 
         $validated = $request->validate([
-            'status' => 'nullable|string',
+            'status' => 'nullable|string|in:' . implode(',', self::STATUSES),
             'priority' => 'nullable|string',
             'notes' => 'nullable|string',
+            'customer_contact_id' => 'nullable|exists:customer_contacts,id',
             'cancellation_reason' => 'required_if:status,cancelled|string|nullable',
         ]);
 
@@ -200,52 +227,5 @@ class EnquiryController extends Controller
         $enquiry->load(['customer', 'user', 'assigned_users']);
 
         return response()->json($enquiry);
-    }
-
-    public function publicStore(Request $request)
-    {
-        $validated = $request->validate([
-            'customer_name' => 'required|string|max:255',
-            'customer_email' => 'required|email',
-            'customer_phone' => 'nullable|string|max:50',
-            'customer_company' => 'nullable|string|max:255',
-            'notes' => 'nullable|string',
-            'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity' => 'required|integer|min:1',
-        ]);
-
-        DB::beginTransaction();
-        try {
-            $resolved = $this->resolveContact($validated['customer_email'], [
-                'name' => $validated['customer_name'],
-                'phone' => $validated['customer_phone'] ?? null,
-                'company' => $validated['customer_company'] ?? null,
-                'source' => 'portal_public',
-                'user_id' => null,
-            ]);
-
-            $enquiry = Enquiry::create([
-                'customer_id' => $resolved['customer_id'],
-                'lead_id' => $resolved['lead_id'],
-                'source' => 'portal_public',
-                'priority' => 'normal',
-                'status' => 'new',
-                'notes' => $validated['notes'] ?? null,
-            ]);
-
-            foreach ($validated['items'] as $item) {
-                $enquiry->items()->create([
-                    'product_id' => $item['product_id'],
-                    'quantity' => $item['quantity'],
-                ]);
-            }
-
-            DB::commit();
-            return response()->json(['message' => 'Quote request sent successfully', 'id' => $enquiry->id], 201);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['message' => 'Failed to send quote request', 'error' => $e->getMessage()], 500);
-        }
     }
 }

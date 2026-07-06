@@ -18,7 +18,10 @@ class Invoice extends Model
     protected $fillable = [
         'invoice_number',
         'quote_id',
+        'sales_order_id',
+        'delivery_id',
         'customer_id',
+        'customer_contact_id',
         'user_id',
         'date',
         'due_date',
@@ -70,5 +73,20 @@ class Invoice extends Model
     public function quote(): BelongsTo
     {
         return $this->belongsTo(Quote::class);
+    }
+
+    public function salesOrder(): BelongsTo
+    {
+        return $this->belongsTo(SalesOrder::class);
+    }
+
+    public function delivery(): BelongsTo
+    {
+        return $this->belongsTo(Delivery::class);
+    }
+
+    public function customerContact(): BelongsTo
+    {
+        return $this->belongsTo(CustomerContact::class);
     }
 }

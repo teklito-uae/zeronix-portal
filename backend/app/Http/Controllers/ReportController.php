@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Enquiry;
 use App\Models\Invoice;
+use App\Models\Lead;
 use App\Models\PaymentReceipt;
 use App\Models\PurchaseBill;
 use App\Models\Expense;
@@ -113,7 +115,7 @@ class ReportController extends Controller
     public function receivablesAging(Request $request)
     {
         $invoices = Invoice::forUser($request->user())
-            ->whereIn('status', ['unpaid', 'partial', 'sent'])
+            ->whereIn('status', ['posted', 'partially_paid', 'overdue'])
             ->get();
 
         $buckets = [
@@ -147,5 +149,60 @@ class ReportController extends Controller
         }
 
         return response()->json($buckets);
+    }
+
+    public function crmDashboard(Request $request)
+    {
+        $from = $request->date_from;
+        $to = $request->date_to;
+
+        $leadQuery = Lead::query();
+        if ($from) $leadQuery->whereDate('created_at', '>=', $from);
+        if ($to) $leadQuery->whereDate('created_at', '<=', $to);
+
+        $leadsByStatus = (clone $leadQuery)->selectRaw('status, COUNT(*) as count')->groupBy('status')->pluck('count', 'status');
+        $totalLeads = (clone $leadQuery)->count();
+        $convertedLeads = (clone $leadQuery)->whereNotNull('converted_at')->count();
+
+        $enquiryQuery = Enquiry::forUser($request->user());
+        if ($from) $enquiryQuery->whereDate('created_at', '>=', $from);
+        if ($to) $enquiryQuery->whereDate('created_at', '<=', $to);
+
+        $enquiriesByStatus = (clone $enquiryQuery)->selectRaw('status, COUNT(*) as count')->groupBy('status')->pluck('count', 'status');
+
+        $topCustomers = \App\Models\Customer::query()
+            ->withSum(['invoices as total_invoiced'], 'total')
+            ->orderByDesc('total_invoiced')
+            ->limit(5)
+            ->get(['id', 'name', 'company']);
+
+        return response()->json([
+            'leads_by_status' => $leadsByStatus,
+            'total_leads' => $totalLeads,
+            'converted_leads' => $convertedLeads,
+            'conversion_rate' => $totalLeads > 0 ? round($convertedLeads / $totalLeads * 100, 1) : 0,
+            'enquiries_by_status' => $enquiriesByStatus,
+            'top_customers' => $topCustomers,
+        ]);
+    }
+
+    public function enquiriesBySource(Request $request)
+    {
+        $rows = Enquiry::forUser($request->user())
+            ->selectRaw('source, COUNT(*) as count')
+            ->groupBy('source')
+            ->get();
+
+        return response()->json($rows);
+    }
+
+    public function pipelineSummary(Request $request)
+    {
+        return response()->json([
+            'quotations' => \App\Models\Quote::forUser($request->user())->selectRaw('status, COUNT(*) as count, SUM(total) as total')->groupBy('status')->get(),
+            'sales_orders' => \App\Models\SalesOrder::forUser($request->user())->selectRaw('status, COUNT(*) as count, SUM(total) as total')->groupBy('status')->get(),
+            'deliveries' => \App\Models\Delivery::forUser($request->user())->selectRaw('status, COUNT(*) as count')->groupBy('status')->get(),
+            'invoices' => Invoice::forUser($request->user())->selectRaw('status, COUNT(*) as count, SUM(total) as total')->groupBy('status')->get(),
+        ]);
     }
 }

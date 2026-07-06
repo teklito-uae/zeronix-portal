@@ -59,7 +59,7 @@ class PaymentReceiptController extends Controller
                 if ($totalPaid >= $invoice->total) {
                     $invoice->update(['status' => 'paid']);
                 } else {
-                    $invoice->update(['status' => 'partial']); // Optional: add partial status
+                    $invoice->update(['status' => 'partially_paid']);
                 }
             }
         }

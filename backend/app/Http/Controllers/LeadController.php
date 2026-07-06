@@ -3,12 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\CustomerContact;
 use App\Models\Lead;
 use Illuminate\Http\Request;
 
 class LeadController extends Controller
 {
-    private const STATUSES = ['new', 'contacted', 'qualified', 'disqualified', 'converted'];
+    private const STATUSES = ['new', 'contacted', 'qualified', 'converted', 'lost', 'unresponsive'];
 
     public function index(Request $request)
     {
@@ -101,12 +102,23 @@ class LeadController extends Controller
             'phone' => $lead->phone,
         ]);
 
+        CustomerContact::create([
+            'customer_id' => $customer->id,
+            'first_name' => $lead->name,
+            'email' => $lead->email,
+            'phone' => $lead->phone,
+            'is_primary' => true,
+            'is_active' => true,
+        ]);
+
         $lead->update([
             'status' => 'converted',
             'converted_customer_id' => $customer->id,
             'converted_at' => now(),
         ]);
 
+        // Only customer_id is touched here — lead_id is intentionally preserved on
+        // these enquiries for historical reporting (the lead is never deleted).
         $lead->enquiries()->update(['customer_id' => $customer->id]);
 
         return response()->json([
