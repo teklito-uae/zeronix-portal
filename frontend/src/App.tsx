@@ -19,6 +19,7 @@ import { PlatformSettings } from './pages/platform/PlatformSettings';
 
 // --- WORKSPACE IMPORTS (Tenant Admin & Staff) ---
 import { Dashboard as WorkspaceDashboard } from './pages/workspace/Dashboard';
+import { Leads } from './pages/workspace/Leads';
 import { Customers } from './pages/workspace/Customers';
 import { CustomerProfile as AdminCustomerProfile } from './pages/workspace/CustomerProfile';
 import { Suppliers } from './pages/workspace/Suppliers';
@@ -30,6 +31,10 @@ import { QuoteDetail } from './pages/workspace/QuoteDetail';
 import { Invoices } from './pages/workspace/Invoices';
 import { InvoiceDetail } from './pages/workspace/InvoiceDetail';
 import { PaymentReceipts } from './pages/workspace/PaymentReceipts';
+import { Purchases } from './pages/workspace/Purchases';
+import { PurchaseBillDetail } from './pages/workspace/PurchaseBillDetail';
+import { Expenses } from './pages/workspace/Expenses';
+import { Reports } from './pages/workspace/Reports';
 import { Users } from './pages/workspace/Users';
 import { Settings as WorkspaceSettings } from './pages/workspace/Settings';
 import { Notifications } from './pages/workspace/Notifications';
@@ -65,6 +70,7 @@ const PlatformRoutes = () => (
 const WorkspaceRoutes = () => (
   <Route element={<AdminLayout />}>
     <Route path="dashboard" element={<WorkspaceDashboard />} />
+    <Route path="leads" element={<Leads />} />
     <Route path="customers" element={<Customers />} />
     <Route path="customers/:id" element={<AdminCustomerProfile />} />
     <Route path="suppliers" element={<Suppliers />} />
@@ -76,6 +82,10 @@ const WorkspaceRoutes = () => (
     <Route path="invoices" element={<Invoices />} />
     <Route path="invoices/:id" element={<InvoiceDetail />} />
     <Route path="payment-receipts" element={<PaymentReceipts />} />
+    <Route path="purchases" element={<Purchases />} />
+    <Route path="purchases/:id" element={<PurchaseBillDetail />} />
+    <Route path="expenses" element={<Expenses />} />
+    <Route path="reports" element={<Reports />} />
     <Route path="users" element={<Users />} />
     <Route path="settings" element={<WorkspaceSettings />} />
     <Route path="notifications" element={<Notifications />} />

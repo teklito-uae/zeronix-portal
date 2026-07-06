@@ -27,13 +27,7 @@ class CompanyController extends Controller
             'description' => 'nullable|string',
             'tax_number' => 'nullable|string',
             'website' => 'nullable|string',
-            'parent_client_id' => 'nullable|string',
-            'stage_id' => 'nullable|string',
-            'stage_name' => 'nullable|string',
-            'lead_stage_id' => 'nullable|string',
             'owner_user_id' => 'nullable|exists:users,id',
-            'crm_source_id' => 'nullable|string',
-            'source_name' => 'nullable|string',
             'currency' => 'nullable|string',
             'internal_notes' => 'nullable|string',
             'profile_image' => 'nullable|string',
@@ -86,8 +80,6 @@ class CompanyController extends Controller
         }
 
         // Set default values for public registration
-        $validated['stage_name'] = 'Lead';
-        $validated['source_name'] = 'Portal Registration';
         $validated['is_client_portal_enabled'] = true;
 
         $company = Company::create($validated);

@@ -15,6 +15,12 @@ const statusConfig: Record<string, { label: string; className: string; pulse?: b
   quoted: { label: 'QUOTED', className: 'text-[#8B5CF6] bg-[#8B5CF61F]' },
   closed: { label: 'CLOSED', className: 'text-admin-text-muted bg-admin-surface-hover' },
 
+  // Lead statuses
+  contacted: { label: 'CONTACTED', className: 'text-[#0F52BA] bg-[#0F52BA1F]' },
+  qualified: { label: 'QUALIFIED', className: 'text-[#8B5CF6] bg-[#8B5CF61F]' },
+  disqualified: { label: 'DISQUALIFIED', className: 'text-[#EF4444] bg-[#EF44441F]' },
+  converted: { label: 'CONVERTED', className: 'text-[#10B981] bg-[#10B9811F]' },
+
   // Priorities
   normal: { label: 'NORMAL', className: 'text-admin-text-secondary bg-admin-surface-hover' },
   high: { label: 'HIGH', className: 'text-[#F59E0B] bg-[#F59E0B1F]' },

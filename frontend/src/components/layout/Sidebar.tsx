@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useRef, useState } from 'react';
 import { useSidebarStore } from '@/store/useSidebarStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Logo } from '@/components/shared/Logo';
@@ -6,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -37,7 +39,10 @@ import {
   LogOut,
   UserCircle2,
   Building2,
-  BookOpen
+  BookOpen,
+  ShoppingCart,
+  Wallet,
+  BarChart3
 } from 'lucide-react';
 
 interface NavItem {
@@ -86,6 +91,7 @@ const getTenantAdminNavGroups = (basePath: string): NavGroup[] => [
   {
     label: 'Management',
     items: [
+      { id: 'leads', label: 'Leads', icon: <UserCircle2 size={18} />, path: `${basePath}/leads` },
       { id: 'customers', label: 'Customers', icon: <Users size={18} />, path: `${basePath}/customers` },
       { id: 'suppliers', label: 'Suppliers', icon: <Truck size={18} />, path: `${basePath}/suppliers` },
       { id: 'products', label: 'Products', icon: <Package size={18} />, path: `${basePath}/products` },
@@ -99,6 +105,14 @@ const getTenantAdminNavGroups = (basePath: string): NavGroup[] => [
       { id: 'quotes', label: 'Quotes', icon: <FileText size={18} />, path: `${basePath}/quotes` },
       { id: 'invoices', label: 'Invoices', icon: <Receipt size={18} />, path: `${basePath}/invoices` },
       { id: 'receipts', label: 'Payment Receipts', icon: <Receipt size={18} />, path: `${basePath}/payment-receipts` },
+      { id: 'purchases', label: 'Purchases', icon: <ShoppingCart size={18} />, path: `${basePath}/purchases` },
+      { id: 'expenses', label: 'Expenses', icon: <Wallet size={18} />, path: `${basePath}/expenses` },
+    ],
+  },
+  {
+    label: 'Insights',
+    items: [
+      { id: 'reports', label: 'Reports', icon: <BarChart3 size={18} />, path: `${basePath}/reports` },
     ],
   },
   {
@@ -125,6 +139,7 @@ const getTenantStaffNavGroups = (basePath: string): NavGroup[] => [
   {
     label: 'Management',
     items: [
+      { id: 'leads', label: 'Leads', icon: <UserCircle2 size={18} />, path: `${basePath}/leads` },
       { id: 'customers', label: 'Customers', icon: <Users size={18} />, path: `${basePath}/customers` },
       { id: 'suppliers', label: 'Suppliers', icon: <Truck size={18} />, path: `${basePath}/suppliers` },
       { id: 'products', label: 'Products', icon: <Package size={18} />, path: `${basePath}/products` },
@@ -137,6 +152,14 @@ const getTenantStaffNavGroups = (basePath: string): NavGroup[] => [
       { id: 'quotes', label: 'Quotes', icon: <FileText size={18} />, path: `${basePath}/quotes` },
       { id: 'invoices', label: 'Invoices', icon: <Receipt size={18} />, path: `${basePath}/invoices` },
       { id: 'receipts', label: 'Payment Receipts', icon: <Receipt size={18} />, path: `${basePath}/payment-receipts` },
+      { id: 'purchases', label: 'Purchases', icon: <ShoppingCart size={18} />, path: `${basePath}/purchases` },
+      { id: 'expenses', label: 'Expenses', icon: <Wallet size={18} />, path: `${basePath}/expenses` },
+    ],
+  },
+  {
+    label: 'Insights',
+    items: [
+      { id: 'reports', label: 'Reports', icon: <BarChart3 size={18} />, path: `${basePath}/reports` },
     ],
   },
 ];
@@ -167,6 +190,19 @@ export const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Group-flyout hover state (collapsed mode only)
+  const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const openGroup = (label: string) => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setHoveredGroup(label);
+  };
+  const scheduleClose = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setHoveredGroup(null), 150);
+  };
+
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
   const isCustomer = location.pathname.startsWith('/portal');
 
@@ -177,14 +213,14 @@ export const Sidebar = () => {
   // Filter groups based on role
   const filterAdminGroups = () => {
     if (!adminUser) return [];
-    
+
     if (adminUser.role === 'super_admin') {
       return getSuperAdminNavGroups('/saas-admin');
     }
     if (adminUser.role === 'admin') {
       return getTenantAdminNavGroups('/workspace');
     }
-    
+
     // For staff, we use the staff arrays
     const groups = getTenantStaffNavGroups('/workspace');
     return groups.map(group => ({
@@ -271,7 +307,11 @@ export const Sidebar = () => {
         <ScrollArea className="flex-1 py-2">
           <nav className="space-y-4 px-3">
             {navGroups.map((group) => (
-              <div key={group.label}>
+              <div
+                key={group.label}
+                onMouseEnter={() => !isOpen && openGroup(group.label)}
+                onMouseLeave={() => !isOpen && scheduleClose()}
+              >
                 {/* Group Label */}
                 {isOpen ? (
                   <div className="flex items-center justify-between px-2 mt-3 mb-1">
@@ -285,44 +325,88 @@ export const Sidebar = () => {
                 )}
 
                 {/* Nav Items */}
-                <div className="space-y-0.5">
-                  {group.items.map((item) => {
-                    const active = isActive(item.path);
-                    const button = (
-                      <button
-                        key={item.path}
-                        onClick={() => navigate(item.path)}
-                        className={cn(
-                          'w-full flex items-center gap-2 rounded-lg transition-colors',
-                          isOpen ? 'px-2 py-2.5' : 'justify-center p-2.5 mx-auto',
-                          active
-                            ? 'text-[13px] font-medium text-brand-primary bg-brand-surface'
-                            : 'text-[13px] font-medium text-brand-muted hover:bg-brand-surface'
-                        )}
-                      >
-                        <span className={cn("flex-shrink-0 flex items-center justify-center", active ? "text-brand-secondary" : "text-brand-subtle")}>
-                          {item.icon}
-                        </span>
-                        {isOpen && (
-                          <span className="truncate">{item.label}</span>
-                        )}
-                      </button>
-                    );
+                <Popover open={!isOpen && hoveredGroup === group.label}>
+                  <PopoverAnchor asChild>
+                    <div className="space-y-0.5">
+                      {group.items.map((item) => {
+                        const active = isActive(item.path);
+                        const button = (
+                          <button
+                            key={item.path}
+                            onClick={() => navigate(item.path)}
+                            className={cn(
+                              'w-full flex items-center gap-2 rounded-lg transition-colors relative',
+                              isOpen ? 'px-2.5 py-2.5' : 'justify-center p-2.5 mx-auto',
+                              active
+                                ? 'text-[13px] font-medium text-brand-accent bg-brand-accent-light'
+                                : 'text-[13px] font-medium text-brand-muted hover:bg-brand-surface hover:text-brand-primary'
+                            )}
+                          >
+                            {active && isOpen && (
+                              <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-brand-accent" />
+                            )}
+                            <span className={cn("flex-shrink-0 flex items-center justify-center", active ? "text-brand-accent" : "text-brand-subtle")}>
+                              {item.icon}
+                            </span>
+                            {isOpen && (
+                              <span className="truncate">{item.label}</span>
+                            )}
+                          </button>
+                        );
 
-                    if (!isOpen) {
-                      return (
-                        <Tooltip key={item.path}>
-                          <TooltipTrigger asChild>{button}</TooltipTrigger>
-                          <TooltipContent side="right" className="bg-brand-surface text-brand-primary border-brand-border/50 text-[12px] font-medium">
-                            {item.label}
-                          </TooltipContent>
-                        </Tooltip>
-                      );
-                    }
+                        if (!isOpen) {
+                          return (
+                            <Tooltip key={item.path}>
+                              <TooltipTrigger asChild>{button}</TooltipTrigger>
+                              <TooltipContent side="right" className="bg-brand-surface text-brand-primary border-brand-border/50 text-[12px] font-medium">
+                                {item.label}
+                              </TooltipContent>
+                            </Tooltip>
+                          );
+                        }
 
-                    return button;
-                  })}
-                </div>
+                        return button;
+                      })}
+                    </div>
+                  </PopoverAnchor>
+
+                  {/* Collapsed-mode group flyout */}
+                  <PopoverContent
+                    side="right"
+                    align="start"
+                    sideOffset={10}
+                    onMouseEnter={() => openGroup(group.label)}
+                    onMouseLeave={scheduleClose}
+                    onOpenAutoFocus={(e) => e.preventDefault()}
+                    className="w-56 p-1.5 bg-brand-white border-brand-border rounded-xl shadow-lg"
+                  >
+                    <p className="px-2.5 pt-1 pb-1.5 text-[10px] font-semibold text-brand-subtle uppercase tracking-[0.06em]">
+                      {group.label}
+                    </p>
+                    <div className="space-y-0.5">
+                      {group.items.map((item) => {
+                        const active = isActive(item.path);
+                        return (
+                          <button
+                            key={item.path}
+                            onClick={() => { navigate(item.path); setHoveredGroup(null); }}
+                            className={cn(
+                              'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-colors',
+                              active
+                                ? 'text-brand-accent bg-brand-accent-light'
+                                : 'text-brand-secondary hover:bg-brand-surface hover:text-brand-primary'
+                            )}
+                          >
+                            <span className={cn("flex-shrink-0", active ? "text-brand-accent" : "text-brand-subtle")}>
+                              {item.icon}
+                            </span>
+                            <span className="truncate">{item.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             ))}
           </nav>
@@ -333,7 +417,7 @@ export const Sidebar = () => {
           <div className="border-t border-brand-border/50 pt-3 flex flex-col gap-2 mt-2">
             <div className="px-2">
               <div className="flex items-center gap-1.5 mb-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-success" />
                 <span className="text-[11px] text-brand-subtle">Online & Ready</span>
               </div>
             </div>

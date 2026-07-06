@@ -2,16 +2,49 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Customer;
 use App\Models\Enquiry;
 use App\Models\EnquiryItem;
+use App\Models\Lead;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class EnquiryController extends Controller
 {
+    /**
+     * Resolve a brand-new contact (no customer_id supplied) to either an existing
+     * Customer (dedup by email — a repeat customer must not spawn a duplicate Lead)
+     * or a Lead (a new prospect, not yet an accounting entity).
+     *
+     * @return array{customer_id: int|null, lead_id: int|null}
+     */
+    private function resolveContact(?string $email, array $attrs): array
+    {
+        if (!empty($email)) {
+            $customer = Customer::where('email', $email)->first();
+            if ($customer) {
+                return ['customer_id' => $customer->id, 'lead_id' => null];
+            }
+
+            $lead = Lead::firstOrCreate(
+                ['email' => $email],
+                [
+                    'name' => $attrs['name'] ?? 'Unknown',
+                    'phone' => $attrs['phone'] ?? null,
+                    'company' => $attrs['company'] ?? null,
+                    'source' => $attrs['source'] ?? null,
+                    'user_id' => $attrs['user_id'] ?? null,
+                ]
+            );
+            return ['customer_id' => null, 'lead_id' => $lead->id];
+        }
+
+        return ['customer_id' => null, 'lead_id' => null];
+    }
+
     public function index(Request $request)
     {
-        $query = Enquiry::with(['customer', 'user', 'assigned_users'])->withCount('items');
+        $query = Enquiry::with(['customer', 'lead', 'user', 'assigned_users'])->withCount('items');
 
         // Data Scoping
         $query->forUser($request->user());
@@ -71,24 +104,25 @@ class EnquiryController extends Controller
         DB::beginTransaction();
         try {
             $customerId = $validated['customer_id'] ?? null;
+            $leadId = null;
 
-            // CRM Flow: Auto-create customer if it doesn't exist
+            // CRM Flow: resolve a brand-new contact to an existing Customer (dedup)
+            // or a new Lead — a prospect is not an accounting entity until converted.
             if (!$customerId && !empty($validated['customer_email'])) {
-                $customer = \App\Models\Customer::firstOrCreate(
-                    ['email' => $validated['customer_email']],
-                    [
-                        'name' => $validated['customer_name'] ?? 'Unknown',
-                        'phone' => $validated['customer_phone'] ?? null,
-                        'company' => $validated['customer_company'] ?? null,
-                        'user_id' => $request->user()->id ?? null,
-                        'password' => \Illuminate\Support\Facades\Hash::make('zeronix@123')
-                    ]
-                );
-                $customerId = $customer->id;
+                $resolved = $this->resolveContact($validated['customer_email'], [
+                    'name' => $validated['customer_name'] ?? 'Unknown',
+                    'phone' => $validated['customer_phone'] ?? null,
+                    'company' => $validated['customer_company'] ?? null,
+                    'source' => $validated['source'] ?? 'portal',
+                    'user_id' => $request->user()->id ?? null,
+                ]);
+                $customerId = $resolved['customer_id'];
+                $leadId = $resolved['lead_id'];
             }
 
             $enquiry = Enquiry::create([
                 'customer_id' => $customerId,
+                'lead_id' => $leadId,
                 'user_id' => $request->user()->id ?? null,
                 'source' => $validated['source'] ?? 'portal',
                 'priority' => $validated['priority'] ?? 'normal',
@@ -111,8 +145,8 @@ class EnquiryController extends Controller
             }
 
             DB::commit();
-            
-            $enquiry->load(['customer', 'items.product', 'user', 'assigned_users']);
+
+            $enquiry->load(['customer', 'lead', 'items.product', 'user', 'assigned_users']);
             
             return response()->json($enquiry, 201);
         } catch (\Exception $e) {
@@ -124,7 +158,7 @@ class EnquiryController extends Controller
     public function show(Request $request, Enquiry $enquiry)
     {
         $this->authorize('view', $enquiry);
-        return response()->json($enquiry->load(['customer', 'items.product', 'user', 'assigned_users']));
+        return response()->json($enquiry->load(['customer', 'lead', 'items.product', 'user', 'assigned_users']));
     }
 
     public function update(Request $request, Enquiry $enquiry)
@@ -183,18 +217,17 @@ class EnquiryController extends Controller
 
         DB::beginTransaction();
         try {
-            $customer = \App\Models\Customer::firstOrCreate(
-                ['email' => $validated['customer_email']],
-                [
-                    'name' => $validated['customer_name'],
-                    'phone' => $validated['customer_phone'] ?? null,
-                    'company' => $validated['customer_company'] ?? null,
-                    'password' => \Illuminate\Support\Facades\Hash::make('zeronix@123')
-                ]
-            );
+            $resolved = $this->resolveContact($validated['customer_email'], [
+                'name' => $validated['customer_name'],
+                'phone' => $validated['customer_phone'] ?? null,
+                'company' => $validated['customer_company'] ?? null,
+                'source' => 'portal_public',
+                'user_id' => null,
+            ]);
 
             $enquiry = Enquiry::create([
-                'customer_id' => $customer->id,
+                'customer_id' => $resolved['customer_id'],
+                'lead_id' => $resolved['lead_id'],
                 'source' => 'portal_public',
                 'priority' => 'normal',
                 'status' => 'new',

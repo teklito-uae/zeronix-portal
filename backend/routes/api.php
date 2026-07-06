@@ -12,12 +12,17 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SupplierProductController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\EnquiryController;
+use App\Http\Controllers\LeadController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\TemplateController;
 use App\Http\Controllers\PaymentReceiptController;
+use App\Http\Controllers\PurchaseBillController;
+use App\Http\Controllers\SupplierPaymentReceiptController;
+use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\CustomerLabelController;
@@ -111,6 +116,14 @@ foreach (['admin', 'staff'] as $prefix) {
         Route::delete('/enquiries/{enquiry}', [EnquiryController::class, 'destroy']);
         Route::put('/enquiries/{enquiry}/assign', [EnquiryController::class, 'assign']);
 
+        // Leads
+        Route::get('/leads', [LeadController::class, 'index']);
+        Route::post('/leads', [LeadController::class, 'store']);
+        Route::get('/leads/{lead}', [LeadController::class, 'show']);
+        Route::put('/leads/{lead}', [LeadController::class, 'update']);
+        Route::delete('/leads/{lead}', [LeadController::class, 'destroy']);
+        Route::post('/leads/{lead}/convert', [LeadController::class, 'convert']);
+
         // Customers
         Route::get('/customers', [CustomerController::class, 'index']);
         Route::post('/customers', [CustomerController::class, 'store']);
@@ -158,6 +171,25 @@ foreach (['admin', 'staff'] as $prefix) {
         Route::get('/suppliers/{supplier}', [SupplierController::class, 'show']);
         Route::put('/suppliers/{supplier}', [SupplierController::class, 'update']);
         Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy']);
+
+        // Purchase Bills
+        Route::get('/purchase-bills', [PurchaseBillController::class, 'index']);
+        Route::post('/purchase-bills', [PurchaseBillController::class, 'store']);
+        Route::get('/purchase-bills/{purchaseBill}', [PurchaseBillController::class, 'show']);
+        Route::put('/purchase-bills/{purchaseBill}', [PurchaseBillController::class, 'update']);
+        Route::delete('/purchase-bills/{purchaseBill}', [PurchaseBillController::class, 'destroy']);
+
+        // Expenses
+        Route::get('/expenses', [ExpenseController::class, 'index']);
+        Route::post('/expenses', [ExpenseController::class, 'store']);
+        Route::get('/expenses/{expense}', [ExpenseController::class, 'show']);
+        Route::put('/expenses/{expense}', [ExpenseController::class, 'update']);
+        Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy']);
+
+        // Reports
+        Route::get('/reports/sales', [ReportController::class, 'sales']);
+        Route::get('/reports/sales-by-staff', [ReportController::class, 'salesByStaff']);
+        Route::get('/reports/receivables-aging', [ReportController::class, 'receivablesAging']);
 
         // Notifications
         Route::get('/notifications', [NotificationController::class, 'index']);
@@ -225,6 +257,12 @@ Route::prefix('admin')->group(function () {
         // Payment Receipts
         Route::post('/payment-receipts/{id}/send-email', [PaymentReceiptController::class, 'sendEmail']);
         Route::apiResource('payment-receipts', PaymentReceiptController::class);
+
+        // Supplier Payment Receipts
+        Route::apiResource('supplier-payment-receipts', SupplierPaymentReceiptController::class);
+
+        // Profit & Loss (Admin only - exposes cost/margin data)
+        Route::get('/reports/profit-loss', [ReportController::class, 'profitLoss']);
 
         // Templates
         Route::get('/templates', [TemplateController::class, 'index']);

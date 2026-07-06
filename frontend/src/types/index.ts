@@ -5,6 +5,7 @@ export type EnquiryPriority = 'normal' | 'high' | 'urgent';
 export type EnquirySource = 'portal' | 'chat' | 'email' | 'phone' | 'whatsapp' | 'referral';
 export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired' | 'invoiced';
 export type InvoiceStatus = 'draft' | 'unpaid' | 'partial' | 'sent' | 'paid' | 'delivered' | 'overdue' | 'cancelled';
+export type PurchaseBillStatus = 'unpaid' | 'partial' | 'paid' | 'cancelled';
 
 // ── Core Models ────────────────────────────────────────
 
@@ -63,6 +64,8 @@ export interface Customer {
   enquiries_count?: number;
   quotes_count?: number;
   invoices_count?: number;
+  outstanding_balance?: number;
+  overdue_invoices_count?: number;
 }
 
 
@@ -114,6 +117,9 @@ export interface Product {
   image?: string;
   is_active?: boolean;
   price?: number;
+  sku?: string;
+  stock_quantity?: number;
+  is_low_stock?: boolean;
   created_at?: string;
   updated_at?: string;
   // Relations
@@ -147,9 +153,33 @@ export interface SupplierProduct {
   category?: Category;
 }
 
+export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'disqualified' | 'converted';
+
+export interface Lead {
+  id: number;
+  lead_code?: string;
+  name: string;
+  company?: string;
+  email?: string;
+  phone?: string;
+  source?: string;
+  status: LeadStatus;
+  notes?: string;
+  user_id?: number | null;
+  converted_customer_id?: number | null;
+  converted_at?: string;
+  created_at?: string;
+  updated_at?: string;
+  // Relations
+  owner?: User;
+  convertedCustomer?: Customer;
+  enquiries_count?: number;
+}
+
 export interface Enquiry {
   id: number;
   customer_id?: number | null;
+  lead_id?: number | null;
   user_id?: number | null;
   assigned_to?: number | null;
   source: EnquirySource;
@@ -161,6 +191,7 @@ export interface Enquiry {
   created_at?: string;
   updated_at?: string;
   // Relations
+  lead?: Lead;
   customer?: Customer;
   user?: User;
   assigned_users?: User[];
@@ -275,6 +306,71 @@ export interface PaymentReceipt {
   updated_at: string;
   customer?: Customer;
   invoice?: Invoice;
+}
+
+export interface PurchaseBill {
+  id: number;
+  bill_number?: string;
+  supplier_id: number;
+  user_id?: number | null;
+  status: PurchaseBillStatus;
+  date?: string;
+  due_date?: string;
+  subtotal: number;
+  vat_amount: number;
+  total: number;
+  created_at?: string;
+  updated_at?: string;
+  // Computed
+  amount_paid: number;
+  balance: number;
+  // Relations
+  supplier?: Supplier;
+  user?: User;
+  items?: PurchaseBillItem[];
+  items_count?: number;
+}
+
+export interface PurchaseBillItem {
+  id: number;
+  purchase_bill_id: number;
+  product_id?: number | null;
+  description: string;
+  product_name?: string;
+  quantity: number;
+  unit_price: number;
+  tax_percent?: number;
+  total: number;
+  product?: Product;
+}
+
+export interface SupplierPaymentReceipt {
+  id: number;
+  purchase_bill_id?: number;
+  supplier_id: number;
+  receipt_number: string;
+  amount: number;
+  payment_date: string;
+  payment_method: 'cash' | 'bank';
+  reference_id?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  supplier?: Supplier;
+  purchaseBill?: PurchaseBill;
+}
+
+export interface Expense {
+  id: number;
+  category: string;
+  amount: number;
+  date: string;
+  paid_via?: string;
+  notes?: string;
+  user_id?: number | null;
+  created_at?: string;
+  updated_at?: string;
+  user?: User;
 }
 
 // ── Pagination ─────────────────────────────────────────

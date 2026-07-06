@@ -31,7 +31,7 @@ import { toast } from 'sonner';
 import api from '@/lib/axios';
 import { timeAgo } from '@/lib/utils';
 import type { Enquiry, Customer, User as UserType } from '@/types';
-import { MessageSquare, Building2, Plus, User as UserIcon, ArrowDown, ArrowUp, Zap, Phone, Mail, Globe, MessageCircle, LayoutList, Kanban } from 'lucide-react';
+import { MessageSquare, Building2, Plus, User as UserIcon, ArrowDown, ArrowUp, Zap, Phone, Mail, Globe, MessageCircle, LayoutList, Kanban, ArrowRightLeft } from 'lucide-react';
 import { Spinner } from '@/components/shared/Spinner';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import Avatar from 'boring-avatars';
@@ -133,6 +133,18 @@ export const Enquiries = () => {
     onError: () => toast.error('Failed to assign agent'),
   });
 
+  const convertMutation = useMutation({
+    mutationFn: async (leadId: number) => (await api.post(`/admin/leads/${leadId}/convert`)).data,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['enquiries'] });
+      queryClient.invalidateQueries({ queryKey: ['enquiry', selectedId] });
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      toast.success('Lead converted to Customer');
+    },
+    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to convert lead'),
+  });
+
   const columns: ColumnDef<Enquiry>[] = useMemo(() => {
     const baseColumns: ColumnDef<Enquiry>[] = [
       {
@@ -149,10 +161,10 @@ export const Enquiries = () => {
         header: 'Lead Details',
         cell: ({ row }) => (
           <div className="max-w-[220px]">
-            <p className="text-[13px] font-semibold text-brand-primary truncate">{row.original.customer?.name || 'Manual Lead'}</p>
-            {row.original.customer?.company && (
+            <p className="text-[13px] font-semibold text-brand-primary truncate">{row.original.customer?.name || row.original.lead?.name || 'Unknown'}</p>
+            {(row.original.customer?.company || row.original.lead?.company) && (
               <p className="text-[11px] text-brand-subtle flex items-center gap-1.5 truncate font-medium uppercase mt-0.5">
-                <Building2 size={12} /> {row.original.customer.company}
+                <Building2 size={12} /> {row.original.customer?.company || row.original.lead?.company}
               </p>
             )}
           </div>
@@ -291,11 +303,11 @@ export const Enquiries = () => {
         <div className="flex justify-between items-start gap-2">
           <div className="min-w-0 flex-1">
             <p className="font-bold text-sm text-admin-text-primary leading-tight truncate">
-              {enquiry.customer?.name || 'Manual Lead'}
+              {enquiry.customer?.name || enquiry.lead?.name || 'Unknown'}
             </p>
-            {enquiry.customer?.company && (
+            {(enquiry.customer?.company || enquiry.lead?.company) && (
               <p className="text-[11px] text-brand-subtle flex items-center gap-1 mt-0.5 truncate font-medium">
-                <Building2 size={10} /> {enquiry.customer.company}
+                <Building2 size={10} /> {enquiry.customer?.company || enquiry.lead?.company}
               </p>
             )}
           </div>
@@ -623,15 +635,22 @@ export const Enquiries = () => {
                   <div className="bg-brand-surface border border-brand-border/50 rounded-xl p-5 flex items-center gap-5">
                     <Avatar
                       size={48}
-                      name={selectedEnquiry.customer?.name || 'Manual Lead'}
+                      name={selectedEnquiry.customer?.name || selectedEnquiry.lead?.name || 'Unknown'}
                       variant="marble"
                       colors={avatarColors}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-brand-primary text-[14px]">{selectedEnquiry.customer?.name || 'Manual Lead'}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-brand-primary text-[14px]">{selectedEnquiry.customer?.name || selectedEnquiry.lead?.name || 'Unknown'}</p>
+                        {!selectedEnquiry.customer_id && selectedEnquiry.lead_id && (
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-brand-warning bg-brand-warning-bg px-1.5 py-0.5 rounded">
+                            Lead
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-3 mt-0.5">
                         <p className="text-[12px] font-medium text-brand-subtle flex items-center gap-1.5">
-                          <Building2 size={12} className="text-brand-info" /> {selectedEnquiry.customer?.company || 'Personal Account'}
+                          <Building2 size={12} className="text-brand-info" /> {selectedEnquiry.customer?.company || selectedEnquiry.lead?.company || 'Personal Account'}
                         </p>
                         <div className="h-1 w-1 bg-brand-border rounded-full" />
                         <p className="text-[12px] font-medium text-brand-subtle">
@@ -639,6 +658,17 @@ export const Enquiries = () => {
                         </p>
                       </div>
                     </div>
+                    {!selectedEnquiry.customer_id && selectedEnquiry.lead_id && (
+                      <Button
+                        size="sm"
+                        onClick={() => convertMutation.mutate(selectedEnquiry.lead_id!)}
+                        disabled={convertMutation.isPending}
+                        className="h-[32px] px-3 text-[12px] font-medium bg-brand-accent text-brand-white hover:opacity-90 rounded-lg shrink-0"
+                      >
+                        {convertMutation.isPending ? <Spinner size={14} className="mr-1.5" /> : <ArrowRightLeft size={13} className="mr-1.5" />}
+                        Convert to Customer
+                      </Button>
+                    )}
                   </div>
                 </section>
 
@@ -713,7 +743,7 @@ export const Enquiries = () => {
                   onClick={() => setIsNewCustomer(!isNewCustomer)}
                   className="h-[28px] px-3 text-[11px] font-bold bg-brand-accent/10 text-brand-accent hover:bg-brand-accent hover:text-brand-white rounded-full transition-all"
                 >
-                  {isNewCustomer ? 'Select Existing Client' : 'Create New Client Instead'}
+                  {isNewCustomer ? 'Select Existing Customer' : 'New Lead Instead'}
                 </Button>
               </div>
 

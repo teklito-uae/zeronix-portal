@@ -40,6 +40,8 @@ class Customer extends Authenticatable
         return [
             'is_portal_active' => 'boolean',
             'is_company_admin' => 'boolean',
+            'outstanding_balance' => 'float',
+            'overdue_invoices_count' => 'integer',
         ];
     }
 

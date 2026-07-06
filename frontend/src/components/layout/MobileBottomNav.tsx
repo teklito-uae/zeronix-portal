@@ -19,6 +19,9 @@ import {
   X,
   ChevronRight,
   Clock,
+  ShoppingCart,
+  Wallet,
+  BarChart3,
 } from 'lucide-react';
 
 interface NavItem {
@@ -60,6 +63,7 @@ const getAdminDrawerGroups = (basePath: string): NavGroup[] => [
   {
     label: 'Management',
     items: [
+      { id: 'leads', label: 'Leads', icon: Users, path: `${basePath}/leads` },
       { id: 'customers', label: 'Customers', icon: Users, path: `${basePath}/customers` },
       { id: 'suppliers', label: 'Suppliers', icon: Truck, path: `${basePath}/suppliers` },
       { id: 'products', label: 'Products', icon: Package, path: `${basePath}/products` },
@@ -73,6 +77,14 @@ const getAdminDrawerGroups = (basePath: string): NavGroup[] => [
       { id: 'quotes', label: 'Quotes', icon: FileText, path: `${basePath}/quotes` },
       { id: 'invoices', label: 'Invoices', icon: Receipt, path: `${basePath}/invoices` },
       { id: 'receipts', label: 'Payment Receipts', icon: Receipt, path: `${basePath}/payment-receipts` },
+      { id: 'purchases', label: 'Purchases', icon: ShoppingCart, path: `${basePath}/purchases` },
+      { id: 'expenses', label: 'Expenses', icon: Wallet, path: `${basePath}/expenses` },
+    ],
+  },
+  {
+    label: 'Insights',
+    items: [
+      { id: 'reports', label: 'Reports', icon: BarChart3, path: `${basePath}/reports` },
     ],
   },
   {

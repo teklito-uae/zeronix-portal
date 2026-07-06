@@ -10,7 +10,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
-import { UserPlus, Download, Upload, Search, Building2, MoreHorizontal, ArrowRight, Users, Mail, Phone, User as UserIcon } from 'lucide-react';
+import { UserPlus, Download, Upload, Search, Building2, MoreHorizontal, ArrowRight, Users, Mail, Phone, User as UserIcon, AlertTriangle } from 'lucide-react';
 import { Spinner } from '@/components/shared/Spinner';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import Avatar from 'boring-avatars';
@@ -299,6 +299,27 @@ export const Customers = () => {
           {row.original.quotes_count || 0} <span className="text-[10px] text-admin-text-muted font-medium ml-0.5">Quotes</span>
         </div>
       ),
+    },
+    {
+      accessorKey: 'outstanding_balance',
+      header: 'Balance Due',
+      cell: ({ row }) => {
+        const balance = row.original.outstanding_balance || 0;
+        const overdueCount = row.original.overdue_invoices_count || 0;
+        if (balance <= 0) return <span className="text-[11px] text-brand-subtle italic">Settled</span>;
+        return (
+          <div className="space-y-1">
+            <p className="font-mono text-[13px] font-semibold text-admin-text-primary">
+              {balance.toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-[10px] text-admin-text-muted">AED</span>
+            </p>
+            {overdueCount > 0 && (
+              <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider bg-brand-danger-bg text-brand-danger px-1.5 py-0.5 rounded">
+                <AlertTriangle size={9} /> {overdueCount} Overdue
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       id: 'actions',
