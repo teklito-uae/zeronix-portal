@@ -78,7 +78,7 @@ export const Enquiries = () => {
 
   const [addForm, setAddForm] = useState({
     customer_id: '', customer_name: '', customer_email: '', customer_phone: '', customer_company: '',
-    source: 'portal', priority: 'normal', notes: ''
+    source: 'manual', priority: 'normal', notes: ''
   });
 
   // Queries
@@ -437,7 +437,7 @@ export const Enquiries = () => {
         onCreateClick={() => {
           setIsEditing(false);
           setIsNewCustomer(false);
-          setAddForm({ customer_id: '', customer_name: '', customer_email: '', customer_phone: '', customer_company: '', source: 'portal', priority: 'normal', notes: '' });
+          setAddForm({ customer_id: '', customer_name: '', customer_email: '', customer_phone: '', customer_company: '', source: 'manual', priority: 'normal', notes: '' });
           setAddOpen(true);
         }}
         searchPlaceholder="Search leads by name, company, or ID..."
@@ -556,7 +556,7 @@ export const Enquiries = () => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-brand-white border-brand-border/50 rounded-xl shadow-lg">
-                          {['new', 'in_progress', 'quoted', 'delivered', 'closed', 'won', 'lost', 'cancelled'].map(s => (
+                          {['new', 'assigned', 'in_progress', 'quoted', 'won', 'lost', 'closed', 'cancelled'].map(s => (
                             <SelectItem key={s} value={s} className="capitalize font-medium text-[13px]">{s.replace('_', ' ')}</SelectItem>
                           ))}
                         </SelectContent>
@@ -802,12 +802,12 @@ export const Enquiries = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-brand-white border-brand-border/50 rounded-xl shadow-xl">
-                      <SelectItem value="portal" className="font-medium text-[13px] cursor-pointer"><div className="flex items-center gap-2"><Globe size={14} className="text-blue-500" /> Portal</div></SelectItem>
+                      <SelectItem value="manual" className="font-medium text-[13px] cursor-pointer"><div className="flex items-center gap-2"><UserIcon size={14} className="text-brand-subtle" /> Manual</div></SelectItem>
+                      <SelectItem value="website" className="font-medium text-[13px] cursor-pointer"><div className="flex items-center gap-2"><Globe size={14} className="text-blue-500" /> Website</div></SelectItem>
                       <SelectItem value="email" className="font-medium text-[13px] cursor-pointer"><div className="flex items-center gap-2"><Mail size={14} className="text-orange-500" /> Email</div></SelectItem>
-                      <SelectItem value="phone" className="font-medium text-[13px] cursor-pointer"><div className="flex items-center gap-2"><Phone size={14} className="text-purple-500" /> Phone</div></SelectItem>
-                      <SelectItem value="whatsapp" className="font-medium text-[13px] cursor-pointer"><div className="flex items-center gap-2"><MessageCircle size={14} className="text-emerald-500" /> WhatsApp</div></SelectItem>
-                      <SelectItem value="chat" className="font-medium text-[13px] cursor-pointer"><div className="flex items-center gap-2"><MessageSquare size={14} className="text-indigo-500" /> Chat</div></SelectItem>
-                      <SelectItem value="referral" className="font-medium text-[13px] cursor-pointer"><div className="flex items-center gap-2"><UserIcon size={14} className="text-brand-subtle" /> Referral</div></SelectItem>
+                      <SelectItem value="referral" className="font-medium text-[13px] cursor-pointer"><div className="flex items-center gap-2"><MessageCircle size={14} className="text-emerald-500" /> Referral</div></SelectItem>
+                      <SelectItem value="import" className="font-medium text-[13px] cursor-pointer"><div className="flex items-center gap-2"><MessageSquare size={14} className="text-indigo-500" /> Import</div></SelectItem>
+                      <SelectItem value="other" className="font-medium text-[13px] cursor-pointer"><div className="flex items-center gap-2"><Phone size={14} className="text-purple-500" /> Other</div></SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -858,7 +858,7 @@ export const Enquiries = () => {
                     setAddOpen(false);
                     setIsNewCustomer(false);
                     setIsEditing(false);
-                    setAddForm({ customer_id: '', customer_name: '', customer_email: '', customer_phone: '', customer_company: '', source: 'portal', priority: 'normal', notes: '' });
+                    setAddForm({ customer_id: '', customer_name: '', customer_email: '', customer_phone: '', customer_company: '', source: 'manual', priority: 'normal', notes: '' });
                     toast(isEditing ? "Lead updated" : "Lead has been registered", {
                       description: isEditing ? "The enquiry was updated successfully." : "The new enquiry was created successfully.",
                     });

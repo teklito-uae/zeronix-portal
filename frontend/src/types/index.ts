@@ -1,10 +1,12 @@
 // ── Enums ──────────────────────────────────────────────
 
-export type EnquiryStatus = 'new' | 'in_progress' | 'quoted' | 'closed' | 'cancelled';
+export type EnquiryStatus = 'new' | 'assigned' | 'in_progress' | 'quoted' | 'won' | 'lost' | 'closed' | 'cancelled';
 export type EnquiryPriority = 'normal' | 'high' | 'urgent';
-export type EnquirySource = 'portal' | 'chat' | 'email' | 'phone' | 'whatsapp' | 'referral';
-export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired' | 'invoiced';
-export type InvoiceStatus = 'draft' | 'unpaid' | 'partial' | 'sent' | 'paid' | 'delivered' | 'overdue' | 'cancelled';
+export type EnquirySource = 'manual' | 'website' | 'email' | 'referral' | 'import' | 'other';
+export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired' | 'converted' | 'invoiced';
+export type SalesOrderStatus = 'draft' | 'confirmed' | 'processing' | 'completed' | 'cancelled';
+export type DeliveryStatus = 'pending' | 'processing' | 'delivered' | 'cancelled';
+export type InvoiceStatus = 'draft' | 'posted' | 'partially_paid' | 'paid' | 'overdue' | 'cancelled';
 export type PurchaseBillStatus = 'unpaid' | 'partial' | 'paid' | 'cancelled';
 
 // ── Core Models ────────────────────────────────────────
@@ -66,6 +68,26 @@ export interface Customer {
   invoices_count?: number;
   outstanding_balance?: number;
   overdue_invoices_count?: number;
+  contacts?: CustomerContact[];
+}
+
+export interface CustomerContact {
+  id: number;
+  customer_id: number;
+  first_name: string;
+  last_name?: string;
+  full_name: string;
+  designation?: string;
+  department?: string;
+  email?: string;
+  phone?: string;
+  mobile?: string;
+  extension?: string;
+  is_primary: boolean;
+  is_active: boolean;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 
@@ -153,7 +175,7 @@ export interface SupplierProduct {
   category?: Category;
 }
 
-export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'disqualified' | 'converted';
+export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'converted' | 'lost' | 'unresponsive';
 
 export interface Lead {
   id: number;
@@ -180,12 +202,14 @@ export interface Enquiry {
   id: number;
   customer_id?: number | null;
   lead_id?: number | null;
+  customer_contact_id?: number | null;
   user_id?: number | null;
   assigned_to?: number | null;
   source: EnquirySource;
   priority: EnquiryPriority;
   status: EnquiryStatus;
   notes?: string;
+  attachments?: string[];
   cancellation_reason?: string;
   cancelled_at?: string;
   created_at?: string;
@@ -193,8 +217,10 @@ export interface Enquiry {
   // Relations
   lead?: Lead;
   customer?: Customer;
+  customerContact?: CustomerContact;
   user?: User;
   assigned_users?: User[];
+  primary_assignee?: User;
   items?: EnquiryItem[];
   items_count?: number;
 }
@@ -216,6 +242,7 @@ export interface Quote {
   quote_number?: string;
   enquiry_id?: number | null;
   customer_id?: number | null;
+  customer_contact_id?: number | null;
   status: QuoteStatus;
   date?: string;
   subtotal: number;
@@ -249,11 +276,80 @@ export interface QuoteItem {
   product?: Product;
 }
 
+export interface SalesOrder {
+  id: number;
+  order_number?: string;
+  customer_id: number;
+  customer_contact_id?: number | null;
+  enquiry_id?: number | null;
+  quote_id?: number | null;
+  user_id?: number | null;
+  date?: string;
+  status: SalesOrderStatus;
+  subtotal: number;
+  vat_amount: number;
+  total: number;
+  created_at?: string;
+  updated_at?: string;
+  // Relations
+  customer?: Customer;
+  customerContact?: CustomerContact;
+  user?: User;
+  items?: SalesOrderItem[];
+  items_count?: number;
+}
+
+export interface SalesOrderItem {
+  id: number;
+  sales_order_id: number;
+  product_id?: number | null;
+  description?: string;
+  product_name?: string;
+  quantity: number;
+  unit_price: number;
+  tax_percent?: number;
+  total: number;
+  product?: Product;
+}
+
+export interface Delivery {
+  id: number;
+  delivery_number?: string;
+  customer_id: number;
+  sales_order_id?: number | null;
+  delivered_by?: number | null;
+  delivery_date?: string;
+  status: DeliveryStatus;
+  notes?: string;
+  delivered_at?: string;
+  created_at?: string;
+  updated_at?: string;
+  // Relations
+  customer?: Customer;
+  salesOrder?: SalesOrder;
+  deliveredBy?: User;
+  items?: DeliveryItem[];
+  items_count?: number;
+}
+
+export interface DeliveryItem {
+  id: number;
+  delivery_id: number;
+  sales_order_item_id?: number | null;
+  product_id?: number | null;
+  product_name?: string;
+  quantity: number;
+  product?: Product;
+}
+
 export interface Invoice {
   id: number;
   invoice_number?: string;
   quote_id?: number | null;
+  sales_order_id?: number | null;
+  delivery_id?: number | null;
   customer_id?: number | null;
+  customer_contact_id?: number | null;
   status: InvoiceStatus;
   date?: string;
   subtotal: number;

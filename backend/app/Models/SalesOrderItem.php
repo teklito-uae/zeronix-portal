@@ -5,10 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class InvoiceItem extends Model
+class SalesOrderItem extends Model
 {
+    // No stock-mutating boot() hook here: inventory only moves when a Delivery
+    // linked to this order is marked delivered (see DeliveryController::markDelivered).
     protected $fillable = [
-        'invoice_id',
+        'sales_order_id',
         'product_id',
         'product_name',
         'description',
@@ -16,7 +18,7 @@ class InvoiceItem extends Model
         'unit_price',
         'tax_percent',
         'tax_amount',
-        'total'
+        'total',
     ];
 
     protected $casts = [
@@ -27,13 +29,9 @@ class InvoiceItem extends Model
         'total' => 'decimal:2',
     ];
 
-    // Invoice no longer manages inventory — stock only moves when a Delivery is
-    // marked delivered (see DeliveryController::markDelivered). Invoices may be
-    // created ad hoc (no linked sales order/delivery) for simple SMB use.
-
-    public function invoice(): BelongsTo
+    public function salesOrder(): BelongsTo
     {
-        return $this->belongsTo(Invoice::class);
+        return $this->belongsTo(SalesOrder::class);
     }
 
     public function product(): BelongsTo

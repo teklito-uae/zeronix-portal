@@ -32,7 +32,7 @@ import { toast } from 'sonner';
 import Avatar from 'boring-avatars';
 import { useThemeStore } from '@/store/useThemeStore';
 
-const LEAD_SOURCES = ['portal', 'chat', 'email', 'phone', 'whatsapp', 'referral'];
+const LEAD_SOURCES = ['manual', 'website', 'email', 'referral', 'import', 'other'];
 
 export const Leads = () => {
   const queryClient = useQueryClient();
@@ -45,7 +45,7 @@ export const Leads = () => {
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [activeTab, setActiveTab] = useState('all');
   const [form, setForm] = useState({
-    name: '', company: '', email: '', phone: '', source: 'portal', status: 'new', notes: '',
+    name: '', company: '', email: '', phone: '', source: 'manual', status: 'new', notes: '',
   });
 
   const leadTabs = [
@@ -53,7 +53,8 @@ export const Leads = () => {
     { id: 'new', label: 'New' },
     { id: 'contacted', label: 'Contacted' },
     { id: 'qualified', label: 'Qualified' },
-    { id: 'disqualified', label: 'Disqualified' },
+    { id: 'lost', label: 'Lost' },
+    { id: 'unresponsive', label: 'Unresponsive' },
     { id: 'converted', label: 'Converted' },
   ];
 
@@ -82,7 +83,7 @@ export const Leads = () => {
       company: lead.company || '',
       email: lead.email || '',
       phone: lead.phone || '',
-      source: lead.source || 'portal',
+      source: lead.source || 'manual',
       status: lead.status,
       notes: lead.notes || '',
     });
@@ -281,7 +282,7 @@ export const Leads = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {['new', 'contacted', 'qualified', 'disqualified'].map((s) => (
+                    {['new', 'contacted', 'qualified', 'lost', 'unresponsive'].map((s) => (
                       <SelectItem key={s} value={s} className="capitalize text-[13px]">{s}</SelectItem>
                     ))}
                     {form.status === 'converted' && <SelectItem value="converted" className="text-[13px]">converted</SelectItem>}

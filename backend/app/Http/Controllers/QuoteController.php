@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Customer;
 use App\Models\Quote;
 use App\Models\QuoteItem;
+use App\Models\SalesOrder;
+use App\Models\SalesOrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
@@ -48,6 +51,7 @@ class QuoteController extends Controller
     {
         $validated = $request->validate([
             'customer_id' => 'required|exists:customers,id',
+            'customer_contact_id' => 'nullable|exists:customer_contacts,id',
             'enquiry_id' => 'nullable|exists:enquiries,id',
             'date' => 'required|date',
             'valid_until' => 'nullable|date',
@@ -79,9 +83,12 @@ class QuoteController extends Controller
                 $vatAmount += $itemSubtotal * (($item['tax_percent'] ?? 0) / 100);
             }
 
+            $customer = Customer::find($validated['customer_id']);
+
             $quote = Quote::create([
                 'quote_number' => $quoteNumber,
                 'customer_id' => $validated['customer_id'],
+                'customer_contact_id' => $validated['customer_contact_id'] ?? $customer?->primaryContact()?->id,
                 'enquiry_id' => $validated['enquiry_id'] ?? null,
                 'user_id' => $request->user()->id,
                 'date' => $validated['date'],
@@ -344,6 +351,55 @@ class QuoteController extends Controller
             return response()->json(['message' => 'Email sent successfully.']);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Failed to send email', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function convertToSalesOrder(Request $request, Quote $quote)
+    {
+        $this->authorize('view', $quote);
+        $quote->load('items');
+
+        DB::beginTransaction();
+        try {
+            $date = Carbon::now()->format('Ymd');
+            $count = SalesOrder::whereDate('created_at', Carbon::today())->count() + 1;
+            $orderNumber = 'SO-' . $date . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+
+            $order = SalesOrder::create([
+                'order_number' => $orderNumber,
+                'customer_id' => $quote->customer_id,
+                'customer_contact_id' => $quote->customer_contact_id,
+                'enquiry_id' => $quote->enquiry_id,
+                'quote_id' => $quote->id,
+                'user_id' => $request->user()->id,
+                'date' => now()->toDateString(),
+                'status' => 'draft',
+                'subtotal' => $quote->subtotal,
+                'vat_amount' => $quote->vat_amount,
+                'total' => $quote->total,
+            ]);
+
+            foreach ($quote->items as $item) {
+                SalesOrderItem::create([
+                    'sales_order_id' => $order->id,
+                    'product_id' => $item->product_id,
+                    'description' => $item->description,
+                    'quantity' => $item->quantity,
+                    'unit_price' => $item->unit_price,
+                    'tax_percent' => $item->tax_percent,
+                    'tax_amount' => $item->tax_amount,
+                    'total' => $item->total,
+                ]);
+            }
+
+            $quote->update(['status' => 'converted']);
+
+            DB::commit();
+
+            return response()->json($order->load(['customer', 'items']), 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Failed to convert quote to sales order', 'error' => $e->getMessage()], 500);
         }
     }
 }

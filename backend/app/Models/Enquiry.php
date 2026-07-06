@@ -20,20 +20,38 @@ class Enquiry extends Model
     protected $fillable = [
         'customer_id',
         'lead_id',
+        'customer_contact_id',
         'user_id',
         'source',
         'priority',
         'status',
         'notes',
+        'attachments',
         'cancellation_reason',
         'cancelled_at',
     ];
 
+    protected $casts = [
+        'attachments' => 'array',
+    ];
 
+    protected $appends = ['primary_assignee'];
+
+    public function getPrimaryAssigneeAttribute()
+    {
+        return $this->relationLoaded('assigned_users')
+            ? $this->assigned_users->sortBy(fn ($u) => $u->pivot->created_at)->first()
+            : $this->assigned_users()->orderBy('enquiry_user.created_at')->first();
+    }
 
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function customerContact(): BelongsTo
+    {
+        return $this->belongsTo(CustomerContact::class);
     }
 
     public function lead(): BelongsTo

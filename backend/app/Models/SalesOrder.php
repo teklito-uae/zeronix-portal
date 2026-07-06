@@ -11,27 +11,22 @@ use App\Traits\LogsActivity;
 use App\Traits\HasUserScope;
 use App\Traits\BelongsToCompany;
 
-class Quote extends Model
+class SalesOrder extends Model
 {
     use HasFactory, LogsActivity, HasUserScope, BelongsToCompany;
 
     protected $fillable = [
-        'quote_number',
-        'enquiry_id',
+        'order_number',
         'customer_id',
         'customer_contact_id',
+        'enquiry_id',
+        'quote_id',
         'user_id',
         'date',
-        'valid_until',
+        'status',
         'subtotal',
         'vat_amount',
         'total',
-        'status',
-        'reference_id',
-        'email_sent_at',
-        'due_date',
-        'closing_ratio',
-        'last_notified_at'
     ];
 
     public function customer(): BelongsTo
@@ -44,14 +39,14 @@ class Quote extends Model
         return $this->belongsTo(CustomerContact::class);
     }
 
-    public function salesOrder(): BelongsTo
+    public function enquiry(): BelongsTo
     {
-        return $this->belongsTo(SalesOrder::class);
+        return $this->belongsTo(Enquiry::class);
     }
 
-    public function items(): HasMany
+    public function quote(): BelongsTo
     {
-        return $this->hasMany(QuoteItem::class);
+        return $this->belongsTo(Quote::class);
     }
 
     public function user(): BelongsTo
@@ -59,13 +54,13 @@ class Quote extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function enquiry(): BelongsTo
+    public function items(): HasMany
     {
-        return $this->belongsTo(Enquiry::class);
+        return $this->hasMany(SalesOrderItem::class);
     }
 
-    public function invoice(): BelongsTo
+    public function deliveries(): HasMany
     {
-        return $this->belongsTo(Invoice::class);
+        return $this->hasMany(Delivery::class);
     }
 }

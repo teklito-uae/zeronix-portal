@@ -11,14 +11,17 @@ interface StatusBadgeProps {
 const statusConfig: Record<string, { label: string; className: string; pulse?: boolean }> = {
   // Enquiry statuses
   new: { label: 'NEW', className: 'text-[#23F78C] bg-[#23F78C1F]' },
+  assigned: { label: 'ASSIGNED', className: 'text-[#0F52BA] bg-[#0F52BA1F]' },
   in_progress: { label: 'IN PROGRESS', className: 'text-[#0F52BA] bg-[#0F52BA1F]' },
   quoted: { label: 'QUOTED', className: 'text-[#8B5CF6] bg-[#8B5CF61F]' },
+  won: { label: 'WON', className: 'text-[#10B981] bg-[#10B9811F]' },
+  lost: { label: 'LOST', className: 'text-[#EF4444] bg-[#EF44441F]' },
   closed: { label: 'CLOSED', className: 'text-admin-text-muted bg-admin-surface-hover' },
 
   // Lead statuses
   contacted: { label: 'CONTACTED', className: 'text-[#0F52BA] bg-[#0F52BA1F]' },
   qualified: { label: 'QUALIFIED', className: 'text-[#8B5CF6] bg-[#8B5CF61F]' },
-  disqualified: { label: 'DISQUALIFIED', className: 'text-[#EF4444] bg-[#EF44441F]' },
+  unresponsive: { label: 'UNRESPONSIVE', className: 'text-admin-text-muted bg-admin-surface-hover' },
   converted: { label: 'CONVERTED', className: 'text-[#10B981] bg-[#10B9811F]' },
 
   // Priorities
@@ -32,18 +35,21 @@ const statusConfig: Record<string, { label: string; className: string; pulse?: b
   accepted: { label: 'ACCEPTED', className: 'text-[#10B981] bg-[#10B9811F]' },
   rejected: { label: 'REJECTED', className: 'text-[#EF4444] bg-[#EF44441F]' },
   expired: { label: 'EXPIRED', className: 'text-admin-text-muted bg-admin-surface-hover' },
+  invoiced: { label: 'INVOICED', className: 'text-[#10B981] bg-[#10B9811F]' },
+
+  // Sales Order / Delivery statuses
+  confirmed: { label: 'CONFIRMED', className: 'text-[#0F52BA] bg-[#0F52BA1F]' },
+  processing: { label: 'PROCESSING', className: 'text-[#F59E0B] bg-[#F59E0B1F]' },
+  completed: { label: 'COMPLETED', className: 'text-[#10B981] bg-[#10B9811F]' },
+  pending: { label: 'PENDING', className: 'text-[#F59E0B] bg-[#F59E0B1F]' },
+  delivered: { label: 'DELIVERED', className: 'text-[#10B981] bg-[#10B9811F]' },
 
   // Shared/Invoice statuses
   paid: { label: 'PAID', className: 'text-[#10B981] bg-[#10B9811F]' },
-  partial: { label: 'PARTIAL', className: 'text-[#6366F1] bg-[#6366F11F]' },
-  unpaid: { label: 'UNPAID', className: 'text-[#F59E0B] bg-[#F59E0B1F]' },
+  partially_paid: { label: 'PARTIALLY PAID', className: 'text-[#6366F1] bg-[#6366F11F]' },
+  posted: { label: 'POSTED', className: 'text-[#F59E0B] bg-[#F59E0B1F]' },
   overdue: { label: 'OVERDUE', className: 'text-[#EF4444] bg-[#EF44441F]' },
   cancelled: { label: 'CANCELLED', className: 'text-admin-text-muted bg-admin-surface-hover' },
-  
-  // Delivery Statuses
-  pending: { label: 'PENDING', className: 'text-[#F59E0B] bg-[#F59E0B1F]' },
-  shipped: { label: 'SHIPPED', className: 'text-[#0F52BA] bg-[#0F52BA1F]' },
-  delivered: { label: 'DELIVERED', className: 'text-[#10B981] bg-[#10B9811F]' },
 };
 
 export const StatusBadge = ({ status, className }: StatusBadgeProps) => {

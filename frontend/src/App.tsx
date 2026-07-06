@@ -7,7 +7,6 @@ import api from './lib/axios';
 import { Loader2 } from 'lucide-react';
 import { UnifiedLogin } from './pages/UnifiedLogin';
 import { CustomerRegister } from './pages/portal/Register';
-import { PublicInventory } from './pages/public/Inventory';
 import { NotFound } from './pages/NotFound';
 
 // --- PLATFORM IMPORTS (Super Admin) ---
@@ -19,6 +18,7 @@ import { PlatformSettings } from './pages/platform/PlatformSettings';
 
 // --- WORKSPACE IMPORTS (Tenant Admin & Staff) ---
 import { Dashboard as WorkspaceDashboard } from './pages/workspace/Dashboard';
+import { CrmDashboard } from './pages/workspace/CrmDashboard';
 import { Leads } from './pages/workspace/Leads';
 import { Customers } from './pages/workspace/Customers';
 import { CustomerProfile as AdminCustomerProfile } from './pages/workspace/CustomerProfile';
@@ -28,6 +28,10 @@ import { Products } from './pages/workspace/Products';
 import { Enquiries } from './pages/workspace/Enquiries';
 import { Quotes } from './pages/workspace/Quotes';
 import { QuoteDetail } from './pages/workspace/QuoteDetail';
+import { SalesOrders } from './pages/workspace/SalesOrders';
+import { SalesOrderDetail } from './pages/workspace/SalesOrderDetail';
+import { Deliveries } from './pages/workspace/Deliveries';
+import { DeliveryDetail } from './pages/workspace/DeliveryDetail';
 import { Invoices } from './pages/workspace/Invoices';
 import { InvoiceDetail } from './pages/workspace/InvoiceDetail';
 import { PaymentReceipts } from './pages/workspace/PaymentReceipts';
@@ -70,6 +74,7 @@ const PlatformRoutes = () => (
 const WorkspaceRoutes = () => (
   <Route element={<AdminLayout />}>
     <Route path="dashboard" element={<WorkspaceDashboard />} />
+    <Route path="crm-dashboard" element={<CrmDashboard />} />
     <Route path="leads" element={<Leads />} />
     <Route path="customers" element={<Customers />} />
     <Route path="customers/:id" element={<AdminCustomerProfile />} />
@@ -79,6 +84,10 @@ const WorkspaceRoutes = () => (
     <Route path="enquiries" element={<Enquiries />} />
     <Route path="quotes" element={<Quotes />} />
     <Route path="quotes/:id" element={<QuoteDetail />} />
+    <Route path="sales-orders" element={<SalesOrders />} />
+    <Route path="sales-orders/:id" element={<SalesOrderDetail />} />
+    <Route path="deliveries" element={<Deliveries />} />
+    <Route path="deliveries/:id" element={<DeliveryDetail />} />
     <Route path="invoices" element={<Invoices />} />
     <Route path="invoices/:id" element={<InvoiceDetail />} />
     <Route path="payment-receipts" element={<PaymentReceipts />} />
@@ -161,7 +170,6 @@ function App() {
       <Route path="/saas-admin/login" element={<UnifiedLogin />} />
       
       <Route path="/register" element={<CustomerRegister />} />
-      <Route path="/inventory" element={<PublicInventory />} />
 
       {/* PLATFORM ROUTES (Super Admin) */}
       <Route path="/saas-admin" element={<AdminRoute />}>

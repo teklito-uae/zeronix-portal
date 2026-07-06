@@ -23,9 +23,171 @@ import Avatar from 'boring-avatars';
 import { useThemeStore } from '@/store/useThemeStore';
 
 import type { ColumnDef } from '@tanstack/react-table';
-import type { Enquiry, Quote, Invoice } from '@/types';
-import { Mail, Phone, Building2, Calendar, FileText, MessageSquare, Receipt, MapPin, ShieldCheck, Wallet, ArrowUpRight, Edit, User as UserIcon } from 'lucide-react';
+import type { Enquiry, Quote, Invoice, CustomerContact } from '@/types';
+import { Mail, Phone, Building2, Calendar, FileText, MessageSquare, Receipt, MapPin, ShieldCheck, Wallet, ArrowUpRight, Edit, User as UserIcon, Users, Plus, Star, Trash2, Pencil } from 'lucide-react';
 import { Spinner } from '@/components/shared/Spinner';
+
+const CustomerContactsPanel = ({ customerId }: { customerId: number }) => {
+  const queryClient = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<CustomerContact | null>(null);
+  const [form, setForm] = useState({
+    first_name: '', last_name: '', designation: '', department: '', email: '', phone: '', mobile: '', is_active: true,
+  });
+
+  const { data: contacts = [], isLoading } = useQuery({
+    queryKey: ['customers', customerId, 'contacts'],
+    queryFn: async () => (await api.get(`/admin/customers/${customerId}/contacts`)).data as CustomerContact[],
+  });
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['customers', customerId, 'contacts'] });
+
+  const createMutation = useMutation({
+    mutationFn: async () => api.post(`/admin/customers/${customerId}/contacts`, form),
+    onSuccess: () => { invalidate(); setDialogOpen(false); toast.success('Contact added'); },
+    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to add contact'),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async () => api.put(`/admin/customers/${customerId}/contacts/${editing!.id}`, form),
+    onSuccess: () => { invalidate(); setDialogOpen(false); toast.success('Contact updated'); },
+    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to update contact'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (contactId: number) => api.delete(`/admin/customers/${customerId}/contacts/${contactId}`),
+    onSuccess: () => { invalidate(); toast.success('Contact deleted'); },
+  });
+
+  const setPrimaryMutation = useMutation({
+    mutationFn: async (contactId: number) => api.post(`/admin/customers/${customerId}/contacts/${contactId}/set-primary`),
+    onSuccess: () => { invalidate(); toast.success('Primary contact updated'); },
+  });
+
+  const toggleActiveMutation = useMutation({
+    mutationFn: async (contact: CustomerContact) => api.put(`/admin/customers/${customerId}/contacts/${contact.id}`, { is_active: !contact.is_active }),
+    onSuccess: () => invalidate(),
+  });
+
+  const openAdd = () => {
+    setEditing(null);
+    setForm({ first_name: '', last_name: '', designation: '', department: '', email: '', phone: '', mobile: '', is_active: true });
+    setDialogOpen(true);
+  };
+
+  const openEdit = (c: CustomerContact) => {
+    setEditing(c);
+    setForm({
+      first_name: c.first_name, last_name: c.last_name || '', designation: c.designation || '',
+      department: c.department || '', email: c.email || '', phone: c.phone || '', mobile: c.mobile || '', is_active: c.is_active,
+    });
+    setDialogOpen(true);
+  };
+
+  return (
+    <div className="bg-brand-white border border-brand-border/50 rounded-xl overflow-hidden shadow-sm">
+      <div className="px-5 py-4 border-b border-brand-border/50 bg-brand-surface flex items-center justify-between">
+        <div className="flex items-center gap-2 text-[13px] font-semibold text-brand-primary">
+          <Users size={16} className="text-brand-accent" /> Contact Persons
+        </div>
+        <Button size="sm" onClick={openAdd} className="h-8 text-[12px] rounded-lg">
+          <Plus size={14} className="mr-1" /> Add Contact
+        </Button>
+      </div>
+      <div className="divide-y divide-brand-border/50">
+        {isLoading ? (
+          <div className="p-6"><Spinner size={20} /></div>
+        ) : contacts.length === 0 ? (
+          <p className="p-6 text-[13px] text-brand-subtle">No contact persons yet.</p>
+        ) : contacts.map((c) => (
+          <div key={c.id} className="flex items-center justify-between px-5 py-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-[14px] font-semibold text-brand-primary">{c.full_name}</p>
+                {c.is_primary && (
+                  <span className="text-[10px] font-bold text-brand-accent bg-brand-accent-light px-1.5 py-0.5 rounded flex items-center gap-1">
+                    <Star size={10} /> PRIMARY
+                  </span>
+                )}
+                {!c.is_active && (
+                  <span className="text-[10px] font-bold text-brand-subtle bg-brand-surface px-1.5 py-0.5 rounded">INACTIVE</span>
+                )}
+              </div>
+              <p className="text-[12px] text-brand-subtle mt-0.5">
+                {c.designation || 'No designation'}{c.email ? ` · ${c.email}` : ''}{c.phone ? ` · ${c.phone}` : ''}
+              </p>
+            </div>
+            <div className="flex items-center gap-1">
+              {!c.is_primary && (
+                <Button variant="outline" size="sm" onClick={() => setPrimaryMutation.mutate(c.id)} className="h-8 px-2 text-[11px] rounded-lg">
+                  Set Primary
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={() => toggleActiveMutation.mutate(c)} className="h-8 px-2 text-[11px] rounded-lg">
+                {c.is_active ? 'Deactivate' : 'Activate'}
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => openEdit(c)} className="h-8 w-8 rounded-lg">
+                <Pencil size={14} />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(c.id)} className="h-8 w-8 rounded-lg text-brand-danger">
+                <Trash2 size={14} />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="bg-brand-white border-brand-border/50 sm:max-w-lg rounded-xl shadow-lg">
+          <DialogHeader>
+            <DialogTitle className="text-[16px] font-semibold text-brand-primary">{editing ? 'Update Contact' : 'Add Contact Person'}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-[12px] font-medium text-brand-secondary ml-1">First Name *</Label>
+              <Input value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} className="h-[36px] text-[13px] rounded-lg" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[12px] font-medium text-brand-secondary ml-1">Last Name</Label>
+              <Input value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} className="h-[36px] text-[13px] rounded-lg" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[12px] font-medium text-brand-secondary ml-1">Designation</Label>
+              <Input value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} className="h-[36px] text-[13px] rounded-lg" placeholder="e.g. Sales Manager" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[12px] font-medium text-brand-secondary ml-1">Department</Label>
+              <Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} className="h-[36px] text-[13px] rounded-lg" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[12px] font-medium text-brand-secondary ml-1">Email</Label>
+              <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-[36px] text-[13px] rounded-lg" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[12px] font-medium text-brand-secondary ml-1">Phone</Label>
+              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-[36px] text-[13px] rounded-lg" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[12px] font-medium text-brand-secondary ml-1">Mobile</Label>
+              <Input value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} className="h-[36px] text-[13px] rounded-lg" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-[13px] font-medium">Cancel</Button>
+            <Button
+              onClick={() => editing ? updateMutation.mutate() : createMutation.mutate()}
+              disabled={!form.first_name || createMutation.isPending || updateMutation.isPending}
+              className="bg-brand-primary text-brand-white hover:opacity-90 rounded-lg text-[13px] font-medium px-6"
+            >
+              {(createMutation.isPending || updateMutation.isPending) ? <Spinner className="mr-2" size={14} /> : null}
+              {editing ? 'Update' : 'Add Contact'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
 
 
 export const CustomerProfile = () => {
@@ -254,6 +416,9 @@ export const CustomerProfile = () => {
             <TabsTrigger value="overview" className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-brand-accent data-[state=active]:bg-transparent data-[state=active]:text-brand-primary data-[state=active]:shadow-none text-brand-subtle hover:text-brand-primary px-1 font-semibold text-[13px] flex items-center gap-2 transition-colors">
               <UserIcon size={16} className="text-brand-info" /> Profile Overview
             </TabsTrigger>
+            <TabsTrigger value="contacts" className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-brand-accent data-[state=active]:bg-transparent data-[state=active]:text-brand-primary data-[state=active]:shadow-none text-brand-subtle hover:text-brand-primary px-1 font-semibold text-[13px] flex items-center gap-2 transition-colors">
+              <Users size={16} className="text-brand-accent" /> Contacts
+            </TabsTrigger>
             <TabsTrigger value="enquiries" className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-brand-accent data-[state=active]:bg-transparent data-[state=active]:text-brand-primary data-[state=active]:shadow-none text-brand-subtle hover:text-brand-primary px-1 font-semibold text-[13px] flex items-center gap-2 transition-colors">
               <MessageSquare size={16} className="text-brand-accent" /> Enquiries
             </TabsTrigger>
@@ -322,6 +487,10 @@ export const CustomerProfile = () => {
               </div>
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="contacts" className="p-6 m-0 border-none outline-none flex-1 overflow-auto">
+          <CustomerContactsPanel customerId={Number(id)} />
         </TabsContent>
 
         <TabsContent value="enquiries" className="p-6 m-0 border-none outline-none flex-1 overflow-auto">

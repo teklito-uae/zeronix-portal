@@ -39,6 +39,9 @@ use App\Http\Controllers\Customer\NotificationController as CustomerNotification
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\StickyNoteController;
+use App\Http\Controllers\CustomerContactController;
+use App\Http\Controllers\SalesOrderController;
+use App\Http\Controllers\DeliveryController;
 
 // Customer Auth Routes (Moved to top for priority)
 Route::prefix('customer')->group(function () {
@@ -95,11 +98,8 @@ Route::middleware('throttle:public')->group(function () {
     Route::get('/admin/receipts/{id}/download', [DocumentController::class, 'downloadReceipt']);
     Route::get('/admin/receipts/{id}/view', [DocumentController::class, 'previewReceipt']);
 
-    // Public Inventory
-    Route::get('/public/products', [ProductController::class, 'publicIndex']);
-    Route::get('/public/categories', [CategoryController::class, 'index']);
-    Route::get('/public/brands', [BrandController::class, 'index']);
-    Route::post('/public/rfq', [EnquiryController::class, 'publicStore']);
+    // Company self-signup (tenant onboarding) — public RFQ/lead-capture was removed;
+    // Leads are now created only by staff (directly, or via an authenticated Enquiry).
     Route::post('/public/register-company', [CompanyController::class, 'publicStore']);
 });
 
@@ -132,6 +132,13 @@ foreach (['admin', 'staff'] as $prefix) {
         Route::delete('/customers/{customer}', [CustomerController::class, 'destroy']);
         Route::post('/customers/{customer}/register-portal', [CustomerController::class, 'registerPortal']);
 
+        // Customer Contacts
+        Route::get('/customers/{customer}/contacts', [CustomerContactController::class, 'index']);
+        Route::post('/customers/{customer}/contacts', [CustomerContactController::class, 'store']);
+        Route::put('/customers/{customer}/contacts/{contact}', [CustomerContactController::class, 'update']);
+        Route::delete('/customers/{customer}/contacts/{contact}', [CustomerContactController::class, 'destroy']);
+        Route::post('/customers/{customer}/contacts/{contact}/set-primary', [CustomerContactController::class, 'setPrimary']);
+
         // Companies
         Route::apiResource('companies', CompanyController::class);
 
@@ -149,6 +156,23 @@ foreach (['admin', 'staff'] as $prefix) {
         Route::put('/quotes/{quote}', [QuoteController::class, 'update']);
         Route::delete('/quotes/{quote}', [QuoteController::class, 'destroy']);
         Route::post('/quotes/{quote}/send-email', [QuoteController::class, 'sendEmail']);
+        Route::post('/quotes/{quote}/convert-to-sales-order', [QuoteController::class, 'convertToSalesOrder']);
+
+        // Sales Orders
+        Route::get('/sales-orders', [SalesOrderController::class, 'index']);
+        Route::post('/sales-orders', [SalesOrderController::class, 'store']);
+        Route::get('/sales-orders/{salesOrder}', [SalesOrderController::class, 'show']);
+        Route::put('/sales-orders/{salesOrder}', [SalesOrderController::class, 'update']);
+        Route::delete('/sales-orders/{salesOrder}', [SalesOrderController::class, 'destroy']);
+        Route::post('/sales-orders/{salesOrder}/convert-to-delivery', [SalesOrderController::class, 'convertToDelivery']);
+
+        // Deliveries
+        Route::get('/deliveries', [DeliveryController::class, 'index']);
+        Route::post('/deliveries', [DeliveryController::class, 'store']);
+        Route::get('/deliveries/{delivery}', [DeliveryController::class, 'show']);
+        Route::put('/deliveries/{delivery}', [DeliveryController::class, 'update']);
+        Route::delete('/deliveries/{delivery}', [DeliveryController::class, 'destroy']);
+        Route::post('/deliveries/{delivery}/mark-delivered', [DeliveryController::class, 'markDelivered']);
 
         // Invoices
         Route::get('/invoices', [InvoiceController::class, 'index']);
@@ -190,6 +214,9 @@ foreach (['admin', 'staff'] as $prefix) {
         Route::get('/reports/sales', [ReportController::class, 'sales']);
         Route::get('/reports/sales-by-staff', [ReportController::class, 'salesByStaff']);
         Route::get('/reports/receivables-aging', [ReportController::class, 'receivablesAging']);
+        Route::get('/reports/crm-dashboard', [ReportController::class, 'crmDashboard']);
+        Route::get('/reports/enquiries-by-source', [ReportController::class, 'enquiriesBySource']);
+        Route::get('/reports/pipeline-summary', [ReportController::class, 'pipelineSummary']);
 
         // Notifications
         Route::get('/notifications', [NotificationController::class, 'index']);

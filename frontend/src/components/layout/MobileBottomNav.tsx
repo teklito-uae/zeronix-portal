@@ -22,6 +22,8 @@ import {
   ShoppingCart,
   Wallet,
   BarChart3,
+  ClipboardList,
+  PackageCheck,
 } from 'lucide-react';
 
 interface NavItem {
@@ -61,10 +63,17 @@ const getAdminDrawerGroups = (basePath: string): NavGroup[] => [
     ],
   },
   {
-    label: 'Management',
+    label: 'CRM',
     items: [
+      { id: 'crm-dashboard', label: 'CRM Dashboard', icon: BarChart3, path: `${basePath}/crm-dashboard` },
       { id: 'leads', label: 'Leads', icon: Users, path: `${basePath}/leads` },
       { id: 'customers', label: 'Customers', icon: Users, path: `${basePath}/customers` },
+      { id: 'enquiries', label: 'Enquiries', icon: MessageSquareText, path: `${basePath}/enquiries` },
+    ],
+  },
+  {
+    label: 'Management',
+    items: [
       { id: 'suppliers', label: 'Suppliers', icon: Truck, path: `${basePath}/suppliers` },
       { id: 'products', label: 'Products', icon: Package, path: `${basePath}/products` },
       { id: 'users', label: 'Team', icon: Users, path: `${basePath}/users`, adminOnly: true },
@@ -73,8 +82,9 @@ const getAdminDrawerGroups = (basePath: string): NavGroup[] => [
   {
     label: 'Operations',
     items: [
-      { id: 'enquiries', label: 'Enquiries', icon: MessageSquareText, path: `${basePath}/enquiries` },
       { id: 'quotes', label: 'Quotes', icon: FileText, path: `${basePath}/quotes` },
+      { id: 'sales-orders', label: 'Sales Orders', icon: ClipboardList, path: `${basePath}/sales-orders` },
+      { id: 'deliveries', label: 'Deliveries', icon: PackageCheck, path: `${basePath}/deliveries` },
       { id: 'invoices', label: 'Invoices', icon: Receipt, path: `${basePath}/invoices` },
       { id: 'receipts', label: 'Payment Receipts', icon: Receipt, path: `${basePath}/payment-receipts` },
       { id: 'purchases', label: 'Purchases', icon: ShoppingCart, path: `${basePath}/purchases` },

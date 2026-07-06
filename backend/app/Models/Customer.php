@@ -73,6 +73,22 @@ class Customer extends Authenticatable
         return $this->hasMany(Enquiry::class);
     }
 
+    public function contacts(): HasMany
+    {
+        return $this->hasMany(CustomerContact::class);
+    }
+
+    public function activeContacts(): HasMany
+    {
+        return $this->contacts()->where('is_active', true);
+    }
+
+    public function primaryContact(): ?CustomerContact
+    {
+        return $this->contacts()->where('is_primary', true)->first()
+            ?? $this->activeContacts()->oldest()->first();
+    }
+
     public function assigned_users()
     {
         return $this->belongsToMany(User::class, 'customer_user');
