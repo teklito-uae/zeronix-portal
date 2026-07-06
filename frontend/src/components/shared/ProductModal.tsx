@@ -27,7 +27,7 @@ interface ProductModalProps {
  */
 export const ProductModal = ({ isOpen, onClose, editingProduct, brands, categories }: ProductModalProps) => {
   const [form, setForm] = useState({
-    name: '', model_code: '', brand_id: '', category_id: '', description: '', price: '',
+    name: '', model_code: '', sku: '', stock_quantity: '', brand_id: '', category_id: '', description: '', price: '',
   });
   const [specs, setSpecs] = useState<{ key: string; value: string }[]>([]);
 
@@ -38,6 +38,8 @@ export const ProductModal = ({ isOpen, onClose, editingProduct, brands, categori
       setForm({
         name: editingProduct.name,
         model_code: editingProduct.model_code || '',
+        sku: editingProduct.sku || '',
+        stock_quantity: String(editingProduct.stock_quantity ?? ''),
         brand_id: String(editingProduct.brand_id || ''),
         category_id: String(editingProduct.category_id || ''),
         description: editingProduct.description || '',
@@ -49,7 +51,7 @@ export const ProductModal = ({ isOpen, onClose, editingProduct, brands, categori
           : [{ key: '', value: '' }]
       );
     } else {
-      setForm({ name: '', model_code: '', brand_id: '', category_id: '', description: '', price: '' });
+      setForm({ name: '', model_code: '', sku: '', stock_quantity: '', brand_id: '', category_id: '', description: '', price: '' });
       setSpecs([{ key: '', value: '' }]);
     }
   }, [editingProduct, isOpen]);
@@ -61,6 +63,8 @@ export const ProductModal = ({ isOpen, onClose, editingProduct, brands, categori
       brand_id: form.brand_id ? Number(form.brand_id) : null,
       category_id: form.category_id ? Number(form.category_id) : null,
       price: form.price ? Number(form.price) : 0,
+      sku: form.sku || null,
+      stock_quantity: form.stock_quantity ? Number(form.stock_quantity) : 0,
       specs: specsObj,
     };
 
@@ -102,6 +106,27 @@ export const ProductModal = ({ isOpen, onClose, editingProduct, brands, categori
               onChange={e => setForm({ ...form, model_code: e.target.value })} 
               className="h-11 bg-admin-bg border-admin-border text-admin-text-primary font-mono rounded-xl focus:ring-zeronix-blue/10" 
               placeholder="e.g. 9G2H5ET" 
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">SKU</Label>
+            <Input
+              value={form.sku}
+              onChange={e => setForm({ ...form, sku: e.target.value })}
+              className="h-11 bg-admin-bg border-admin-border text-admin-text-primary font-mono rounded-xl focus:ring-zeronix-blue/10"
+              placeholder="e.g. SKU-00123"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Stock Quantity</Label>
+            <Input
+              type="number"
+              value={form.stock_quantity}
+              onChange={e => setForm({ ...form, stock_quantity: e.target.value })}
+              className="h-11 bg-admin-bg border-admin-border text-admin-text-primary font-mono rounded-xl focus:ring-zeronix-blue/10"
+              placeholder="0"
             />
           </div>
 

@@ -5,10 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class InvoiceItem extends Model
+class PurchaseBillItem extends Model
 {
     protected $fillable = [
-        'invoice_id',
+        'purchase_bill_id',
         'product_id',
         'product_name',
         'description',
@@ -16,7 +16,7 @@ class InvoiceItem extends Model
         'unit_price',
         'tax_percent',
         'tax_amount',
-        'total'
+        'total',
     ];
 
     protected $casts = [
@@ -33,20 +33,20 @@ class InvoiceItem extends Model
 
         static::created(function ($item) {
             if ($item->product_id) {
-                Product::where('id', $item->product_id)->decrement('stock_quantity', (int) $item->quantity);
+                Product::where('id', $item->product_id)->increment('stock_quantity', (int) $item->quantity);
             }
         });
 
         static::deleted(function ($item) {
             if ($item->product_id) {
-                Product::where('id', $item->product_id)->increment('stock_quantity', (int) $item->quantity);
+                Product::where('id', $item->product_id)->decrement('stock_quantity', (int) $item->quantity);
             }
         });
     }
 
-    public function invoice(): BelongsTo
+    public function purchaseBill(): BelongsTo
     {
-        return $this->belongsTo(Invoice::class);
+        return $this->belongsTo(PurchaseBill::class);
     }
 
     public function product(): BelongsTo

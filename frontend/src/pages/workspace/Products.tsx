@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import type { Product } from '@/types';
-import { Plus, Package } from 'lucide-react';
+import { Plus, Package, AlertTriangle } from 'lucide-react';
 import { Spinner } from '@/components/shared/Spinner';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { useResourceMutation } from '@/hooks/useApi';
@@ -142,6 +142,25 @@ export const Products = () => {
           </div>
         );
       }
+    },
+    {
+      accessorKey: 'stock_quantity',
+      header: 'Stock',
+      cell: ({ row }) => (
+        <div className="flex flex-col gap-1">
+          {row.original.sku && (
+            <span className="font-mono text-[10px] text-brand-subtle">{row.original.sku}</span>
+          )}
+          <span className={`text-[12px] font-semibold font-mono ${row.original.is_low_stock ? 'text-brand-danger' : 'text-brand-primary'}`}>
+            {row.original.stock_quantity ?? 0}
+          </span>
+          {row.original.is_low_stock && (
+            <Badge variant="outline" className="bg-brand-danger-bg text-brand-danger border-brand-danger/20 text-[9px] font-bold px-1.5 py-0 uppercase tracking-wider w-fit flex items-center gap-1">
+              <AlertTriangle size={9} /> Low Stock
+            </Badge>
+          )}
+        </div>
+      ),
     },
     {
       accessorKey: 'is_active',

@@ -188,8 +188,8 @@ class InvoiceController extends Controller
                 'status' => $validated['status'] ?? $invoice->status,
             ]);
 
-            // Sync items
-            $invoice->items()->delete();
+            // Sync items (delete row-by-row so stock-reversal model events fire)
+            $invoice->items()->get()->each->delete();
             foreach ($validated['items'] as $item) {
                 $itemSubtotal = $item['quantity'] * $item['unit_price'];
                 $itemTax = $itemSubtotal * (($item['tax_percent'] ?? 5) / 100);
@@ -229,6 +229,8 @@ class InvoiceController extends Controller
     public function destroy(Request $request, Invoice $invoice)
     {
         $this->authorize('delete', $invoice);
+        // Delete items row-by-row (not via cascade) so stock-reversal model events fire
+        $invoice->items()->get()->each->delete();
         $invoice->delete();
         return response()->json(['message' => 'Invoice deleted']);
     }
