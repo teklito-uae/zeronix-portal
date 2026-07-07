@@ -42,6 +42,17 @@ use App\Http\Controllers\StickyNoteController;
 use App\Http\Controllers\CustomerContactController;
 use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\DeliveryController;
+use App\Http\Controllers\MarketingDashboardController;
+use App\Http\Controllers\MarketingCampaignController;
+use App\Http\Controllers\MarketingTemplateController;
+use App\Http\Controllers\MarketingSegmentController;
+use App\Http\Controllers\MarketingSuppressionController;
+use App\Http\Controllers\MarketingQueueController;
+use App\Http\Controllers\MarketingReportController;
+use App\Http\Controllers\MarketingActivityController;
+use App\Http\Controllers\MarketingSmtpAccountController;
+use App\Http\Controllers\MarketingSettingsController;
+use App\Http\Controllers\MarketingTrackingController;
 
 // Customer Auth Routes (Moved to top for priority)
 Route::prefix('customer')->group(function () {
@@ -101,6 +112,12 @@ Route::middleware('throttle:public')->group(function () {
     // Company self-signup (tenant onboarding) — public RFQ/lead-capture was removed;
     // Leads are now created only by staff (directly, or via an authenticated Enquiry).
     Route::post('/public/register-company', [CompanyController::class, 'publicStore']);
+
+    // Marketing tracking (recipients located by unguessable token)
+    Route::get('/m/o/{token}', [MarketingTrackingController::class, 'open']);
+    Route::get('/m/c/{token}/{link}', [MarketingTrackingController::class, 'click'])->whereNumber('link');
+    Route::get('/m/u/{token}', [MarketingTrackingController::class, 'unsubscribeShow']);
+    Route::post('/m/u/{token}', [MarketingTrackingController::class, 'unsubscribeConfirm']);
 });
 
 // Common routes for both Admin and Staff (using getBasePath() on frontend)
@@ -234,6 +251,57 @@ foreach (['admin', 'staff'] as $prefix) {
         // Productivity
         Route::apiResource('tasks', TaskController::class);
         Route::apiResource('sticky-notes', StickyNoteController::class);
+
+        // Marketing
+        Route::get('/marketing/dashboard', [MarketingDashboardController::class, 'index']);
+
+        Route::post('/marketing/campaigns/audience-preview', [MarketingCampaignController::class, 'audiencePreview']);
+        Route::get('/marketing/campaigns', [MarketingCampaignController::class, 'index']);
+        Route::post('/marketing/campaigns', [MarketingCampaignController::class, 'store']);
+        Route::get('/marketing/campaigns/{marketingCampaign}', [MarketingCampaignController::class, 'show']);
+        Route::put('/marketing/campaigns/{marketingCampaign}', [MarketingCampaignController::class, 'update']);
+        Route::delete('/marketing/campaigns/{marketingCampaign}', [MarketingCampaignController::class, 'destroy']);
+        Route::post('/marketing/campaigns/{marketingCampaign}/launch', [MarketingCampaignController::class, 'launch']);
+        Route::post('/marketing/campaigns/{marketingCampaign}/pause', [MarketingCampaignController::class, 'pause']);
+        Route::post('/marketing/campaigns/{marketingCampaign}/resume', [MarketingCampaignController::class, 'resume']);
+        Route::post('/marketing/campaigns/{marketingCampaign}/cancel', [MarketingCampaignController::class, 'cancel']);
+        Route::post('/marketing/campaigns/{marketingCampaign}/duplicate', [MarketingCampaignController::class, 'duplicate']);
+        Route::post('/marketing/campaigns/{marketingCampaign}/test-send', [MarketingCampaignController::class, 'testSend']);
+        Route::get('/marketing/campaigns/{marketingCampaign}/recipients', [MarketingCampaignController::class, 'recipients']);
+        Route::post('/marketing/campaigns/{marketingCampaign}/recipients/import', [MarketingCampaignController::class, 'importRecipients']);
+
+        Route::get('/marketing/variables', [MarketingTemplateController::class, 'variables']);
+        Route::post('/marketing/templates/preview', [MarketingTemplateController::class, 'preview']);
+        Route::get('/marketing/templates', [MarketingTemplateController::class, 'index']);
+        Route::post('/marketing/templates', [MarketingTemplateController::class, 'store']);
+        Route::get('/marketing/templates/{marketingTemplate}', [MarketingTemplateController::class, 'show']);
+        Route::put('/marketing/templates/{marketingTemplate}', [MarketingTemplateController::class, 'update']);
+        Route::delete('/marketing/templates/{marketingTemplate}', [MarketingTemplateController::class, 'destroy']);
+        Route::post('/marketing/templates/{marketingTemplate}/duplicate', [MarketingTemplateController::class, 'duplicate']);
+        Route::post('/marketing/templates/{marketingTemplate}/test-send', [MarketingTemplateController::class, 'testSend']);
+        Route::get('/marketing/templates/{marketingTemplate}/versions', [MarketingTemplateController::class, 'versions']);
+        Route::post('/marketing/templates/{marketingTemplate}/versions/{version}/restore', [MarketingTemplateController::class, 'restoreVersion'])->whereNumber('version');
+
+        Route::get('/marketing/segments', [MarketingSegmentController::class, 'index']);
+        Route::post('/marketing/segments', [MarketingSegmentController::class, 'store']);
+        Route::get('/marketing/segments/{marketingSegment}', [MarketingSegmentController::class, 'show']);
+        Route::put('/marketing/segments/{marketingSegment}', [MarketingSegmentController::class, 'update']);
+        Route::delete('/marketing/segments/{marketingSegment}', [MarketingSegmentController::class, 'destroy']);
+        Route::get('/marketing/segments/{marketingSegment}/preview', [MarketingSegmentController::class, 'preview']);
+
+        Route::get('/marketing/suppressions', [MarketingSuppressionController::class, 'index']);
+        Route::post('/marketing/suppressions', [MarketingSuppressionController::class, 'store']);
+        Route::delete('/marketing/suppressions/{marketingSuppression}', [MarketingSuppressionController::class, 'destroy']);
+
+        Route::get('/marketing/queue', [MarketingQueueController::class, 'index']);
+        Route::post('/marketing/queue/{recipient}/retry', [MarketingQueueController::class, 'retry']);
+        Route::post('/marketing/queue/{recipient}/cancel', [MarketingQueueController::class, 'cancelMessage']);
+
+        Route::get('/marketing/reports/overview', [MarketingReportController::class, 'overview']);
+        Route::get('/marketing/reports/trends', [MarketingReportController::class, 'trends']);
+        Route::get('/marketing/reports/campaigns/{marketingCampaign}', [MarketingReportController::class, 'campaign']);
+
+        Route::get('/marketing/activity', [MarketingActivityController::class, 'index']);
     });
 }
 
@@ -299,6 +367,16 @@ Route::prefix('admin')->group(function () {
 
         // Notifications
         // Moved to shared loop
+
+        // Marketing administration (SMTP pool + module settings)
+        Route::get('/marketing/smtp-accounts', [MarketingSmtpAccountController::class, 'index']);
+        Route::post('/marketing/smtp-accounts', [MarketingSmtpAccountController::class, 'store']);
+        Route::get('/marketing/smtp-accounts/{smtpAccount}', [MarketingSmtpAccountController::class, 'show']);
+        Route::put('/marketing/smtp-accounts/{smtpAccount}', [MarketingSmtpAccountController::class, 'update']);
+        Route::delete('/marketing/smtp-accounts/{smtpAccount}', [MarketingSmtpAccountController::class, 'destroy']);
+        Route::post('/marketing/smtp-accounts/{smtpAccount}/test', [MarketingSmtpAccountController::class, 'test']);
+        Route::get('/marketing/settings', [MarketingSettingsController::class, 'show']);
+        Route::put('/marketing/settings', [MarketingSettingsController::class, 'update']);
 
         // Company Management (God Mode)
         Route::post('/companies/{id}/approve', [CompanyController::class, 'approve']);

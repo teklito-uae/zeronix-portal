@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule) {
         $schedule->command('quotes:notify-followup')->hourly();
+        $schedule->command('marketing:tick')->everyMinute()->withoutOverlapping();
     })
     ->withMiddleware(function (Middleware $middleware) {
         //
