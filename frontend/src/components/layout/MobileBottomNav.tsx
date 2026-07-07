@@ -24,6 +24,7 @@ import {
   BarChart3,
   ClipboardList,
   PackageCheck,
+  Megaphone,
 } from 'lucide-react';
 
 interface NavItem {
@@ -89,6 +90,12 @@ const getAdminDrawerGroups = (basePath: string): NavGroup[] => [
       { id: 'receipts', label: 'Payment Receipts', icon: Receipt, path: `${basePath}/payment-receipts` },
       { id: 'purchases', label: 'Purchases', icon: ShoppingCart, path: `${basePath}/purchases` },
       { id: 'expenses', label: 'Expenses', icon: Wallet, path: `${basePath}/expenses` },
+    ],
+  },
+  {
+    label: 'Marketing',
+    items: [
+      { id: 'marketing', label: 'Marketing', icon: Megaphone, path: `${basePath}/marketing/dashboard` },
     ],
   },
   {

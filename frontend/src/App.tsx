@@ -45,6 +45,20 @@ import { Notifications } from './pages/workspace/Notifications';
 import { CustomerImport } from './pages/workspace/CustomerImport';
 import { AttendanceReport } from './pages/workspace/AttendanceReport';
 
+// --- MARKETING IMPORTS (Workspace module) ---
+import { MarketingDashboard } from './pages/workspace/marketing/MarketingDashboard';
+import { MarketingCampaigns } from './pages/workspace/marketing/MarketingCampaigns';
+import { MarketingCampaignWizard } from './pages/workspace/marketing/MarketingCampaignWizard';
+import { MarketingCampaignDetail } from './pages/workspace/marketing/MarketingCampaignDetail';
+import { MarketingTemplates } from './pages/workspace/marketing/MarketingTemplates';
+import { MarketingTemplateEditor } from './pages/workspace/marketing/MarketingTemplateEditor';
+import { MarketingSegments } from './pages/workspace/marketing/MarketingSegments';
+import { MarketingSuppressions } from './pages/workspace/marketing/MarketingSuppressions';
+import { MarketingQueue } from './pages/workspace/marketing/MarketingQueue';
+import { MarketingActivity } from './pages/workspace/marketing/MarketingActivity';
+import { MarketingReports } from './pages/workspace/marketing/MarketingReports';
+import { MarketingSettings } from './pages/workspace/marketing/MarketingSettings';
+
 // --- PORTAL IMPORTS (End Customers) ---
 import { CustomerProducts } from './pages/portal/CustomerProducts';
 import { RequestForm } from './pages/portal/RequestForm';
@@ -100,6 +114,21 @@ const WorkspaceRoutes = () => (
     <Route path="notifications" element={<Notifications />} />
     <Route path="customers/import" element={<CustomerImport />} />
     <Route path="attendance" element={<AttendanceReport />} />
+    <Route path="marketing" element={<Navigate to="dashboard" replace />} />
+    <Route path="marketing/dashboard" element={<MarketingDashboard />} />
+    <Route path="marketing/campaigns" element={<MarketingCampaigns />} />
+    <Route path="marketing/campaigns/new" element={<MarketingCampaignWizard />} />
+    <Route path="marketing/campaigns/:id/edit" element={<MarketingCampaignWizard />} />
+    <Route path="marketing/campaigns/:id" element={<MarketingCampaignDetail />} />
+    <Route path="marketing/templates" element={<MarketingTemplates />} />
+    <Route path="marketing/templates/new" element={<MarketingTemplateEditor />} />
+    <Route path="marketing/templates/:id/edit" element={<MarketingTemplateEditor />} />
+    <Route path="marketing/segments" element={<MarketingSegments />} />
+    <Route path="marketing/suppressions" element={<MarketingSuppressions />} />
+    <Route path="marketing/queue" element={<MarketingQueue />} />
+    <Route path="marketing/activity" element={<MarketingActivity />} />
+    <Route path="marketing/reports" element={<MarketingReports />} />
+    <Route path="marketing/settings" element={<MarketingSettings />} />
   </Route>
 );
 

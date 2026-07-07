@@ -40,7 +40,8 @@ import {
   Wallet,
   BarChart3,
   ClipboardList,
-  PackageCheck
+  PackageCheck,
+  Megaphone
 } from 'lucide-react';
 
 interface NavItem {
@@ -116,6 +117,12 @@ const getTenantAdminNavGroups = (basePath: string): NavGroup[] => [
     ],
   },
   {
+    label: 'Marketing',
+    items: [
+      { id: 'marketing', label: 'Marketing', icon: <Megaphone size={18} />, path: `${basePath}/marketing/dashboard` },
+    ],
+  },
+  {
     label: 'Insights',
     items: [
       { id: 'reports', label: 'Reports', icon: <BarChart3 size={18} />, path: `${basePath}/reports` },
@@ -168,6 +175,12 @@ const getTenantStaffNavGroups = (basePath: string): NavGroup[] => [
       { id: 'receipts', label: 'Payment Receipts', icon: <Receipt size={18} />, path: `${basePath}/payment-receipts` },
       { id: 'purchases', label: 'Purchases', icon: <ShoppingCart size={18} />, path: `${basePath}/purchases` },
       { id: 'expenses', label: 'Expenses', icon: <Wallet size={18} />, path: `${basePath}/expenses` },
+    ],
+  },
+  {
+    label: 'Marketing',
+    items: [
+      { id: 'marketing', label: 'Marketing', icon: <Megaphone size={18} />, path: `${basePath}/marketing/dashboard` },
     ],
   },
   {

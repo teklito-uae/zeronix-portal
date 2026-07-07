@@ -50,6 +50,20 @@ const statusConfig: Record<string, { label: string; className: string; pulse?: b
   posted: { label: 'POSTED', className: 'text-[#F59E0B] bg-[#F59E0B1F]' },
   overdue: { label: 'OVERDUE', className: 'text-[#EF4444] bg-[#EF44441F]' },
   cancelled: { label: 'CANCELLED', className: 'text-admin-text-muted bg-admin-surface-hover' },
+
+  // Marketing campaign / message / SMTP statuses
+  scheduled: { label: 'SCHEDULED', className: 'text-[#0F52BA] bg-[#0F52BA1F]' },
+  sending: { label: 'SENDING', className: 'text-[#F59E0B] bg-[#F59E0B1F]', pulse: true },
+  paused: { label: 'PAUSED', className: 'text-[#F59E0B] bg-[#F59E0B1F]' },
+  queued: { label: 'QUEUED', className: 'text-[#0F52BA] bg-[#0F52BA1F]' },
+  deferred: { label: 'DEFERRED', className: 'text-[#F59E0B] bg-[#F59E0B1F]' },
+  failed: { label: 'FAILED', className: 'text-[#EF4444] bg-[#EF44441F]' },
+  bounced: { label: 'BOUNCED', className: 'text-[#EF4444] bg-[#EF44441F]' },
+  spam: { label: 'SPAM', className: 'text-[#EF4444] bg-[#EF44441F]' },
+  skipped: { label: 'SKIPPED', className: 'text-admin-text-muted bg-admin-surface-hover' },
+  unsubscribed: { label: 'UNSUBSCRIBED', className: 'text-admin-text-muted bg-admin-surface-hover' },
+  healthy: { label: 'HEALTHY', className: 'text-[#10B981] bg-[#10B9811F]' },
+  warning: { label: 'WARNING', className: 'text-[#F59E0B] bg-[#F59E0B1F]' },
 };
 
 export const StatusBadge = ({ status, className }: StatusBadgeProps) => {

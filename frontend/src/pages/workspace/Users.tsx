@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   Shield, Mail, Phone, UserCog, CheckCircle2, Lock, Download,
   LayoutDashboard, Users as UsersIcon, MessageSquareText, FileText,
-  Receipt, Package, Truck, Clock, Activity, Banknote
+  Receipt, Package, Truck, Clock, Activity, Banknote, Megaphone
 } from 'lucide-react';
 import { Spinner } from '@/components/shared/Spinner';
 import type { User } from '@/types';
@@ -37,6 +37,7 @@ const AVAILABLE_MODULES = [
   { id: 'receipts', label: 'Payment Receipts', icon: Banknote, desc: 'Track incoming payments' },
   { id: 'products', label: 'Inventory Management', icon: Package, desc: 'Manage product catalog' },
   { id: 'suppliers', label: 'Supplier Network', icon: Truck, desc: 'Manage vendor relationships' },
+  { id: 'marketing', label: 'Marketing', icon: Megaphone, desc: 'Email campaigns & audiences' },
   { id: 'attendance', label: 'Attendance', icon: Clock, desc: 'Timesheets & clock-in' },
   { id: 'activities', label: 'Activities Log', icon: Activity, desc: 'System audit trails' },
   { id: 'users', label: 'Team Management', icon: UsersIcon, desc: 'Manage staff accounts' },

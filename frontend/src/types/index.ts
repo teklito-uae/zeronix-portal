@@ -491,3 +491,179 @@ export interface Template {
   created_at?: string;
   updated_at?: string;
 }
+
+// ── Marketing Automation ───────────────────────────────
+
+export type MarketingCampaignStatus =
+  | 'draft' | 'scheduled' | 'sending' | 'paused' | 'completed' | 'cancelled' | 'failed';
+
+export type MarketingRecipientStatus =
+  | 'pending' | 'queued' | 'sending' | 'sent' | 'delivered' | 'failed'
+  | 'deferred' | 'bounced' | 'spam' | 'unsubscribed' | 'skipped';
+
+export type MarketingChannel = 'email';
+
+export interface MarketingSettings {
+  id: number;
+  company_id: number;
+  timezone: string;
+  business_days: number[];
+  send_start_time: string;
+  send_end_time: string;
+  enforce_business_hours: boolean;
+  min_interval_seconds: number;
+  max_interval_seconds: number;
+  rate_per_minute: number;
+  rate_per_hour: number;
+  rate_per_day: number;
+  per_domain_limits: Record<string, number> | null;
+  cool_off_hours: number;
+  max_emails_per_recipient_per_month: number;
+  duplicate_protection_days: number;
+  track_opens: boolean;
+  track_clicks: boolean;
+  append_unsubscribe_footer: boolean;
+  unsubscribe_footer_html?: string | null;
+  default_test_email?: string | null;
+}
+
+export interface MarketingSmtpAccount {
+  id: number;
+  label: string;
+  host: string;
+  port: number;
+  encryption: 'tls' | 'ssl' | 'none';
+  username: string;
+  from_email: string;
+  from_name: string;
+  reply_to?: string | null;
+  per_minute_limit?: number | null;
+  hourly_limit?: number | null;
+  daily_limit?: number | null;
+  priority: number;
+  is_active: boolean;
+  health_status: 'healthy' | 'warning' | 'failed';
+  consecutive_failures: number;
+  last_error?: string | null;
+  last_used_at?: string | null;
+  total_sent: number;
+}
+
+export interface MarketingTemplate {
+  id: number;
+  name: string;
+  subject: string;
+  preheader?: string | null;
+  body_html: string;
+  category: 'welcome' | 'introduction' | 'follow_up' | 'renewal' | 'promotional' | 'custom';
+  channel: MarketingChannel;
+  is_builtin: boolean;
+  is_active: boolean;
+  current_version: number;
+  user?: { id: number; name: string } | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface MarketingTemplateVersion {
+  id: number;
+  template_id: number;
+  version: number;
+  subject: string;
+  body_html: string;
+  editor?: { id: number; name: string } | null;
+  created_at?: string;
+}
+
+export interface MarketingSegment {
+  id: number;
+  name: string;
+  description?: string | null;
+  source: 'leads' | 'customers' | 'contacts';
+  filters: Record<string, any> | null;
+  cached_count?: number | null;
+  counted_at?: string | null;
+  user?: { id: number; name: string } | null;
+  created_at?: string;
+}
+
+export interface MarketingAudienceSource {
+  type: 'segment' | 'customers' | 'leads' | 'contacts' | 'manual' | 'csv';
+  id?: number;
+  filters?: Record<string, any>;
+  recipients?: { email: string; name?: string }[];
+}
+
+export interface MarketingCampaign {
+  id: number;
+  name: string;
+  channel: MarketingChannel;
+  status: MarketingCampaignStatus;
+  template_id?: number | null;
+  subject?: string | null;
+  body_html?: string | null;
+  preheader?: string | null;
+  audience_config?: { sources: MarketingAudienceSource[] } | null;
+  schedule_type: 'immediate' | 'scheduled';
+  scheduled_at?: string | null;
+  timezone?: string | null;
+  smtp_account_id?: number | null;
+  total_recipients: number;
+  pending_count: number;
+  sent_count: number;
+  delivered_count: number;
+  failed_count: number;
+  deferred_count: number;
+  bounced_count: number;
+  skipped_count: number;
+  opened_count: number;
+  open_events_count: number;
+  clicked_count: number;
+  click_events_count: number;
+  unsubscribed_count: number;
+  retry_count: number;
+  launched_at?: string | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+  cancelled_at?: string | null;
+  user?: { id: number; name: string } | null;
+  template?: { id: number; name: string } | null;
+  smtp_account?: { id: number; label: string } | null;
+  created_at?: string;
+}
+
+export interface MarketingRecipient {
+  id: number;
+  campaign_id: number;
+  source_type: 'lead' | 'customer' | 'contact' | 'manual' | 'csv';
+  email: string;
+  name?: string | null;
+  status: MarketingRecipientStatus;
+  skipped_reason?: string | null;
+  attempts: number;
+  last_error?: string | null;
+  sent_at?: string | null;
+  opened_at?: string | null;
+  open_count: number;
+  clicked_at?: string | null;
+  click_count: number;
+  unsubscribed_at?: string | null;
+  campaign?: { id: number; name: string; status: string } | null;
+  smtp_account?: { id: number; label: string } | null;
+  updated_at?: string;
+}
+
+export interface MarketingSuppression {
+  id: number;
+  kind: 'email' | 'domain';
+  value: string;
+  type: 'unsubscribe' | 'hard_bounce' | 'spam' | 'invalid' | 'blocked_domain' | 'manual';
+  notes?: string | null;
+  creator?: { id: number; name: string } | null;
+  created_at?: string;
+}
+
+export interface MarketingVariableGroup {
+  group: string;
+  variables: { token: string; label: string }[];
+}
