@@ -19,7 +19,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { TRANSACTION_CONFIGS, type TransactionConversionConfig } from '@/lib/transactionTypes';
 import { computeDocTotals, normalizeLineItems } from '@/lib/lineItemMath';
 import api from '@/lib/axios';
-import type { Invoice } from '@/types';
+import type { Invoice, QuoteAttachment, ActivityLogEntry } from '@/types';
 import { useAuthStore } from '@/store/useAuthStore';
 import {
   Loader2,
@@ -207,7 +207,7 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
 
   const handleRemoveTag = (tag: string) => {
     const existing = data?.tags || [];
-    quickUpdate.mutate({ tags: existing.filter((t) => t !== tag) });
+    quickUpdate.mutate({ tags: existing.filter((t: string) => t !== tag) });
   };
 
   if (isLoading) {
@@ -493,7 +493,7 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
                 <p className="text-[12px] text-admin-text-muted italic">No attachments yet.</p>
               ) : (
                 <ul className="space-y-2">
-                  {attachments.map((att, idx) => (
+                  {attachments.map((att: QuoteAttachment, idx: number) => (
                     <li
                       key={`${att.path}-${idx}`}
                       className="flex items-center justify-between gap-2 bg-admin-surface-hover rounded-lg px-3 py-2"
@@ -602,7 +602,7 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
               <p className="text-[12px] text-admin-text-muted italic">No activity recorded yet.</p>
             ) : (
               <ul className="space-y-0">
-                {data.activities.map((activity, idx) => (
+                {data.activities.map((activity: ActivityLogEntry, idx: number) => (
                   <li key={activity.id} className="flex gap-3 pb-4 last:pb-0">
                     <div className="flex flex-col items-center flex-shrink-0">
                       <div className="w-2 h-2 rounded-full bg-zeronix-blue mt-1.5" />
@@ -687,7 +687,7 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
           <div>
             <p className="text-[11px] text-admin-text-muted mb-1.5">Tags</p>
             <div className="flex flex-wrap items-center gap-1.5">
-              {tags.map((tag) => (
+              {tags.map((tag: string) => (
                 <span
                   key={tag}
                   className="inline-flex items-center gap-1 rounded-full bg-admin-surface-hover px-2.5 py-1 text-[11px] text-admin-text-secondary"

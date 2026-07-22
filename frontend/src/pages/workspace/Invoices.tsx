@@ -101,7 +101,7 @@ export const Invoices = () => {
       header: 'Due Date',
       cell: ({ row }) => {
         const days = row.original.days_due;
-        if (row.original.status === 'paid') return <span className="text-[11px] font-medium text-brand-success bg-brand-success-bg px-2 py-0.5 rounded-full">SETTLED</span>;
+        if (row.original.payment_status === 'paid') return <span className="text-[11px] font-medium text-brand-success bg-brand-success-bg px-2 py-0.5 rounded-full">SETTLED</span>;
         return (
           <div className="space-y-1">
             <p className="text-[12px] text-brand-subtle flex items-center gap-1.5 font-medium">
@@ -123,7 +123,7 @@ export const Invoices = () => {
       header: '',
       cell: ({ row }) => (
         <ActionGroup
-          onPay={row.original.status !== 'paid' ? () => { setSelectedInvoice(row.original); setIsReceiptModalOpen(true); } : undefined}
+          onPay={row.original.payment_status !== 'paid' ? () => { setSelectedInvoice(row.original); setIsReceiptModalOpen(true); } : undefined}
           onMail={() => sendEmailMutation.mutate(row.original.id)}
           isMailPending={sendEmailMutation.isPending && sendEmailMutation.variables === row.original.id}
           isMailSent={!!row.original.email_sent_at}
