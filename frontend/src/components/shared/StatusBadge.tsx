@@ -44,11 +44,14 @@ const statusConfig: Record<string, { label: string; className: string; pulse?: b
   pending: { label: 'PENDING', className: 'text-[#F59E0B] bg-[#F59E0B1F]' },
   delivered: { label: 'DELIVERED', className: 'text-[#10B981] bg-[#10B9811F]' },
 
-  // Shared/Invoice statuses
+  // Invoice payment_status (computed from receipts, shown alongside workflow status)
   paid: { label: 'PAID', className: 'text-[#10B981] bg-[#10B9811F]' },
   partially_paid: { label: 'PARTIALLY PAID', className: 'text-[#6366F1] bg-[#6366F11F]' },
-  posted: { label: 'POSTED', className: 'text-[#F59E0B] bg-[#F59E0B1F]' },
+  unpaid: { label: 'UNPAID', className: 'text-admin-text-muted bg-admin-surface-hover' },
   overdue: { label: 'OVERDUE', className: 'text-[#EF4444] bg-[#EF44441F]' },
+
+  // Invoice workflow status (on_hold; draft/sent/accepted/cancelled are shared with Quote above)
+  on_hold: { label: 'ON HOLD', className: 'text-[#F59E0B] bg-[#F59E0B1F]' },
   cancelled: { label: 'CANCELLED', className: 'text-admin-text-muted bg-admin-surface-hover' },
 
   // Marketing campaign / message / SMTP statuses
@@ -66,6 +69,8 @@ const statusConfig: Record<string, { label: string; className: string; pulse?: b
   warning: { label: 'WARNING', className: 'text-[#F59E0B] bg-[#F59E0B1F]' },
 };
 
+const toTitleCase = (s: string) => s.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+
 export const StatusBadge = ({ status, className }: StatusBadgeProps) => {
   const config = (status && statusConfig[status]) || {
     label: (status || 'UNKNOWN').toString().toUpperCase(),
@@ -75,13 +80,13 @@ export const StatusBadge = ({ status, className }: StatusBadgeProps) => {
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide border-0',
+        'inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border-0',
         config.className,
         config.pulse && 'animate-pulse',
         className
       )}
     >
-      {config.label}
+      {toTitleCase(config.label)}
     </span>
   );
 };

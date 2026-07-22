@@ -20,9 +20,9 @@ class DashboardController extends Controller
             'enquiries_count' => Enquiry::where('customer_id', $customerId)->count(),
             'quotes_count' => Quote::where('customer_id', $customerId)->count(),
             'invoices_count' => Invoice::where('customer_id', $customerId)->count(),
-            'total_spent' => Invoice::where('customer_id', $customerId)
-                ->where('status', 'paid')
-                ->sum('total'),
+            // Actual amount received, not invoice totals flagged "paid" — status
+            // no longer carries payment state.
+            'total_spent' => \App\Models\PaymentReceipt::where('customer_id', $customerId)->sum('amount'),
         ];
 
         // Chart data: Enquiries & Quotes by Month

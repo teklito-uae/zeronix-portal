@@ -72,7 +72,7 @@ const StepIndicator = ({ current }: { current: Step }) => {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-export const CustomerImport = () => {
+export const CompanyImport = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -466,10 +466,10 @@ export const CustomerImport = () => {
           Import More
         </Button>
         <Button
-          onClick={() => navigate(`${getBasePath()}/customers`)}
+          onClick={() => navigate(`${getBasePath()}/companies`)}
           className="bg-zeronix-blue hover:bg-zeronix-blue-hover text-white font-bold rounded-xl px-6"
         >
-          <Users size={15} className="mr-2" /> View Customers
+          <Users size={15} className="mr-2" /> View Companies
         </Button>
       </div>
     </div>
@@ -484,7 +484,7 @@ export const CustomerImport = () => {
       {/* Header */}
       <div className="flex items-center gap-3">
         <button
-          onClick={() => navigate(`${getBasePath()}/customers`)}
+          onClick={() => navigate(`${getBasePath()}/companies`)}
           className="p-2 rounded-xl border border-admin-border bg-admin-surface hover:bg-admin-bg transition-colors text-admin-text-muted hover:text-admin-text-primary"
         >
           <ArrowLeft size={16} />
@@ -494,7 +494,7 @@ export const CustomerImport = () => {
         </div>
         <div>
           <h2 className="text-xl font-bold text-admin-text-primary tracking-tight">Import Contacts</h2>
-          <p className="text-xs text-admin-text-muted mt-0.5">Upload VCF or JSON to bulk-import customers with labels</p>
+          <p className="text-xs text-admin-text-muted mt-0.5">Upload VCF or JSON to bulk-import companies with labels</p>
         </div>
       </div>
 

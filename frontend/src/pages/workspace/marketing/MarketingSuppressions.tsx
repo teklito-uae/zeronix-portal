@@ -10,13 +10,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from '@/components/ui/sheet';
 import { Plus, Ban } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/axios';
@@ -103,13 +103,15 @@ export const MarketingSuppressions = () => {
         ]}
       />
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-[15px]">Add Suppressions</DialogTitle>
-            <DialogDescription className="text-[12px]">Suppressed emails and domains are automatically excluded from every future campaign.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
+      <Sheet open={dialogOpen} onOpenChange={setDialogOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-lg p-0 flex flex-col gap-0">
+          <div className="p-6 border-b border-brand-border/50 flex-shrink-0">
+            <SheetHeader className="space-y-1 text-left">
+              <SheetTitle className="text-[15px] pr-6">Add Suppressions</SheetTitle>
+              <SheetDescription className="text-[12px]">Suppressed emails and domains are automatically excluded from every future campaign.</SheetDescription>
+            </SheetHeader>
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-3 p-6">
             <div className="space-y-1.5">
               <Label className="text-[12px]">Kind</Label>
               <Select value={kind} onValueChange={(v) => setKind(v as any)}>
@@ -129,14 +131,16 @@ export const MarketingSuppressions = () => {
               <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="min-h-[60px] text-[13px]" />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-[13px]">Cancel</Button>
-            <Button onClick={save} disabled={saving} className="text-[13px] gap-1.5 bg-brand-primary">
-              <Plus size={14} /> {saving ? 'Adding…' : 'Add to Suppression List'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <div className="p-6 pt-4 border-t border-brand-border/50 flex-shrink-0">
+            <SheetFooter className="sm:justify-end">
+              <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-[13px]">Cancel</Button>
+              <Button onClick={save} disabled={saving} className="text-[13px] gap-1.5 bg-brand-primary">
+                <Plus size={14} /> {saving ? 'Adding…' : 'Add to Suppression List'}
+              </Button>
+            </SheetFooter>
+          </div>
+        </SheetContent>
+      </Sheet>
     </MarketingLayout>
   );
 };

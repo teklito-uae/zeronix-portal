@@ -8,10 +8,20 @@ import { Button } from '@/components/ui/button';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import type { Quote, PaginatedResponse } from '@/types';
-import { FileText, Loader2, Search, Calendar, Package, CheckCircle2, XCircle } from 'lucide-react';
+import { FileText, Loader2, Search, Calendar, Package, CheckCircle2, XCircle, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SEO } from '@/components/shared/SEO';
+
+const QUOTE_STATUSES = [
+  { label: 'Draft', value: 'draft' },
+  { label: 'Sent', value: 'sent' },
+  { label: 'Accepted', value: 'accepted' },
+  { label: 'Rejected', value: 'rejected' },
+  { label: 'Expired', value: 'expired' },
+  { label: 'Invoiced', value: 'invoiced' },
+];
 
 export const CustomerQuotes = () => {
   const navigate = useNavigate();
@@ -19,11 +29,14 @@ export const CustomerQuotes = () => {
   const { company } = useParams();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('all');
 
   const { data: quotesData, isLoading } = useQuery<PaginatedResponse<Quote>>({
-    queryKey: ['customer-quotes', page, search],
+    queryKey: ['customer-quotes', page, search, status],
     queryFn: async () => {
-      const res = await api.get('/customer/quotes', { params: { page, search, per_page: 15 } });
+      const params: any = { page, search, per_page: 15 };
+      if (status !== 'all') params.status = status;
+      const res = await api.get('/customer/quotes', { params });
       return res.data;
     }
   });
@@ -119,9 +132,9 @@ export const CustomerQuotes = () => {
         </Button>
       </div>
 
-      {/* Search Bar */}
-      <div className="bg-admin-surface border border-admin-border rounded-xl p-3 shadow-sm">
-        <div className="relative max-w-sm">
+      {/* Search & Filters */}
+      <div className="bg-admin-surface border border-admin-border rounded-xl p-3 flex flex-wrap items-center gap-2 shadow-sm">
+        <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-admin-text-muted" size={14} />
           <Input
             placeholder="Search by quote number…"
@@ -129,6 +142,20 @@ export const CustomerQuotes = () => {
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="pl-9 h-10 bg-admin-bg border-admin-border text-sm rounded-lg focus:ring-zeronix-blue/20"
           />
+        </div>
+        <div className="flex items-center gap-2">
+          <Filter size={13} className="text-admin-text-muted" />
+          <Select value={status} onValueChange={(v) => { setStatus(v); setPage(1); }}>
+            <SelectTrigger className="h-10 w-40 bg-admin-bg border-admin-border text-xs rounded-lg font-medium">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent className="bg-admin-surface border-admin-border">
+              <SelectItem value="all">All Statuses</SelectItem>
+              {QUOTE_STATUSES.map((s) => (
+                <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -140,81 +167,47 @@ export const CustomerQuotes = () => {
             <p className="text-xs font-medium text-admin-text-muted uppercase tracking-widest">Fetching quotes...</p>
           </div>
         ) : quotesData?.data && quotesData.data.length > 0 ? (
-          <>
-            <DataTable 
-              columns={columns} 
-              data={quotesData.data} 
-              hidePagination={true}
-              renderRowDetails={(quote) => (
-                <div className="p-4 bg-admin-bg/50 rounded-lg m-2 border border-admin-border space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-[10px] font-bold text-admin-text-muted uppercase tracking-widest">Quote Items Summary</h4>
-                    {(quote.status === 'sent' || quote.status === 'draft') && (
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="h-8 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                          onClick={() => updateStatusMutation.mutate({ id: quote.id, status: 'rejected' })}
-                          disabled={updateStatusMutation.isPending}
-                        >
-                          <XCircle size={14} className="mr-1.5" /> Reject
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
-                          onClick={() => updateStatusMutation.mutate({ id: quote.id, status: 'accepted' })}
-                          disabled={updateStatusMutation.isPending}
-                        >
-                          <CheckCircle2 size={14} className="mr-1.5" /> Accept Quote
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    {quote.items?.map((item, idx) => (
-                      <div key={idx} className="flex justify-between items-center text-sm p-2 bg-admin-surface rounded border border-admin-border">
-                        <span className="text-admin-text-primary font-medium">{item.product_name || item.description}</span>
-                        <span className="text-admin-text-secondary">Qty: {item.quantity}</span>
-                      </div>
-                    ))}
-                  </div>
+          <DataTable
+            columns={columns}
+            data={quotesData.data}
+            hidePagination={true}
+            renderRowDetails={(quote) => (
+              <div className="p-4 bg-admin-bg/50 rounded-lg m-2 border border-admin-border space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[10px] font-bold text-admin-text-muted uppercase tracking-widest">Quote Items Summary</h4>
+                  {(quote.status === 'sent' || quote.status === 'draft') && (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                        onClick={() => updateStatusMutation.mutate({ id: quote.id, status: 'rejected' })}
+                        disabled={updateStatusMutation.isPending}
+                      >
+                        <XCircle size={14} className="mr-1.5" /> Reject
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                        onClick={() => updateStatusMutation.mutate({ id: quote.id, status: 'accepted' })}
+                        disabled={updateStatusMutation.isPending}
+                      >
+                        <CheckCircle2 size={14} className="mr-1.5" /> Accept Quote
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              )}
-            />
-            
-            {/* Pagination Control */}
-            <div className="flex items-center justify-between px-6 py-4 border-t border-admin-border bg-admin-surface">
-              <p className="text-xs text-admin-text-muted font-medium">
-                Showing {quotesData.data.length} of {quotesData.total} quotes
-              </p>
-              <div className="flex items-center gap-3">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setPage(p => Math.max(1, p - 1))} 
-                  disabled={page === 1} 
-                  className="h-9 px-4 text-xs font-bold border-admin-border text-admin-text-secondary hover:bg-admin-bg"
-                >
-                  Previous
-                </Button>
-                <div className="flex items-center gap-1 px-3 py-1.5 bg-admin-bg rounded-md border border-admin-border">
-                  <span className="text-xs font-bold text-admin-text-primary">{page}</span>
-                  <span className="text-[10px] text-admin-text-muted font-bold uppercase mx-1">of</span>
-                  <span className="text-xs font-bold text-admin-text-muted">{quotesData.last_page}</span>
+                <div className="space-y-2">
+                  {quote.items?.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center text-sm p-2 bg-admin-surface rounded border border-admin-border">
+                      <span className="text-admin-text-primary font-medium">{item.product_name || item.description}</span>
+                      <span className="text-admin-text-secondary">Qty: {item.quantity}</span>
+                    </div>
+                  ))}
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setPage(p => p + 1)} 
-                  disabled={page >= quotesData.last_page} 
-                  className="h-9 px-4 text-xs font-bold border-admin-border text-admin-text-secondary hover:bg-admin-bg"
-                >
-                  Next
-                </Button>
               </div>
-            </div>
-          </>
+            )}
+          />
         ) : (
           <div className="flex flex-col items-center justify-center p-20 text-center bg-admin-surface">
             <div className="w-16 h-16 bg-admin-bg rounded-full flex items-center justify-center mb-4 border border-admin-border">
@@ -227,6 +220,40 @@ export const CustomerQuotes = () => {
           </div>
         )}
       </div>
+
+      {/* Pagination Control */}
+      {!isLoading && quotesData?.data && quotesData.data.length > 0 && (
+        <div className="sticky bottom-0 z-10 flex items-center justify-between px-6 py-4 border-t border-admin-border bg-admin-surface/95 backdrop-blur-sm rounded-xl shadow-sm">
+          <p className="text-xs text-admin-text-muted font-medium">
+            Showing {quotesData.data.length} of {quotesData.total} quotes
+          </p>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="h-9 px-4 text-xs font-bold border-admin-border text-admin-text-secondary hover:bg-admin-bg"
+            >
+              Previous
+            </Button>
+            <div className="flex items-center gap-1 px-3 py-1.5 bg-admin-bg rounded-md border border-admin-border">
+              <span className="text-xs font-bold text-admin-text-primary">{page}</span>
+              <span className="text-[10px] text-admin-text-muted font-bold uppercase mx-1">of</span>
+              <span className="text-xs font-bold text-admin-text-muted">{quotesData.last_page}</span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => p + 1)}
+              disabled={page >= quotesData.last_page}
+              className="h-9 px-4 text-xs font-bold border-admin-border text-admin-text-secondary hover:bg-admin-bg"
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,9 +1,11 @@
 import { getBasePath } from '@/hooks/useBasePath';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { StatusBadge } from '@/components/shared/StatusBadge';
-import type { SalesOrder } from '@/types';
+import api from '@/lib/axios';
+import type { SalesOrder, User } from '@/types';
 import { ClipboardList, Building2, Calendar } from 'lucide-react';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import { ActionGroup } from '@/components/shared/ActionGroup';
@@ -11,6 +13,11 @@ import { ActionGroup } from '@/components/shared/ActionGroup';
 export const SalesOrders = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
+
+  const { data: usersList = [] } = useQuery({
+    queryKey: ['users', 'all'],
+    queryFn: async () => (await api.get(`/admin/users?per_page=100`)).data.data as User[],
+  });
 
   const orderTabs = [
     { id: 'all', label: 'All Orders' },
@@ -86,6 +93,14 @@ export const SalesOrders = () => {
       activeTab={activeTab}
       onTabChange={setActiveTab}
       baseFilters={{ status: activeTab !== 'all' ? activeTab : undefined }}
+      filters={[
+        {
+          name: 'user_id',
+          label: 'Sales Rep',
+          placeholder: 'Filter by sales rep',
+          options: usersList.map((u) => ({ label: u.name, value: String(u.id) })),
+        },
+      ]}
     />
   );
 };

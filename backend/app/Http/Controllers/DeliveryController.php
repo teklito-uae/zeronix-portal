@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Delivery;
 use App\Models\DeliveryItem;
+use App\Models\Invoice;
+use App\Models\InvoiceItem;
 use App\Models\Product;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
 
 class DeliveryController extends Controller
 {
@@ -29,6 +32,10 @@ class DeliveryController extends Controller
 
         if ($request->filled('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
+        }
+
+        if ($request->filled('customer_confirmation') && $request->customer_confirmation !== 'all') {
+            $query->where('customer_confirmation', $request->customer_confirmation);
         }
 
         $deliveries = $query->latest()->paginate($request->get('per_page', config('zeronix.default_per_page', 15)));
@@ -89,7 +96,7 @@ class DeliveryController extends Controller
 
     public function show(Request $request, Delivery $delivery)
     {
-        return response()->json($delivery->load(['customer', 'salesOrder', 'items.product', 'deliveredBy']));
+        return response()->json($delivery->load(['customer', 'salesOrder', 'invoice', 'invoices', 'items.product', 'deliveredBy']));
     }
 
     public function update(Request $request, Delivery $delivery)
@@ -160,6 +167,19 @@ class DeliveryController extends Controller
             return response()->json($delivery->load('items'));
         }
 
+        $delivery->load('items.product');
+        $shortages = [];
+        foreach ($delivery->items as $item) {
+            if ($item->product_id && $item->product && $item->product->stock_quantity < $item->quantity) {
+                $shortages[] = "{$item->product->name} (available {$item->product->stock_quantity}, needs {$item->quantity})";
+            }
+        }
+        if ($shortages) {
+            return response()->json([
+                'message' => 'Not enough stock to complete this delivery: ' . implode(', ', $shortages),
+            ], 422);
+        }
+
         DB::beginTransaction();
         try {
             foreach ($delivery->items as $item) {
@@ -191,6 +211,89 @@ class DeliveryController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Failed to mark delivery as delivered', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Goods-first flow: bill for what was actually delivered. Only allowed
+     * once the delivery is confirmed dispatched, and idempotent — re-calling
+     * returns the invoice already billed against this delivery.
+     */
+    public function convertToInvoice(Request $request, Delivery $delivery)
+    {
+        if ($delivery->status !== 'delivered') {
+            return response()->json(['message' => 'Only a completed delivery can be invoiced.'], 422);
+        }
+
+        $existing = Invoice::where('delivery_id', $delivery->id)->first();
+        if ($existing) {
+            return response()->json($existing->load(['customer', 'items']));
+        }
+
+        $delivery->load('items.product');
+
+        DB::beginTransaction();
+        try {
+            $date = Carbon::now()->format('Ymd');
+            $count = Invoice::whereDate('created_at', Carbon::today())->count() + 1;
+            $invoiceNumber = 'INV-' . $date . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+
+            $subtotal = 0;
+            $vatAmount = 0;
+            $lineItems = $delivery->items->map(function ($item) use (&$subtotal, &$vatAmount) {
+                $unitPrice = $item->product?->price ?? 0;
+                $taxPercent = 5;
+                $itemSubtotal = $item->quantity * $unitPrice;
+                $itemTax = $itemSubtotal * ($taxPercent / 100);
+                $subtotal += $itemSubtotal;
+                $vatAmount += $itemTax;
+                return [
+                    'product_id' => $item->product_id,
+                    'description' => $item->product_name,
+                    'quantity' => $item->quantity,
+                    'unit_price' => $unitPrice,
+                    'tax_percent' => $taxPercent,
+                    'tax_amount' => $itemTax,
+                    'total' => $itemSubtotal + $itemTax,
+                ];
+            });
+
+            $invoice = Invoice::create([
+                'invoice_number' => $invoiceNumber,
+                'sales_order_id' => $delivery->sales_order_id,
+                'delivery_id' => $delivery->id,
+                'customer_id' => $delivery->customer_id,
+                'user_id' => $request->user()->id,
+                'date' => now()->toDateString(),
+                'due_date' => now()->addDays(7)->toDateString(),
+                'subtotal' => $subtotal,
+                'vat_amount' => $vatAmount,
+                'total' => $subtotal + $vatAmount,
+                // Goods have already shipped by the time this bill-first invoice
+                // is generated, so it starts life already accepted rather than draft.
+                'status' => 'accepted',
+            ]);
+
+            foreach ($lineItems as $item) {
+                InvoiceItem::create($item + ['invoice_id' => $invoice->id]);
+            }
+
+            DB::commit();
+
+            if ($invoice->customer) {
+                $slug = \Illuminate\Support\Str::slug($invoice->customer->company ?? 'company');
+                $invoice->customer->notify(new \App\Notifications\SystemNotification([
+                    'title' => 'New Invoice Available',
+                    'message' => "Invoice {$invoice->invoice_number} has been generated.",
+                    'type' => 'info',
+                    'action_url' => "/portal/{$slug}/invoices/{$invoice->id}"
+                ]));
+            }
+
+            return response()->json($invoice->load(['customer', 'items']), 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Failed to create invoice', 'error' => $e->getMessage()], 500);
         }
     }
 }

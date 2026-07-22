@@ -1,10 +1,10 @@
 import { Outlet } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { Sidebar } from './Sidebar';
+import { Topbar } from './Topbar';
 
 import { MobileBottomNav } from './MobileBottomNav';
 import { SplashScreen } from '../shared/SplashScreen';
-import { GlobalSearch } from './GlobalSearch';
 
 export const AdminLayout = () => {
   const [showBottomNav, setShowBottomNav] = useState(true);
@@ -15,19 +15,6 @@ export const AdminLayout = () => {
     return true;
   });
   const lastScrollY = useRef(0);
-  const [searchOpen, setSearchOpen] = useState(false);
-
-  // Ctrl+K / Cmd+K to open search
-  useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        setSearchOpen((o) => !o);
-      }
-    };
-    document.addEventListener('keydown', down);
-    return () => document.removeEventListener('keydown', down);
-  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -48,12 +35,15 @@ export const AdminLayout = () => {
   return (
     <>
       {showSplash && <SplashScreen />}
-      <div className="flex h-screen bg-brand-page-bg p-0 md:p-3 gap-0 md:gap-3 overflow-hidden text-brand-primary">
+      <div className="flex h-screen bg-brand-page-bg overflow-hidden text-brand-primary">
         {/* Desktop Sidebar */}
         <Sidebar />
 
         {/* Main Content Area */}
         <main className="flex-1 flex flex-col overflow-hidden">
+          <div className="px-4 md:px-6 pt-3 flex-shrink-0 border-b border-brand-border/60 bg-brand-white">
+            <Topbar />
+          </div>
           <div
             id="main-content"
             className="flex-1 overflow-y-auto touch-scroll"
@@ -67,8 +57,6 @@ export const AdminLayout = () => {
         {/* Mobile Bottom Navigation */}
         <MobileBottomNav isVisible={showBottomNav} />
       </div>
-
-      <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </>
   );
 };

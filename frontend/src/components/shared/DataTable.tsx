@@ -154,7 +154,7 @@ export function DataTable<TData, TValue>({
                 {headerGroup.headers.map((header) => (
                   <TableHead
                      key={header.id}
-                     className="h-10 px-4 text-[12px] font-semibold text-brand-subtle uppercase tracking-wider bg-brand-surface border border-brand-border/50 whitespace-nowrap"
+                     className="h-10 px-4 text-[12px] font-semibold text-brand-subtle bg-brand-surface whitespace-nowrap"
                   >
                       {header.isPlaceholder ? null : (
                         <div
@@ -188,14 +188,14 @@ export function DataTable<TData, TValue>({
                         }
                         onRowClick?.(row.original);
                       }}
-                      className={`border-b border-brand-border/50 last:border-0 bg-brand-white hover:bg-brand-bg transition-colors duration-100 ${
+                      className={`group border-b border-brand-border/50 last:border-0 bg-brand-white hover:bg-brand-bg transition-colors duration-100 ${
                         (onRowClick || renderRowDetails) ? 'cursor-pointer' : ''
                       } ${expandedRows[row.id] ? 'bg-brand-bg' : ''} ${
                         row.getIsSelected() ? 'bg-brand-accent/5' : ''
                       }`}
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className="px-4 py-2.5 text-[13px] font-medium text-brand-secondary whitespace-nowrap border border-brand-border/50">
+                        <TableCell key={cell.id} className="px-4 py-2.5 text-[13px] font-medium text-brand-secondary whitespace-nowrap">
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
                       ))}
@@ -227,7 +227,7 @@ export function DataTable<TData, TValue>({
 
       {/* Pagination */}
       {!hidePagination && table.getPageCount() > 1 && (
-        <div className="flex items-center justify-between">
+        <div className="sticky bottom-0 z-10 -mx-1 flex items-center justify-between bg-brand-white/95 backdrop-blur-sm border-t border-brand-border px-1 py-3">
           <p className="text-sm text-brand-subtle">
             {table.getFilteredRowModel().rows.length} total rows
           </p>

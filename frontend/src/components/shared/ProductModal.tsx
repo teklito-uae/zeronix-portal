@@ -4,8 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
-} from '@/components/ui/dialog';
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
+} from '@/components/ui/sheet';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -77,18 +77,20 @@ export const ProductModal = ({ isOpen, onClose, editingProduct, brands, categori
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-admin-surface border-admin-border sm:max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl shadow-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-admin-text-primary">
-            {editingProduct ? 'Update Product' : 'Add New Product'}
-          </DialogTitle>
-          <DialogDescription className="text-sm text-admin-text-secondary">
-            Fill in the details below to sync this item with your inventory.
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl bg-admin-surface border-admin-border p-0 flex flex-col gap-0">
+        <div className="p-6 border-b border-admin-border flex-shrink-0">
+          <SheetHeader className="space-y-1 text-left">
+            <SheetTitle className="text-xl font-bold text-admin-text-primary pr-6">
+              {editingProduct ? 'Update Product' : 'Add New Product'}
+            </SheetTitle>
+            <SheetDescription className="text-sm text-admin-text-secondary">
+              Fill in the details below to sync this item with your inventory.
+            </SheetDescription>
+          </SheetHeader>
+        </div>
+
+        <div className="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-5 p-6">
           <div className="space-y-2 md:col-span-2">
             <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Product Name *</Label>
             <Input 
@@ -229,17 +231,19 @@ export const ProductModal = ({ isOpen, onClose, editingProduct, brands, categori
           </div>
         </div>
 
-        <DialogFooter className="mt-6 flex flex-col sm:flex-row gap-2">
-          <Button variant="ghost" onClick={onClose} className="w-full sm:w-auto text-admin-text-secondary rounded-xl order-2 sm:order-1">Cancel</Button>
-          <Button 
-            onClick={handleSave} 
-            disabled={!form.name || create.isPending || update.isPending} 
-            className="w-full sm:w-auto bg-zeronix-blue text-white hover:bg-zeronix-blue-hover min-w-[120px] rounded-xl font-bold shadow-lg shadow-zeronix-blue/20 order-1 sm:order-2"
-          >
-            {(create.isPending || update.isPending) ? <Loader2 className="h-4 w-4 animate-spin" /> : (editingProduct ? 'Update Product' : 'Add Product')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <div className="p-6 pt-4 border-t border-admin-border flex-shrink-0">
+          <SheetFooter className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+            <Button variant="ghost" onClick={onClose} className="w-full sm:w-auto text-admin-text-secondary rounded-xl order-2 sm:order-1">Cancel</Button>
+            <Button
+              onClick={handleSave}
+              disabled={!form.name || create.isPending || update.isPending}
+              className="w-full sm:w-auto bg-zeronix-blue text-white hover:bg-zeronix-blue-hover min-w-[120px] rounded-xl font-bold shadow-lg shadow-zeronix-blue/20 order-1 sm:order-2"
+            >
+              {(create.isPending || update.isPending) ? <Loader2 className="h-4 w-4 animate-spin" /> : (editingProduct ? 'Update Product' : 'Add Product')}
+            </Button>
+          </SheetFooter>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 };

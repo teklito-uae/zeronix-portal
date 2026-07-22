@@ -11,7 +11,7 @@ interface StatCardProps {
   className?: string;
 }
 
-export const StatCard = ({ title, value, subtitle, icon, href, className }: StatCardProps) => {
+export const StatCard = ({ title, value, subtitle, icon, iconBg, href, className }: StatCardProps) => {
   const navigate = useNavigate();
   return (
     <div
@@ -24,7 +24,7 @@ export const StatCard = ({ title, value, subtitle, icon, href, className }: Stat
     >
       <div className="flex items-center justify-between">
         <h3 className="text-[13px] font-medium text-brand-secondary">{title}</h3>
-        <div className="text-brand-subtle">{icon}</div>
+        <div className={cn("text-brand-subtle", iconBg && "h-8 w-8 rounded-lg flex items-center justify-center", iconBg)}>{icon}</div>
       </div>
       <div>
         <p className="text-[24px] font-semibold text-brand-primary leading-tight tracking-tight">{value}</p>

@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { DataTable } from './DataTable';
 import { useResourceList } from '@/hooks/useApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -12,8 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Search, Filter, X, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Mail, Calendar, Bell, Sun, Moon } from 'lucide-react';
-import { useThemeStore } from '@/store/useThemeStore';
+import { Search, Filter, X, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SEO } from './SEO';
 import { PageLoader } from './PageLoader';
@@ -36,6 +36,9 @@ interface ResourceListingPageProps<T> {
   createPath?: string;
   createLabel?: string;
   filters?: FilterConfig[];
+  // Standalone filter controls (e.g. MultiSelectFilter buttons) rendered
+  // inline next to search, instead of / in addition to the `filters` popover.
+  customFilters?: React.ReactNode;
   searchPlaceholder?: string;
   onBulkUpdate?: (ids: number[]) => void;
   selectedIds?: number[];
@@ -72,6 +75,7 @@ export function ResourceListingPage<T extends { id: number }>({
   tabs,
   activeTab,
   onTabChange,
+  customFilters,
   baseFilters = {},
   customContent,
   topContent,
@@ -79,13 +83,14 @@ export function ResourceListingPage<T extends { id: number }>({
   floatingBulkActions,
 }: ResourceListingPageProps<T>) {
   const navigate = useNavigate();
-  const { theme, toggle } = useThemeStore();
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState('10');
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
   const [showFilters, setShowFilters] = useState(false);
+  const [searchExpanded, setSearchExpanded] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [goToPageInput, setGoToPageInput] = useState('');
 
   // Sync search input with debounce
@@ -127,7 +132,8 @@ export function ResourceListingPage<T extends { id: number }>({
     setPage(1);
   };
 
-  const hasActiveFilters = search || Object.values(activeFilters).some(v => v !== '');
+  const activeFilterCount = Object.values(activeFilters).filter(v => v !== '').length;
+  const hasActiveFilters = search || activeFilterCount > 0;
 
   // Pagination helpers
   const renderPaginationButtons = () => {
@@ -171,82 +177,8 @@ export function ResourceListingPage<T extends { id: number }>({
 
 
   return (
-    <div className="bg-brand-white md:border border-brand-border md:rounded-xl shadow-sm flex flex-col h-full overflow-hidden animate-in fade-in duration-200">
+    <div className="bg-brand-white flex flex-col h-full overflow-hidden animate-in fade-in duration-200">
       <SEO title={title} />
-
-      {/* Header Inside Card */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between px-4 md:px-5 py-3 md:py-4 gap-3 md:gap-0 border-b border-brand-border bg-brand-white flex-shrink-0">
-        
-        {/* Top Row on Mobile: Title + Notification Icons */}
-        <div className="flex items-center justify-between w-full md:w-auto">
-          {/* Left: Title */}
-          <div className="flex items-center gap-4 md:gap-6">
-            <h1 className="text-[16px] md:text-[18px] font-bold text-brand-primary flex items-center gap-2">
-              {icon && React.cloneElement(icon as React.ReactElement, { size: 18, className: "text-brand-subtle" } as any)}
-              {title}
-            </h1>
-          </div>
-
-          {/* Mobile Right: Notification Icons */}
-          <div className="flex md:hidden items-center gap-3">
-            <button className="text-brand-subtle hover:text-brand-primary transition-colors" onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { 'key': 'k', 'metaKey': true }))}>
-              <Search size={18} />
-            </button>
-            <button onClick={() => toggle()} className="text-brand-subtle hover:text-brand-primary transition-colors relative">
-              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-            <button className="text-brand-subtle hover:text-brand-primary transition-colors relative">
-              <Bell size={18} />
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-brand-danger rounded-full border border-brand-white"></span>
-            </button>
-          </div>
-        </div>
-
-        {/* Desktop Search */}
-        <div className="hidden md:flex relative w-80 items-center mx-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-subtle" size={14} />
-          <div className="w-full h-[34px] bg-brand-surface border border-brand-border rounded-lg flex items-center pl-9 pr-3 text-[13px] text-brand-subtle cursor-pointer hover:bg-brand-bg transition-colors" onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { 'key': 'k', 'metaKey': true }))}>
-            <span className="flex-1 text-left truncate min-w-0">Search {title.toLowerCase()} globally...</span>
-            <kbd className="hidden sm:inline-block flex-shrink-0 text-[10px] bg-brand-white border border-brand-border rounded px-1.5 py-0.5 ml-2 font-mono text-brand-muted">⌘K</kbd>
-          </div>
-        </div>
-
-        {/* Right Section: Buttons + Desktop Icons */}
-        <div className="flex flex-col md:flex-row md:items-center w-full md:w-auto gap-3 md:gap-4 mt-1 md:mt-0">
-          
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            {extraActions}
-            {createPath && (
-              <Button
-                onClick={() => onCreateClick ? onCreateClick() : navigate(createPath)}
-                className="w-full md:w-auto text-[13px] font-medium px-4 h-[34px] rounded-lg transition-all shadow-sm"
-              >
-                {createLabel}
-              </Button>
-            )}
-          </div>
-
-          {/* Desktop Notification Icons */}
-          <div className="hidden md:flex items-center gap-3 border-l border-brand-border/50 pl-4">
-            <button className="text-brand-subtle hover:text-brand-primary transition-colors" onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { 'key': 'k', 'metaKey': true }))}>
-              <Search size={18} />
-            </button>
-            <button onClick={() => toggle()} className="text-brand-subtle hover:text-brand-primary transition-colors relative">
-              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-            <button className="text-brand-subtle hover:text-brand-primary transition-colors">
-              <Mail size={18} />
-            </button>
-            <button className="text-brand-subtle hover:text-brand-primary transition-colors">
-              <Calendar size={18} />
-            </button>
-            <button className="text-brand-subtle hover:text-brand-primary transition-colors relative">
-              <Bell size={18} />
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-brand-danger rounded-full border border-brand-white"></span>
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* Tabs */}
       {tabs && tabs.length > 0 && (
@@ -276,56 +208,95 @@ export function ResourceListingPage<T extends { id: number }>({
         <div className="px-4 md:px-5 py-3 flex flex-col xl:flex-row xl:items-center justify-between border-b border-brand-border/50 bg-brand-white gap-3 flex-shrink-0">
           
           {/* Left Side: Search & Default Filters */}
-          <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-2 w-full xl:w-auto">
-            
-            <div className="relative w-full sm:w-[280px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-subtle" size={14} />
-              <Input
-                placeholder={searchPlaceholder}
-                value={searchInput}
-                onChange={e => setSearchInput(e.target.value)}
-                className="pl-8 h-[32px] text-[12px] bg-brand-white border-brand-border rounded-lg shadow-sm w-full"
-              />
-            </div>
+          <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
 
-            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            {searchExpanded || searchInput ? (
+              <div className="relative w-full sm:w-[220px]">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-brand-subtle" size={13} />
+                <Input
+                  ref={searchInputRef}
+                  autoFocus
+                  placeholder={searchPlaceholder}
+                  value={searchInput}
+                  onChange={e => setSearchInput(e.target.value)}
+                  onBlur={() => { if (!searchInput) setSearchExpanded(false); }}
+                  className="pl-8 h-[32px] text-[12px] bg-brand-white border-brand-border rounded-lg shadow-sm w-full"
+                />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => { setSearchExpanded(true); requestAnimationFrame(() => searchInputRef.current?.focus()); }}
+                className="h-[32px] w-[32px] flex-shrink-0 flex items-center justify-center rounded-lg border border-brand-border bg-brand-white text-brand-subtle hover:bg-brand-bg hover:text-brand-primary transition-colors shadow-sm"
+              >
+                <Search size={14} />
+              </button>
+            )}
 
-              {filters.length > 0 && filters.map((filter) => (
-                <Select
-                  key={filter.name}
-                  value={activeFilters[filter.name] || 'all'}
-                  onValueChange={(val) => handleFilterChange(filter.name, val)}
-                >
-                  <SelectTrigger className="h-[32px] w-auto text-[12px] bg-brand-white border-brand-border rounded-lg hover:bg-brand-bg px-3 min-w-[140px] max-w-[200px] font-medium text-brand-secondary shadow-sm">
-                    <SelectValue placeholder={filter.label} />
-                  </SelectTrigger>
-                  <SelectContent className="bg-brand-white border-brand-border rounded-xl shadow-sm">
-                    <SelectItem value="all" className="text-[12px] font-medium">All {filter.label}</SelectItem>
-                    {filter.options.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value} className="text-[12px]">
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ))}
+            {customFilters}
 
-              {hasActiveFilters && (
-                <Button variant="ghost" onClick={clearFilters} className="h-[32px] px-2 text-brand-danger hover:text-brand-danger text-[12px]">
-                  <X size={13} className="mr-1" /> Clear
-                </Button>
-              )}
-            </div>
+            {filters.length > 0 && (
+              <Popover open={showFilters} onOpenChange={setShowFilters}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className={cn(
+                      'h-[32px] text-[12px] font-medium rounded-lg border-brand-border shadow-sm gap-1.5 px-3',
+                      activeFilterCount > 0
+                        ? 'text-brand-accent border-brand-accent/40 bg-brand-accent-light hover:bg-brand-accent-light'
+                        : 'text-brand-secondary bg-brand-white hover:bg-brand-bg'
+                    )}
+                  >
+                    <Filter size={13} /> Filters
+                    {activeFilterCount > 0 && (
+                      <span className="h-[16px] min-w-[16px] px-1 rounded-full bg-brand-accent text-brand-white text-[10px] flex items-center justify-center">
+                        {activeFilterCount}
+                      </span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-64 p-3 bg-brand-white border-brand-border rounded-xl shadow-lg space-y-3">
+                  {filters.map((filter) => (
+                    <div key={filter.name} className="space-y-1">
+                      <label className="text-[11px] font-medium text-brand-subtle">{filter.label}</label>
+                      <Select
+                        value={activeFilters[filter.name] || 'all'}
+                        onValueChange={(val) => handleFilterChange(filter.name, val)}
+                      >
+                        <SelectTrigger className="h-[32px] w-full text-[12px] bg-brand-white border-brand-border rounded-lg font-medium text-brand-secondary">
+                          <SelectValue placeholder={filter.label} />
+                        </SelectTrigger>
+                        <SelectContent className="bg-brand-white border-brand-border rounded-xl shadow-sm">
+                          <SelectItem value="all" className="text-[12px] font-medium">All {filter.label}</SelectItem>
+                          {filter.options.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value} className="text-[12px]">
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            )}
+
+            {hasActiveFilters && (
+              <Button variant="ghost" onClick={clearFilters} className="h-[32px] px-2 text-brand-danger hover:text-brand-danger text-[12px]">
+                <X size={13} className="mr-1" /> Clear
+              </Button>
+            )}
           </div>
 
-          {/* Right Side: Custom Actions (leftActions) & Bulk Actions */}
+          {/* Right Side: Custom/Bulk Actions + Create Button */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full xl:w-auto mt-2 xl:mt-0">
             {leftActions && (
               <div className="w-full xl:w-auto">
                 {leftActions}
               </div>
             )}
-            
+
             {selectedIds.length > 0 && onBulkUpdate && (
               <Button
                 variant="outline"
@@ -333,6 +304,17 @@ export function ResourceListingPage<T extends { id: number }>({
                 onClick={() => onBulkUpdate(selectedIds)}
               >
                 Delete Selected ({selectedIds.length})
+              </Button>
+            )}
+
+            {extraActions}
+
+            {createPath && (
+              <Button
+                onClick={() => onCreateClick ? onCreateClick() : navigate(createPath)}
+                className="w-full sm:w-auto text-[13px] font-medium px-4 h-[32px] rounded-lg transition-all shadow-sm"
+              >
+                {createLabel}
               </Button>
             )}
           </div>
@@ -384,7 +366,7 @@ export function ResourceListingPage<T extends { id: number }>({
 
       {/* Pagination */}
       {!customContent && data.length > 0 && (
-        <div className="px-5 py-3 border-t border-brand-border bg-brand-white flex flex-col sm:flex-row items-center justify-between gap-4 flex-shrink-0">
+        <div className="sticky bottom-0 z-10 px-5 py-3 border-t border-brand-border bg-brand-white flex flex-col sm:flex-row items-center justify-between gap-4 flex-shrink-0">
           <div className="text-[12px] text-brand-subtle font-medium">
             Showing <span className="text-brand-primary">{(page - 1) * Number(perPage) + 1}</span> to <span className="text-brand-primary">{Math.min(page * Number(perPage), total)}</span> of <span className="text-brand-primary">{total}</span> results
           </div>

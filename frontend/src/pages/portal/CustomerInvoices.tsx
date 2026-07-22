@@ -7,16 +7,26 @@ import { Button } from '@/components/ui/button';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import type { Invoice, PaginatedResponse } from '@/types';
-import { Receipt, Loader2, Search, Calendar, Wallet, CheckCircle2, AlertCircle, XCircle } from 'lucide-react';
+import { Receipt, Loader2, Search, Calendar, Wallet, CheckCircle2, AlertCircle, XCircle, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SEO } from '@/components/shared/SEO';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
+const INVOICE_STATUSES = [
+  { label: 'Posted', value: 'posted' },
+  { label: 'Paid', value: 'paid' },
+  { label: 'Partially Paid', value: 'partially_paid' },
+  { label: 'Overdue', value: 'overdue' },
+  { label: 'Cancelled', value: 'cancelled' },
+];
+
 export const CustomerInvoices = () => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('all');
   const queryClient = useQueryClient();
 
   // Confirmation Modal State
@@ -28,26 +38,28 @@ export const CustomerInvoices = () => {
   const [confirmNotes, setConfirmNotes] = useState('');
 
   const { data: invoicesData, isLoading } = useQuery<PaginatedResponse<Invoice>>({
-    queryKey: ['customer-invoices', page, search],
+    queryKey: ['customer-invoices', page, search, status],
     queryFn: async () => {
-      const res = await api.get('/customer/invoices', { params: { page, search, per_page: 15 } });
+      const params: any = { page, search, per_page: 15 };
+      if (status !== 'all') params.status = status;
+      const res = await api.get('/customer/invoices', { params });
       return res.data;
     }
   });
 
   const confirmMutation = useMutation({
-    mutationFn: (data: { id: number, status: 'accepted' | 'rejected', notes: string }) => 
+    mutationFn: (data: { id: number, status: 'accepted' | 'rejected', notes: string }) =>
       api.post(`/customer/invoices/${data.id}/confirm-delivery`, { status: data.status, notes: data.notes }),
     onMutate: async (newData) => {
       await queryClient.cancelQueries({ queryKey: ['customer-invoices'] });
-      const previousInvoices = queryClient.getQueryData(['customer-invoices', page, search]);
-      
+      const previousInvoices = queryClient.getQueryData(['customer-invoices', page, search, status]);
+
       if (previousInvoices) {
-        queryClient.setQueryData(['customer-invoices', page, search], (old: any) => ({
+        queryClient.setQueryData(['customer-invoices', page, search, status], (old: any) => ({
           ...old,
-          data: old.data.map((inv: any) => 
-            inv.id === newData.id 
-              ? { ...inv, delivery_status: newData.status === 'accepted' ? 'delivered' : 'rejected' } 
+          data: old.data.map((inv: any) =>
+            inv.id === newData.id && inv.linked_delivery
+              ? { ...inv, linked_delivery: { ...inv.linked_delivery, customer_confirmation: newData.status } }
               : inv
           )
         }));
@@ -62,7 +74,7 @@ export const CustomerInvoices = () => {
     },
     onError: (_err, _newData, context) => {
       if (context?.previousInvoices) {
-        queryClient.setQueryData(['customer-invoices', page, search], context.previousInvoices);
+        queryClient.setQueryData(['customer-invoices', page, search, status], context.previousInvoices);
       }
       toast.error('Failed to submit confirmation.');
     }
@@ -93,11 +105,14 @@ export const CustomerInvoices = () => {
       ),
     },
     {
-      accessorKey: 'delivery_status',
+      accessorKey: 'linked_delivery',
       header: 'Delivery',
-      cell: ({ row }) => (
-        <StatusBadge status={row.original.delivery_status || 'pending'} />
-      )
+      cell: ({ row }) => {
+        const delivery = row.original.linked_delivery;
+        if (!delivery) return <StatusBadge status="pending" />;
+        if (delivery.customer_confirmation) return <StatusBadge status={delivery.customer_confirmation} />;
+        return <StatusBadge status={delivery.status} />;
+      }
     },
     {
       accessorKey: 'date',
@@ -112,25 +127,31 @@ export const CustomerInvoices = () => {
     {
       id: 'actions',
       header: '',
-      cell: ({ row }) => (
-        <div className="flex justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            disabled={row.original.delivery_status === 'delivered' || (confirmMutation.isPending && confirmModal.invoiceId === row.original.id)}
-            className={`h-8 text-[10px] font-bold uppercase tracking-wider transition-all ${
-              row.original.delivery_status === 'delivered' 
-                ? "border-emerald-500/20 text-emerald-500/50 bg-emerald-500/5 cursor-not-allowed" 
-                : "border-emerald-500/30 text-emerald-600 hover:bg-emerald-500 hover:text-white"
-            }`}
-            onClick={() => setConfirmModal({ open: true, invoiceId: row.original.id, status: 'accepted' })}
-          >
-            {row.original.delivery_status === 'delivered' ? 'Delivery Confirmed' : (confirmMutation.isPending && confirmModal.invoiceId === row.original.id ? '...' : 'Confirm Delivery')}
-          </Button>
-          <DownloadButton type="invoice" id={row.original.id} number={row.original.invoice_number} mode="view" variant="ghost" size="icon" />
-          <DownloadButton type="invoice" id={row.original.id} number={row.original.invoice_number} mode="download" variant="ghost" size="icon" />
-        </div>
-      ),
+      cell: ({ row }) => {
+        const delivery = row.original.linked_delivery;
+        const isDispatched = delivery?.status === 'delivered';
+        const isConfirmed = delivery?.customer_confirmation === 'accepted';
+        const canConfirm = isDispatched && !isConfirmed;
+        return (
+          <div className="flex justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!canConfirm || (confirmMutation.isPending && confirmModal.invoiceId === row.original.id)}
+              className={`h-8 text-[10px] font-bold uppercase tracking-wider transition-all ${
+                canConfirm
+                  ? "border-emerald-500/30 text-emerald-600 hover:bg-emerald-500 hover:text-white"
+                  : "border-emerald-500/20 text-emerald-500/50 bg-emerald-500/5 cursor-not-allowed"
+              }`}
+              onClick={() => setConfirmModal({ open: true, invoiceId: row.original.id, status: 'accepted' })}
+            >
+              {isConfirmed ? 'Delivery Confirmed' : !isDispatched ? 'Awaiting Delivery' : (confirmMutation.isPending && confirmModal.invoiceId === row.original.id ? '...' : 'Confirm Delivery')}
+            </Button>
+            <DownloadButton type="invoice" id={row.original.id} number={row.original.invoice_number} mode="view" variant="ghost" size="icon" />
+            <DownloadButton type="invoice" id={row.original.id} number={row.original.invoice_number} mode="download" variant="ghost" size="icon" />
+          </div>
+        );
+      },
     },
   ];
 
@@ -166,9 +187,9 @@ export const CustomerInvoices = () => {
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="bg-admin-surface border border-admin-border rounded-lg p-3 shadow-sm">
-        <div className="relative max-w-sm">
+      {/* Search & Filters */}
+      <div className="bg-admin-surface border border-admin-border rounded-lg p-3 flex flex-wrap items-center gap-2 shadow-sm">
+        <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-admin-text-muted" size={14} />
           <Input
             placeholder="Search by invoice number…"
@@ -176,6 +197,20 @@ export const CustomerInvoices = () => {
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="pl-9 h-10 bg-admin-bg border-admin-border text-sm rounded-lg focus:ring-emerald-500/20"
           />
+        </div>
+        <div className="flex items-center gap-2">
+          <Filter size={13} className="text-admin-text-muted" />
+          <Select value={status} onValueChange={(v) => { setStatus(v); setPage(1); }}>
+            <SelectTrigger className="h-10 w-40 bg-admin-bg border-admin-border text-xs rounded-lg font-medium">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent className="bg-admin-surface border-admin-border">
+              <SelectItem value="all">All Statuses</SelectItem>
+              {INVOICE_STATUSES.map((s) => (
+                <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -187,74 +222,40 @@ export const CustomerInvoices = () => {
             <p className="text-xs font-bold text-admin-text-muted uppercase tracking-widest">Fetching Invoices...</p>
           </div>
         ) : invoicesData?.data && invoicesData.data.length > 0 ? (
-          <>
-            <DataTable 
-              columns={columns} 
-              data={invoicesData.data} 
-              hidePagination={true}
-              renderRowDetails={(inv) => (
-                <div className="p-4 bg-admin-bg/50 rounded-lg m-2 border border-admin-border space-y-4">
-                   <div className="flex justify-between items-center">
-                     <h4 className="text-[10px] font-bold text-admin-text-muted uppercase tracking-widest">Invoice Line Items</h4>
-                     {inv.delivery_confirmed_at && (
-                       <p className="text-[10px] font-bold text-emerald-500 uppercase flex items-center gap-1">
-                         <CheckCircle2 size={10} /> Confirmed on {new Date(inv.delivery_confirmed_at).toLocaleString()}
-                       </p>
-                     )}
-                   </div>
-                  <div className="space-y-2">
-                    {inv.items?.map((item, idx) => (
-                      <div key={idx} className="flex justify-between items-center text-sm p-2 bg-admin-surface rounded border border-admin-border">
-                        <span className="text-admin-text-primary font-medium">{item.product_name || item.description}</span>
-                        <div className="flex items-center gap-6">
-                           <span className="text-xs text-admin-text-muted">Qty: {item.quantity}</span>
-                           <span className="text-xs font-bold text-admin-text-primary">{Number(item.total).toLocaleString()} AED</span>
-                        </div>
+          <DataTable
+            columns={columns}
+            data={invoicesData.data}
+            hidePagination={true}
+            renderRowDetails={(inv) => (
+              <div className="p-4 bg-admin-bg/50 rounded-lg m-2 border border-admin-border space-y-4">
+                 <div className="flex justify-between items-center">
+                   <h4 className="text-[10px] font-bold text-admin-text-muted uppercase tracking-widest">Invoice Line Items</h4>
+                   {inv.linked_delivery?.customer_confirmed_at && (
+                     <p className="text-[10px] font-bold text-emerald-500 uppercase flex items-center gap-1">
+                       <CheckCircle2 size={10} /> Confirmed on {new Date(inv.linked_delivery.customer_confirmed_at).toLocaleString()}
+                     </p>
+                   )}
+                 </div>
+                <div className="space-y-2">
+                  {inv.items?.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center text-sm p-2 bg-admin-surface rounded border border-admin-border">
+                      <span className="text-admin-text-primary font-medium">{item.product_name || item.description}</span>
+                      <div className="flex items-center gap-6">
+                         <span className="text-xs text-admin-text-muted">Qty: {item.quantity}</span>
+                         <span className="text-xs font-bold text-admin-text-primary">{Number(item.total).toLocaleString()} AED</span>
                       </div>
-                    ))}
-                  </div>
-                  {inv.delivery_notes && (
-                    <div className="mt-2 p-3 bg-admin-surface rounded border border-admin-border">
-                       <p className="text-[9px] font-bold text-admin-text-muted uppercase mb-1">Customer Delivery Notes</p>
-                       <p className="text-xs text-admin-text-primary italic">"{inv.delivery_notes}"</p>
                     </div>
-                  )}
+                  ))}
                 </div>
-              )}
-            />
-            
-            {/* Pagination Control */}
-            <div className="flex items-center justify-between px-6 py-4 border-t border-admin-border bg-admin-surface">
-              <p className="text-[10px] text-admin-text-muted font-bold uppercase tracking-widest">
-                {invoicesData.total} Invoices Total
-              </p>
-              <div className="flex items-center gap-3">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setPage(p => Math.max(1, p - 1))} 
-                  disabled={page === 1} 
-                  className="h-9 px-4 text-xs font-bold border-admin-border text-admin-text-secondary hover:bg-admin-bg"
-                >
-                  Previous
-                </Button>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-admin-bg rounded-md border border-admin-border">
-                  <span className="text-xs font-bold text-admin-text-primary">{page}</span>
-                  <span className="text-[10px] text-admin-text-muted font-bold uppercase">/</span>
-                  <span className="text-xs font-bold text-admin-text-muted">{invoicesData.last_page}</span>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setPage(p => p + 1)} 
-                  disabled={page >= invoicesData.last_page} 
-                  className="h-9 px-4 text-xs font-bold border-admin-border text-admin-text-secondary hover:bg-admin-bg"
-                >
-                  Next
-                </Button>
+                {inv.linked_delivery?.customer_notes && (
+                  <div className="mt-2 p-3 bg-admin-surface rounded border border-admin-border">
+                     <p className="text-[9px] font-bold text-admin-text-muted uppercase mb-1">Customer Delivery Notes</p>
+                     <p className="text-xs text-admin-text-primary italic">"{inv.linked_delivery.customer_notes}"</p>
+                  </div>
+                )}
               </div>
-            </div>
-          </>
+            )}
+          />
         ) : (
           <div className="flex flex-col items-center justify-center p-20 text-center">
             <div className="w-16 h-16 bg-admin-bg rounded-full flex items-center justify-center mb-4 border border-admin-border">
@@ -267,6 +268,40 @@ export const CustomerInvoices = () => {
           </div>
         )}
       </div>
+
+      {/* Pagination Control */}
+      {!isLoading && invoicesData?.data && invoicesData.data.length > 0 && (
+        <div className="sticky bottom-0 z-10 flex items-center justify-between px-6 py-4 border-t border-admin-border bg-admin-surface/95 backdrop-blur-sm rounded-lg shadow-sm">
+          <p className="text-[10px] text-admin-text-muted font-bold uppercase tracking-widest">
+            {invoicesData.total} Invoices Total
+          </p>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="h-9 px-4 text-xs font-bold border-admin-border text-admin-text-secondary hover:bg-admin-bg"
+            >
+              Previous
+            </Button>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-admin-bg rounded-md border border-admin-border">
+              <span className="text-xs font-bold text-admin-text-primary">{page}</span>
+              <span className="text-[10px] text-admin-text-muted font-bold uppercase">/</span>
+              <span className="text-xs font-bold text-admin-text-muted">{invoicesData.last_page}</span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => p + 1)}
+              disabled={page >= invoicesData.last_page}
+              className="h-9 px-4 text-xs font-bold border-admin-border text-admin-text-secondary hover:bg-admin-bg"
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Confirmation Dialog */}
       <Dialog open={confirmModal.open} onOpenChange={(v) => !v && setConfirmModal({ ...confirmModal, open: false })}>

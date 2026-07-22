@@ -142,7 +142,7 @@ export const Invoices = () => {
         icon={<Receipt size={20} />}
         columns={columns}
         onRowClick={(row) => {
-          if (row.delivery_status === 'delivered' && admin?.role !== 'admin') {
+          if (row.linked_delivery?.status === 'delivered' && admin?.role !== 'admin') {
             toast.error('Invoice cannot be edited after delivery confirmation.');
             return;
           }

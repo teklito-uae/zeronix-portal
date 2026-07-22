@@ -37,7 +37,7 @@ function pushRecent(label: string, href: string) {
 // ── Static nav ─────────────────────────────────────────────────────────────────
 const getNavItems = (): ResultItem[] => [
   { id: 'nav-dash',  label: 'Dashboard',        href: `${getBasePath()}/dashboard`,        icon: <LayoutDashboard size={14} />, group: 'Navigation' },
-  { id: 'nav-cust',  label: 'Customers',         href: `${getBasePath()}/customers`,         icon: <Users size={14} />,           group: 'Navigation' },
+  { id: 'nav-comp',  label: 'Companies',         href: `${getBasePath()}/companies`,         icon: <Users size={14} />,           group: 'Navigation' },
   { id: 'nav-supp',  label: 'Suppliers',          href: `${getBasePath()}/suppliers`,          icon: <Truck size={14} />,           group: 'Navigation' },
   { id: 'nav-prod',  label: 'Products',           href: `${getBasePath()}/products`,           icon: <Package size={14} />,         group: 'Navigation' },
   { id: 'nav-enq',   label: 'Enquiries',          href: `${getBasePath()}/enquiries`,          icon: <MessageSquare size={14} />,   group: 'Navigation' },
@@ -99,7 +99,7 @@ export const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
       if (customers.status === 'fulfilled') {
         (customers.value.data.data ?? customers.value.data ?? []).forEach((c: any) => items.push({
           id: `c-${c.id}`, label: c.name, sublabel: c.company || c.email,
-          href: `${getBasePath()}/customers/${c.id}`, icon: <Users size={14} />, group: 'Customers',
+          href: `${getBasePath()}/companies/${c.id}`, icon: <Users size={14} />, group: 'Companies',
         }));
       }
       if (suppliers.status === 'fulfilled') {

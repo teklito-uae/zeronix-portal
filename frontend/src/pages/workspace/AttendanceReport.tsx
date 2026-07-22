@@ -5,7 +5,7 @@ import api from '@/lib/axios';
 import type { User } from '@/types';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import { PhoneFlag } from '@/components/shared/PhoneFlag';
-import { Clock, Calendar, Search, User as UserIcon, RefreshCw, Download, X } from 'lucide-react';
+import { Clock, Calendar, Search, User as UserIcon, RefreshCw, Download, X, Activity } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -120,6 +120,7 @@ export const AttendanceReport = () => {
 
   // Filter States
   const [userIdFilter, setUserIdFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -309,6 +310,7 @@ export const AttendanceReport = () => {
   // We feed custom query parameters to ResourceListingPage
   const extraParams = {
     user_id: userIdFilter,
+    status: statusFilter,
     start_date: startDate,
     end_date: endDate
   };
@@ -359,6 +361,19 @@ export const AttendanceReport = () => {
                   {u.name} ({u.role})
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+
+          {/* Status Filter */}
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="flex-shrink-0 h-[34px] md:h-[32px] w-[40px] md:w-40 bg-brand-white border border-brand-border text-brand-primary rounded-lg text-xs font-bold shadow-sm justify-center md:justify-between px-0 md:px-3">
+              <span className="hidden md:block truncate text-left"><SelectValue placeholder="All Status" /></span>
+              <span className="md:hidden flex items-center justify-center"><Activity size={16} className="text-brand-subtle" /></span>
+            </SelectTrigger>
+            <SelectContent className="bg-brand-white border-brand-border rounded-xl">
+              <SelectItem value="all" className="font-bold">All Status</SelectItem>
+              <SelectItem value="active" className="font-bold">On Duty</SelectItem>
+              <SelectItem value="completed" className="font-bold">Completed</SelectItem>
             </SelectContent>
           </Select>
 

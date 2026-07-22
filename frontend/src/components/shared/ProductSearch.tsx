@@ -22,9 +22,12 @@ interface ProductSearchProps {
   selectedProductId?: number;
   onSelect: (product: any) => void;
   className?: string;
+  size?: 'default' | 'cell';
+  disabled?: boolean;
+  placeholder?: string;
 }
 
-export const ProductSearch = ({ products, selectedProductId, onSelect, className }: ProductSearchProps) => {
+export const ProductSearch = ({ products, selectedProductId, onSelect, className, size = 'default', disabled, placeholder }: ProductSearchProps) => {
   const [open, setOpen] = React.useState(false);
   const selectedProduct = products.find((p) => p.id === selectedProductId);
 
@@ -32,15 +35,22 @@ export const ProductSearch = ({ products, selectedProductId, onSelect, className
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="outline"
+          variant={size === 'cell' ? 'ghost' : 'outline'}
           role="combobox"
+          disabled={disabled}
           aria-expanded={open}
-          className={cn("w-full justify-between h-auto min-h-[36px] py-1.5 bg-admin-bg border-admin-border text-sm text-left rounded-md", className)}
+          className={cn(
+            "w-full justify-between text-sm text-left",
+            size === 'cell'
+              ? "h-auto min-h-[28px] py-1 px-1.5 bg-transparent border-0 rounded font-normal hover:bg-admin-surface-hover"
+              : "h-auto min-h-[36px] py-1.5 bg-admin-bg border-admin-border rounded-md",
+            className
+          )}
         >
           <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
-            <Package className={cn("shrink-0", selectedProduct ? "text-zeronix-blue" : "text-admin-text-muted")} size={14} />
+            <Package className={cn("shrink-0", selectedProduct ? "text-zeronix-blue" : "text-admin-text-muted")} size={size === 'cell' ? 12 : 14} />
             <span className="flex-1 whitespace-normal break-words text-sm">
-              {selectedProduct ? selectedProduct.name : "Search products…"}
+              {selectedProduct ? selectedProduct.name : (placeholder || "Search products…")}
             </span>
           </div>
           <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" />

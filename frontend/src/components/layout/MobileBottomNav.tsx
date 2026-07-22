@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { getBasePath } from '@/hooks/useBasePath';
 
 import { Separator } from '@/components/ui/separator';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
   LayoutDashboard,
   Users,
@@ -16,7 +17,6 @@ import {
   Settings,
   Activity,
   Menu,
-  X,
   ChevronRight,
   Clock,
   ShoppingCart,
@@ -25,6 +25,7 @@ import {
   ClipboardList,
   PackageCheck,
   Megaphone,
+  Handshake,
 } from 'lucide-react';
 
 interface NavItem {
@@ -40,10 +41,12 @@ interface NavGroup {
   items: NavItem[];
 }
 
-// Primary bottom tabs — the 4 most used + Menu hamburger
+// Primary bottom tabs — the 4 most used + Menu hamburger. Leads sits here
+// (not Enquiries) since it's the true top-of-funnel entry point; Enquiries
+// remains one tap away in the CRM drawer group.
 const getAdminPrimaryTabs = (basePath: string) => [
   { id: 'dashboard', label: 'Home', icon: LayoutDashboard, path: `${basePath}/dashboard` },
-  { id: 'enquiries', label: 'Enquiries', icon: MessageSquareText, path: `${basePath}/enquiries` },
+  { id: 'leads', label: 'Leads', icon: Users, path: `${basePath}/leads` },
   { id: 'quotes', label: 'Quotes', icon: FileText, path: `${basePath}/quotes` },
   { id: 'invoices', label: 'Invoices', icon: Receipt, path: `${basePath}/invoices` },
 ];
@@ -66,30 +69,35 @@ const getAdminDrawerGroups = (basePath: string): NavGroup[] => [
   {
     label: 'CRM',
     items: [
-      { id: 'crm-dashboard', label: 'CRM Dashboard', icon: BarChart3, path: `${basePath}/crm-dashboard` },
       { id: 'leads', label: 'Leads', icon: Users, path: `${basePath}/leads` },
-      { id: 'customers', label: 'Customers', icon: Users, path: `${basePath}/customers` },
+      { id: 'companies', label: 'Companies', icon: Users, path: `${basePath}/companies` },
       { id: 'enquiries', label: 'Enquiries', icon: MessageSquareText, path: `${basePath}/enquiries` },
+      { id: 'deals', label: 'Deals', icon: Handshake, path: `${basePath}/deals` },
     ],
   },
   {
-    label: 'Management',
-    items: [
-      { id: 'suppliers', label: 'Suppliers', icon: Truck, path: `${basePath}/suppliers` },
-      { id: 'products', label: 'Products', icon: Package, path: `${basePath}/products` },
-      { id: 'users', label: 'Team', icon: Users, path: `${basePath}/users`, adminOnly: true },
-    ],
-  },
-  {
-    label: 'Operations',
+    label: 'Sales',
     items: [
       { id: 'quotes', label: 'Quotes', icon: FileText, path: `${basePath}/quotes` },
       { id: 'sales-orders', label: 'Sales Orders', icon: ClipboardList, path: `${basePath}/sales-orders` },
       { id: 'deliveries', label: 'Deliveries', icon: PackageCheck, path: `${basePath}/deliveries` },
       { id: 'invoices', label: 'Invoices', icon: Receipt, path: `${basePath}/invoices` },
       { id: 'receipts', label: 'Payment Receipts', icon: Receipt, path: `${basePath}/payment-receipts` },
+    ],
+  },
+  {
+    label: 'Purchasing',
+    items: [
+      { id: 'suppliers', label: 'Suppliers', icon: Truck, path: `${basePath}/suppliers` },
       { id: 'purchases', label: 'Purchases', icon: ShoppingCart, path: `${basePath}/purchases` },
       { id: 'expenses', label: 'Expenses', icon: Wallet, path: `${basePath}/expenses` },
+    ],
+  },
+  {
+    label: 'Management',
+    items: [
+      { id: 'products', label: 'Products', icon: Package, path: `${basePath}/products` },
+      { id: 'users', label: 'Team', icon: Users, path: `${basePath}/users`, adminOnly: true },
     ],
   },
   {
@@ -169,8 +177,19 @@ export const MobileBottomNav = ({ isVisible = true }: { isVisible?: boolean }) =
   const companySlug = isCustomer && parts.length > 2 ? parts[2] : 'company';
 
   const basePath = getBasePath();
-  const primaryTabs = isCustomer ? getCustomerPrimaryTabs(companySlug) : getAdminPrimaryTabs(basePath);
+  const rawPrimaryTabs = isCustomer ? getCustomerPrimaryTabs(companySlug) : getAdminPrimaryTabs(basePath);
   const drawerGroups = isCustomer ? getCustomerDrawerGroups(companySlug) : getAdminDrawerGroups(basePath);
+
+  // Same gating rule as the drawer below — a staff member without a module's
+  // permission shouldn't see it as a primary tab either (it used to be
+  // ungated here, unlike everywhere else in the app).
+  const canAccess = (id: string) => {
+    if (isCustomer) return true;
+    if (adminUser?.role === 'admin') return true;
+    if (id === 'dashboard') return true;
+    return adminUser?.permissions?.includes(id);
+  };
+  const primaryTabs = rawPrimaryTabs.filter(tab => canAccess(tab.id));
 
   // Filter admin-only items based on role & permissions
   const filteredGroups = isCustomer ? drawerGroups : drawerGroups.map(group => ({
@@ -235,74 +254,63 @@ export const MobileBottomNav = ({ isVisible = true }: { isVisible?: boolean }) =
         </div>
       </nav>
 
-      {/* Drawer Overlay */}
-      {drawerOpen && (
-        <div
-          className="md:hidden fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm transition-opacity duration-200"
-          onClick={() => setDrawerOpen(false)}
-        />
-      )}
-
       {/* Navigation Drawer — slides from bottom */}
-      <div className={cn(
-        "md:hidden fixed bottom-0 left-0 right-0 z-[70] bg-brand-white rounded-t-2xl border-t border-brand-border transition-transform duration-300 ease-out flex flex-col",
-        drawerOpen ? "translate-y-0" : "translate-y-full"
-      )} style={{ maxHeight: '85dvh' }}>
-        {/* Header Section (Fixed) */}
-        <div className="shrink-0">
-          <div className="flex justify-center pt-3 pb-1">
-            <div className="w-10 h-1 bg-brand-border rounded-full" />
-          </div>
-          <div className="flex items-center justify-between px-5 pb-3">
-            <h3 className="text-base font-bold text-brand-primary">Navigation</h3>
-            <button
-              onClick={() => setDrawerOpen(false)}
-              className="h-8 w-8 flex items-center justify-center rounded-lg text-brand-subtle hover:bg-brand-surface hover:text-brand-primary transition-colors"
-            >
-              <X size={18} />
-            </button>
-          </div>
-          <Separator className="bg-brand-border" />
-        </div>
+      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
+        <SheetContent
+          side="bottom"
+          className="md:hidden rounded-t-2xl border-t border-brand-border p-0 flex flex-col gap-0"
+          style={{ maxHeight: '85dvh' }}
+        >
+          {/* Header Section (Fixed) */}
+          <SheetHeader className="shrink-0 gap-0 space-y-0">
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-brand-border rounded-full" />
+            </div>
+            <div className="px-5 pb-3">
+              <SheetTitle className="text-base font-bold text-brand-primary text-left">Navigation</SheetTitle>
+            </div>
+            <Separator className="bg-brand-border" />
+          </SheetHeader>
 
-        {/* Grouped Navigation (Scrollable) */}
-        <div className="flex-1 overflow-y-auto touch-scroll overscroll-contain scrollbar-green">
-          <div className="p-4 space-y-6 pb-16">
-            {filteredGroups.map((group) => (
-              <div key={group.label}>
-                <p className="px-2 mb-2 text-[11px] font-semibold uppercase tracking-wider text-brand-subtle">
-                  {group.label}
-                </p>
-                <div className="space-y-0.5">
-                  {group.items.map((item) => {
-                    const active = isActive(item.path);
-                    const Icon = item.icon;
-                    return (
-                      <button
-                        key={item.path}
-                        onClick={() => {
-                          navigate(item.path);
-                          setDrawerOpen(false);
-                        }}
-                        className={cn(
-                          'w-full flex items-center gap-3 h-12 px-3 rounded-xl transition-all duration-150',
-                          active
-                            ? 'bg-brand-accent text-white shadow-sm'
-                            : 'text-brand-secondary hover:bg-brand-surface'
-                        )}
-                      >
-                        <Icon size={20} />
-                        <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
-                        <ChevronRight size={14} className={active ? 'text-white/60' : 'text-brand-subtle/50'} />
-                      </button>
-                    );
-                  })}
+          {/* Grouped Navigation (Scrollable) */}
+          <div className="flex-1 overflow-y-auto touch-scroll overscroll-contain scrollbar-green">
+            <div className="flex flex-col gap-6 p-4 pb-16">
+              {filteredGroups.map((group) => (
+                <div key={group.label}>
+                  <p className="px-2 mb-2 text-[11px] font-semibold uppercase tracking-wider text-brand-subtle">
+                    {group.label}
+                  </p>
+                  <div className="flex flex-col gap-0.5">
+                    {group.items.map((item) => {
+                      const active = isActive(item.path);
+                      const Icon = item.icon;
+                      return (
+                        <button
+                          key={item.path}
+                          onClick={() => {
+                            navigate(item.path);
+                            setDrawerOpen(false);
+                          }}
+                          className={cn(
+                            'w-full flex items-center gap-3 h-12 px-3 rounded-xl transition-all duration-150',
+                            active
+                              ? 'bg-brand-accent text-white shadow-sm'
+                              : 'text-brand-secondary hover:bg-brand-surface'
+                          )}
+                        >
+                          <Icon size={20} />
+                          <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
+                          <ChevronRight size={14} className={active ? 'text-white/60' : 'text-brand-subtle/50'} />
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </div>
+        </SheetContent>
+      </Sheet>
     </>
   );
 };

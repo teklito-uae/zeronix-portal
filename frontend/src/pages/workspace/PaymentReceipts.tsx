@@ -115,6 +115,17 @@ export const PaymentReceipts = () => {
       icon={<Receipt size={20} />}
       columns={columns}
       searchPlaceholder="Search by receipt ID, customer or invoice ref..."
+      filters={[
+        {
+          name: 'payment_method',
+          label: 'Payment Method',
+          placeholder: 'Filter by method',
+          options: [
+            { label: 'Cash', value: 'cash' },
+            { label: 'Bank', value: 'bank' },
+          ],
+        },
+      ]}
     />
   );
 };

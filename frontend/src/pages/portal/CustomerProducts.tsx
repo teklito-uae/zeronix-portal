@@ -9,7 +9,7 @@ import { ShoppingCart, Search, Loader2, Plus, AlertCircle, Filter } from 'lucide
 import { useCartStore } from '@/store/useCartStore';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
@@ -217,7 +217,7 @@ export const CustomerProducts = () => {
             </div>
 
             {/* Pagination */}
-            <div className="flex items-center justify-between p-4 mt-2">
+            <div className="sticky bottom-0 z-10 flex items-center justify-between p-4 mt-2 bg-admin-bg/95 backdrop-blur-sm border-t border-admin-border">
               <p className="text-[11px] text-admin-text-muted font-bold uppercase tracking-wider">
                 {productsData.total} products available
               </p>
@@ -259,19 +259,21 @@ export const CustomerProducts = () => {
         )}
       </div>
 
-      {/* Manual Enquiry Modal */}
-      <Dialog open={manualModalOpen} onOpenChange={setManualModalOpen}>
-        <DialogContent className="bg-admin-surface border-admin-border sm:max-w-[450px]">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-admin-text-primary flex items-center gap-2">
-              <Plus className="h-5 w-5 text-zeronix-blue" /> Manual Request
-            </DialogTitle>
-            <DialogDescription className="text-xs text-admin-text-secondary">
-              Provide product details and we will source it for you.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
+      {/* Manual Enquiry Sheet */}
+      <Sheet open={manualModalOpen} onOpenChange={setManualModalOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-[450px] bg-admin-surface border-admin-border p-0 flex flex-col gap-0">
+          <div className="p-6 border-b border-admin-border flex-shrink-0">
+            <SheetHeader className="space-y-1 text-left">
+              <SheetTitle className="text-lg font-bold text-admin-text-primary flex items-center gap-2 pr-6">
+                <Plus className="h-5 w-5 text-zeronix-blue" /> Manual Request
+              </SheetTitle>
+              <SheetDescription className="text-xs text-admin-text-secondary">
+                Provide product details and we will source it for you.
+              </SheetDescription>
+            </SheetHeader>
+          </div>
+
+          <div className="flex-1 overflow-y-auto space-y-4 p-6">
             <div className="space-y-1.5">
               <Label className="text-[10px] font-bold uppercase tracking-widest text-admin-text-muted">Description / Part #</Label>
               <Textarea 
@@ -292,12 +294,14 @@ export const CustomerProducts = () => {
             </div>
           </div>
 
-          <DialogFooter className="gap-2">
-            <Button variant="ghost" onClick={() => setManualModalOpen(false)} className="h-9 text-xs border border-admin-border">Cancel</Button>
-            <Button onClick={handleAddManual} className="bg-zeronix-blue text-white h-9 px-6 text-xs font-bold">Add to Enquiry</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <div className="p-6 pt-4 border-t border-admin-border flex-shrink-0">
+            <SheetFooter className="gap-2 sm:justify-end">
+              <Button variant="ghost" onClick={() => setManualModalOpen(false)} className="h-9 text-xs border border-admin-border">Cancel</Button>
+              <Button onClick={handleAddManual} className="bg-zeronix-blue text-white h-9 px-6 text-xs font-bold">Add to Enquiry</Button>
+            </SheetFooter>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

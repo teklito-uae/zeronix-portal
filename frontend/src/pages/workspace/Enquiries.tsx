@@ -14,13 +14,13 @@ import {
 } from '@/components/ui/select';
 
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from '@/components/ui/sheet';
 import { useResourceMutation } from '@/hooks/useApi';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
@@ -39,6 +39,20 @@ import { useThemeStore } from '@/store/useThemeStore';
 
 import { Badge } from '@/components/ui/badge';
 import { ActionGroup } from '@/components/shared/ActionGroup';
+import { KanbanBoard } from '@/components/kanban/KanbanBoard';
+
+// Kanban columns mirror EnquiryController::STATUSES exactly — the backend
+// rejects any other status value, so the board can't offer ad-hoc stages.
+const KANBAN_STAGES: { id: string; label: string; colorClassName: string }[] = [
+  { id: 'new', label: 'New', colorClassName: 'bg-blue-500' },
+  { id: 'assigned', label: 'Assigned', colorClassName: 'bg-indigo-500' },
+  { id: 'in_progress', label: 'In Progress', colorClassName: 'bg-amber-500' },
+  { id: 'quoted', label: 'Quoted', colorClassName: 'bg-purple-500' },
+  { id: 'won', label: 'Won', colorClassName: 'bg-emerald-500' },
+  { id: 'lost', label: 'Lost', colorClassName: 'bg-red-500' },
+  { id: 'closed', label: 'Closed', colorClassName: 'bg-gray-500' },
+  { id: 'cancelled', label: 'Cancelled', colorClassName: 'bg-gray-400' },
+];
 
 /**
  * Enquiries Module
@@ -62,8 +76,6 @@ export const Enquiries = () => {
   const [isNewCustomer, setIsNewCustomer] = useState(false);
   // View mode toggle between table and kanban
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
-  // Dynamic stages for kanban columns
-  const [stages, setStages] = useState<string[]>(['new', 'in_progress', 'quoted', 'won', 'lost', 'closed']);
 
   const [activeTab, setActiveTab] = useState('all');
   const enquiryTabs = [
@@ -277,158 +289,73 @@ export const Enquiries = () => {
     return baseColumns;
   }, [admin?.role, usersList, assignMutation]);
 
-  // ---------- Simple Native Kanban components ----------
-  type KanbanCardProps = { enquiry: Enquiry; onClick: () => void };
-  const KanbanCard = ({ enquiry, onClick }: KanbanCardProps) => {
-    return (
-      <div
-        onClick={onClick}
-        draggable
-        onDragStart={(e) => {
-          e.dataTransfer.setData('text/plain', String(enquiry.id));
-          e.dataTransfer.effectAllowed = 'move';
-          setTimeout(() => {
-            if (e.target && e.target instanceof HTMLElement) {
-              e.target.classList.add('opacity-50');
-            }
-          }, 0);
-        }}
-        onDragEnd={(e) => {
-          if (e.target && e.target instanceof HTMLElement) {
-            e.target.classList.remove('opacity-50');
-          }
-        }}
-        className="p-4 bg-admin-surface rounded-xl border border-admin-border cursor-grab active:cursor-grabbing hover:shadow-lg hover:border-zeronix-blue/30 transition-all flex flex-col gap-2"
-      >
-        <div className="flex justify-between items-start gap-2">
-          <div className="min-w-0 flex-1">
-            <p className="font-bold text-sm text-admin-text-primary leading-tight truncate">
-              {enquiry.customer?.name || enquiry.lead?.name || 'Unknown'}
-            </p>
-            {(enquiry.customer?.company || enquiry.lead?.company) && (
-              <p className="text-[11px] text-brand-subtle flex items-center gap-1 mt-0.5 truncate font-medium">
-                <Building2 size={10} /> {enquiry.customer?.company || enquiry.lead?.company}
-              </p>
-            )}
-          </div>
-          <span className="text-[10px] font-black text-zeronix-blue bg-zeronix-blue/10 px-1.5 py-0.5 rounded shrink-0">
-            #{enquiry.id}
-          </span>
-        </div>
-
-        {enquiry.notes && (
-          <p className="text-[11px] text-brand-secondary line-clamp-2 leading-relaxed" title={enquiry.notes}>
-            {enquiry.notes}
+  // ---------- Kanban card renderer (board itself is the shared KanbanBoard) ----------
+  const renderEnquiryCard = (enquiry: Enquiry) => (
+    <div className="p-4 bg-admin-surface rounded-xl border border-admin-border cursor-grab active:cursor-grabbing hover:shadow-lg hover:border-zeronix-blue/30 transition-all flex flex-col gap-2">
+      <div className="flex justify-between items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="font-bold text-sm text-admin-text-primary leading-tight truncate">
+            {enquiry.customer?.name || enquiry.lead?.name || 'Unknown'}
           </p>
-        )}
+          {(enquiry.customer?.company || enquiry.lead?.company) && (
+            <p className="text-[11px] text-brand-subtle flex items-center gap-1 mt-0.5 truncate font-medium">
+              <Building2 size={10} /> {enquiry.customer?.company || enquiry.lead?.company}
+            </p>
+          )}
+        </div>
+        <span className="text-[10px] font-black text-zeronix-blue bg-zeronix-blue/10 px-1.5 py-0.5 rounded shrink-0">
+          #{enquiry.id}
+        </span>
+      </div>
 
-        <div className="flex justify-between items-end mt-1 pt-2 border-t border-brand-border/30">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <p className="text-[10px] font-medium text-admin-text-muted capitalize mr-1">
-                {enquiry.source}
-              </p>
-              {/* Show dynamic tags if available, otherwise infer from status */}
-              {['quoted', 'won', 'invoiced', 'closed'].includes(enquiry.status) && (
-                <Badge variant="outline" className="text-[9px] px-1 h-4 bg-purple-500/10 text-purple-600 border-purple-500/20">QUOTED</Badge>
-              )}
-              {['won', 'invoiced', 'closed'].includes(enquiry.status) && (
-                <Badge variant="outline" className="text-[9px] px-1 h-4 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">INVOICED</Badge>
-              )}
-            </div>
+      {enquiry.notes && (
+        <p className="text-[11px] text-brand-secondary line-clamp-2 leading-relaxed" title={enquiry.notes}>
+          {enquiry.notes}
+        </p>
+      )}
 
-            {/* Avatars */}
-            {admin?.role !== 'salesman' && enquiry.assigned_users && enquiry.assigned_users.length > 0 && (
-              <div className="flex -space-x-1.5 mt-1">
-                {enquiry.assigned_users.slice(0, 3).map((u: any, i: number) => (
-                  <div key={u.id} className="relative border border-brand-white rounded-full bg-brand-surface shadow-sm" style={{ zIndex: 10 - i }}>
-                    <Avatar size={20} name={u.name} variant="beam" colors={avatarColors} />
-                  </div>
-                ))}
-                {enquiry.assigned_users.length > 3 && (
-                  <div className="relative z-0 h-[20px] w-[20px] rounded-full bg-brand-surface border border-brand-border/50 flex items-center justify-center text-[8px] font-bold text-brand-subtle shadow-sm cursor-default">
-                    +{enquiry.assigned_users.length - 3}
-                  </div>
-                )}
-              </div>
+      <div className="flex justify-between items-end mt-1 pt-2 border-t border-brand-border/30">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="text-[10px] font-medium text-admin-text-muted capitalize mr-1">
+              {enquiry.source}
+            </p>
+            {/* Show dynamic tags if available, otherwise infer from status */}
+            {['quoted', 'won', 'invoiced', 'closed'].includes(enquiry.status) && (
+              <Badge variant="outline" className="text-[9px] px-1 h-4 bg-purple-500/10 text-purple-600 border-purple-500/20">QUOTED</Badge>
+            )}
+            {['won', 'invoiced', 'closed'].includes(enquiry.status) && (
+              <Badge variant="outline" className="text-[9px] px-1 h-4 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">INVOICED</Badge>
             )}
           </div>
-          <StatusBadge status={enquiry.priority} className="scale-[0.8] origin-bottom-right" />
-        </div>
-      </div>
-    );
-  };
 
-  type KanbanBoardProps = {
-    enquiries: Enquiry[];
-    stages: string[];
-    onCardMove: (cardId: number, newStage: string) => void;
-    onCardClick: (cardId: number) => void;
-  };
-  const KanbanBoard = ({ enquiries, stages, onCardMove, onCardClick }: KanbanBoardProps) => {
-    return (
-      <div className="flex overflow-x-auto gap-4 p-2 pb-6 min-h-[500px]">
-        {stages.map((stage) => {
-          const cards = enquiries.filter((e) => e.status === stage);
-          return (
-            <div
-              key={stage}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-                e.currentTarget.classList.add('bg-admin-surface-hover', 'border-zeronix-blue/40');
-              }}
-              onDragLeave={(e) => {
-                e.currentTarget.classList.remove('bg-admin-surface-hover', 'border-zeronix-blue/40');
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                e.currentTarget.classList.remove('bg-admin-surface-hover', 'border-zeronix-blue/40');
-                const cardId = Number(e.dataTransfer.getData('text/plain'));
-                if (cardId && onCardMove) {
-                  onCardMove(cardId, stage);
-                }
-              }}
-              className="w-[320px] flex-shrink-0 flex flex-col bg-admin-bg rounded-2xl p-4 border border-admin-border transition-colors duration-200"
-            >
-              <div className="flex items-center justify-between mb-4 px-1">
-                <h2 className="text-sm font-black capitalize tracking-wider text-admin-text-primary flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${stage === 'new' ? 'bg-blue-500' :
-                      stage === 'in_progress' ? 'bg-amber-500' :
-                        stage === 'quoted' ? 'bg-purple-500' :
-                          stage === 'won' ? 'bg-emerald-500' :
-                            stage === 'lost' ? 'bg-red-500' :
-                              'bg-gray-500'
-                    }`} />
-                  {stage.replace('_', ' ')}
-                </h2>
-                <Badge variant="secondary" className="text-[10px] font-black h-5 px-1.5 bg-admin-surface border-admin-border">
-                  {cards.length}
-                </Badge>
-              </div>
-
-              <div className="flex-1 space-y-3 overflow-y-auto pr-1">
-                {cards.length === 0 && (
-                  <div className="h-24 rounded-xl border border-dashed border-admin-border/50 flex items-center justify-center">
-                    <p className="text-[11px] font-bold text-admin-text-muted italic">Drop here</p>
-                  </div>
-                )}
-                {cards.map((enq) => (
-                  <KanbanCard key={enq.id} enquiry={enq} onClick={() => onCardClick(enq.id)} />
-                ))}
-              </div>
+          {/* Avatars */}
+          {admin?.role !== 'salesman' && enquiry.assigned_users && enquiry.assigned_users.length > 0 && (
+            <div className="flex -space-x-1.5 mt-1">
+              {enquiry.assigned_users.slice(0, 3).map((u: any, i: number) => (
+                <div key={u.id} className="relative border border-brand-white rounded-full bg-brand-surface shadow-sm" style={{ zIndex: 10 - i }}>
+                  <Avatar size={20} name={u.name} variant="beam" colors={avatarColors} />
+                </div>
+              ))}
+              {enquiry.assigned_users.length > 3 && (
+                <div className="relative z-0 h-[20px] w-[20px] rounded-full bg-brand-surface border border-brand-border/50 flex items-center justify-center text-[8px] font-bold text-brand-subtle shadow-sm cursor-default">
+                  +{enquiry.assigned_users.length - 3}
+                </div>
+              )}
             </div>
-          );
-        })}
+          )}
+        </div>
+        <StatusBadge status={enquiry.priority} className="scale-[0.8] origin-bottom-right" />
       </div>
-    );
-  };
+    </div>
+  );
+
   return (
     <>
       <ResourceListingPage<Enquiry>
         resource="enquiries"
         title="Enquiry Hub"
-        subtitle={admin?.role === 'salesman' ? "Process your incoming leads and convert them to quotes." : "Process incoming leads, assign agents, and convert to quotes."}
+        subtitle={admin?.role === 'salesman' ? "Process your incoming enquiries and convert them to quotes." : "Process incoming enquiries, assign agents, and convert to quotes."}
         icon={<MessageSquare size={20} />}
         columns={columns}
         onRowClick={(row) => { setSelectedId(row.id); setSheetOpen(true); }}
@@ -445,6 +372,31 @@ export const Enquiries = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         baseFilters={{ status: activeTab !== 'all' ? activeTab : undefined }}
+        filters={[
+          {
+            name: 'priority',
+            label: 'Priority',
+            placeholder: 'Filter by priority',
+            options: [
+              { label: 'Normal', value: 'normal' },
+              { label: 'High', value: 'high' },
+              { label: 'Urgent', value: 'urgent' },
+            ],
+          },
+          {
+            name: 'source',
+            label: 'Source',
+            placeholder: 'Filter by source',
+            options: [
+              { label: 'Manual', value: 'manual' },
+              { label: 'Website', value: 'website' },
+              { label: 'Email', value: 'email' },
+              { label: 'Referral', value: 'referral' },
+              { label: 'Import', value: 'import' },
+              { label: 'Other', value: 'other' },
+            ],
+          },
+        ]}
         extraActions={
           <div className="flex items-center gap-2">
             <TooltipProvider>
@@ -459,57 +411,51 @@ export const Enquiries = () => {
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            {viewMode === 'kanban' && (
-              <Button variant="secondary" size="sm" onClick={() => {
-                const name = prompt('Enter new stage name');
-                if (name) setStages([...stages, name.trim()]);
-              }} className="h-[34px] px-3 font-medium text-[13px] bg-brand-surface border border-brand-border/50 hover:bg-brand-bg text-brand-primary">
-                Add Stage
-              </Button>
-            )}
           </div>
         }
         customContent={
           viewMode === 'kanban' ? (
             <div className="h-full min-h-[500px]">
-              <KanbanBoard
-                enquiries={enquiries}
-                stages={stages}
-                onCardMove={(cardId, newStage) => {
+              <KanbanBoard<Enquiry>
+                columns={KANBAN_STAGES}
+                items={enquiries}
+                getItemStage={(enquiry) => enquiry.status}
+                onItemMove={(cardId, newStage) => {
                   update.mutate({ id: cardId, data: { status: newStage } });
                 }}
-                onCardClick={(cardId) => { setSelectedId(cardId); setSheetOpen(true); }}
+                onItemClick={(enquiry) => { setSelectedId(enquiry.id); setSheetOpen(true); }}
+                renderCard={renderEnquiryCard}
               />
             </div>
           ) : undefined
         }
       />
 
-      <Dialog open={sheetOpen} onOpenChange={setSheetOpen}>
-        <DialogContent className="sm:max-w-lg bg-brand-white border-brand-border/50 p-0 overflow-hidden shadow-xl rounded-xl">
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-lg bg-brand-white border-brand-border/50 p-0 flex flex-col gap-0">
           {isEnquiryLoading ? (
-            <div className="flex justify-center items-center w-full h-80">
+            <div className="flex justify-center items-center w-full h-full">
               <Spinner size={40} className="text-brand-accent" />
             </div>
           ) : selectedEnquiry && (
-            <div className="flex flex-col h-full max-h-[85vh]">
+            <>
               {/* Premium Glass Header */}
-              <div className="p-5 pb-4 border-b border-brand-border/50 bg-brand-surface sticky top-0 z-20">
-                <DialogHeader>
-                  <div className="flex items-center justify-between mb-2">
+              <div className="p-5 pb-4 border-b border-brand-border/50 bg-brand-surface flex-shrink-0">
+                <SheetHeader className="space-y-0 text-left">
+                  <div className="flex items-center justify-between mb-2 pr-6">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-xl bg-brand-accent-light dark:bg-brand-accent/20 flex items-center justify-center">
                         <MessageSquare size={20} className="text-brand-accent" />
                       </div>
                       <div>
-                        <DialogTitle className="text-[16px] font-semibold text-brand-primary flex items-center gap-2">
+                        <SheetTitle className="text-[16px] font-semibold text-brand-primary flex items-center gap-2">
                           <span className="text-brand-accent">ENQ</span>
                           <span className="opacity-30">/</span>
                           <span>{String(selectedEnquiry.id).padStart(3, '0')}</span>
-                        </DialogTitle>
-                        <DialogDescription className="text-[13px] font-medium text-brand-subtle mt-0.5">
+                        </SheetTitle>
+                        <SheetDescription className="text-[13px] font-medium text-brand-subtle mt-0.5">
                           Lead Management Console
-                        </DialogDescription>
+                        </SheetDescription>
                       </div>
                     </div>
                       <div className="flex items-center gap-2">
@@ -535,7 +481,7 @@ export const Enquiries = () => {
                         <StatusBadge status={selectedEnquiry.status} />
                       </div>
                   </div>
-                </DialogHeader>
+                </SheetHeader>
               </div>
 
               <div className="flex-1 p-5 space-y-6 overflow-y-auto">
@@ -699,37 +645,37 @@ export const Enquiries = () => {
                   </div>
                 </section>
               </div>
-            </div>
+            </>
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
-      {/* Add Enquiry Dialog */}
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="bg-brand-white border-brand-border/50 sm:max-w-lg rounded-2xl shadow-2xl overflow-hidden p-0">
+      {/* Add Enquiry Sheet */}
+      <Sheet open={addOpen} onOpenChange={setAddOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-lg bg-brand-white border-brand-border/50 p-0 flex flex-col gap-0">
           {/* Premium Header */}
-          <div className="bg-brand-surface p-5 border-b border-brand-border/50 relative overflow-hidden">
+          <div className="bg-brand-surface p-5 border-b border-brand-border/50 relative overflow-hidden flex-shrink-0">
             <div className="absolute top-0 right-0 p-4 opacity-10">
               <MessageSquare size={100} />
             </div>
-            <DialogHeader className="relative z-10">
-              <div className="flex items-center gap-3">
+            <SheetHeader className="relative z-10 space-y-0 text-left">
+              <div className="flex items-center gap-3 pr-6">
                 <div className="h-10 w-10 rounded-xl bg-brand-accent-light dark:bg-brand-accent/20 flex items-center justify-center">
                   <Plus size={20} className="text-brand-accent" />
                 </div>
                 <div>
-                  <DialogTitle className="text-[16px] font-bold text-brand-primary">
+                  <SheetTitle className="text-[16px] font-bold text-brand-primary">
                     {isEditing ? 'Edit Lead Details' : 'Register New Lead'}
-                  </DialogTitle>
-                  <DialogDescription className="text-[13px] font-medium text-brand-subtle mt-0.5">
+                  </SheetTitle>
+                  <SheetDescription className="text-[13px] font-medium text-brand-subtle mt-0.5">
                     {isEditing ? 'Update client linkage and core details.' : 'Capture manual enquiries from calls or external channels.'}
-                  </DialogDescription>
+                  </SheetDescription>
                 </div>
               </div>
-            </DialogHeader>
+            </SheetHeader>
           </div>
 
-          <div className="p-5 space-y-6 max-h-[60vh] overflow-y-auto">
+          <div className="flex-1 p-5 space-y-6 overflow-y-auto">
             {/* SECTION 1: CONTACT INFO */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -838,8 +784,8 @@ export const Enquiries = () => {
             </div>
           </div>
 
-          <div className="p-6 pt-2">
-            <DialogFooter className="gap-2">
+          <div className="p-6 pt-2 flex-shrink-0">
+            <SheetFooter className="gap-2 sm:justify-end">
               <Button variant="ghost" onClick={() => setAddOpen(false)} className="rounded-lg text-[13px] font-medium">Cancel</Button>
               <Button
                 onClick={() => {
@@ -853,7 +799,7 @@ export const Enquiries = () => {
                     delete payload.customer_phone;
                     delete payload.customer_company;
                   }
-                  
+
                   const onSuccessCallback = () => {
                     setAddOpen(false);
                     setIsNewCustomer(false);
@@ -873,13 +819,13 @@ export const Enquiries = () => {
                 disabled={create.isPending || update.isPending || (isNewCustomer ? (!addForm.customer_name || !addForm.customer_email) : !addForm.customer_id)}
                 className="flex-1 bg-brand-primary text-brand-white hover:opacity-90 h-[36px] rounded-lg text-[13px] font-medium shadow-sm"
               >
-                {(create.isPending || update.isPending) ? <Spinner size={14} className="mr-2" /> : null} 
+                {(create.isPending || update.isPending) ? <Spinner size={14} className="mr-2" /> : null}
                 {isEditing ? 'Save Changes' : 'Create Lead'}
               </Button>
-            </DialogFooter>
+            </SheetFooter>
           </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </>
   );
 };

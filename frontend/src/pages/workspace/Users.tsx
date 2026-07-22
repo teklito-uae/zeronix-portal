@@ -3,13 +3,13 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -17,7 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   Shield, Mail, Phone, UserCog, CheckCircle2, Lock, Download,
   LayoutDashboard, Users as UsersIcon, MessageSquareText, FileText,
-  Receipt, Package, Truck, Clock, Activity, Banknote, Megaphone
+  Receipt, Package, Truck, Clock, Activity, Banknote, Megaphone,
+  UserCircle2, ClipboardList, PackageCheck, ShoppingCart, Wallet, BarChart3, Handshake
 } from 'lucide-react';
 import { Spinner } from '@/components/shared/Spinner';
 import type { User } from '@/types';
@@ -30,13 +31,21 @@ import { useThemeStore } from '@/store/useThemeStore';
 
 const AVAILABLE_MODULES = [
   { id: 'dashboard', label: 'Dashboard Overview', icon: LayoutDashboard, desc: 'High-level analytics' },
-  { id: 'customers', label: 'Customer Relations', icon: UsersIcon, desc: 'Manage client profiles' },
-  { id: 'enquiries', label: 'Enquiry Hub', icon: MessageSquareText, desc: 'Process leads & messages' },
+  { id: 'leads', label: 'Leads', icon: UserCircle2, desc: 'Track and qualify prospects' },
+  { id: 'companies', label: 'Companies', icon: UsersIcon, desc: 'Manage client company profiles' },
+  { id: 'contacts', label: 'Contacts', icon: UsersIcon, desc: 'Manage contact persons across companies' },
+  { id: 'enquiries', label: 'Enquiry Hub', icon: MessageSquareText, desc: 'Process customer enquiries & RFQs' },
+  { id: 'deals', label: 'Deal Pipeline', icon: Handshake, desc: 'Track sales opportunities to close' },
   { id: 'quotes', label: 'Quotation Engine', icon: FileText, desc: 'Draft and send quotes' },
+  { id: 'sales-orders', label: 'Sales Orders', icon: ClipboardList, desc: 'Confirm orders for fulfilment' },
+  { id: 'deliveries', label: 'Deliveries', icon: PackageCheck, desc: 'Track and complete shipments' },
   { id: 'invoices', label: 'Billing & Invoices', icon: Receipt, desc: 'Manage financial billing' },
   { id: 'receipts', label: 'Payment Receipts', icon: Banknote, desc: 'Track incoming payments' },
   { id: 'products', label: 'Inventory Management', icon: Package, desc: 'Manage product catalog' },
   { id: 'suppliers', label: 'Supplier Network', icon: Truck, desc: 'Manage vendor relationships' },
+  { id: 'purchases', label: 'Purchasing', icon: ShoppingCart, desc: 'Purchase bills from suppliers' },
+  { id: 'expenses', label: 'Expenses', icon: Wallet, desc: 'Log and track business expenses' },
+  { id: 'reports', label: 'Reports', icon: BarChart3, desc: 'P&L, aging, and pipeline reports' },
   { id: 'marketing', label: 'Marketing', icon: Megaphone, desc: 'Email campaigns & audiences' },
   { id: 'attendance', label: 'Attendance', icon: Clock, desc: 'Timesheets & clock-in' },
   { id: 'activities', label: 'Activities Log', icon: Activity, desc: 'System audit trails' },
@@ -207,6 +216,26 @@ export const Users = () => {
         createPath="#"
         onCreateClick={openAdd}
         searchPlaceholder="Search members by name or email..."
+        filters={[
+          {
+            name: 'role',
+            label: 'Access Role',
+            placeholder: 'All Roles',
+            options: [
+              { label: 'Super Admin', value: 'admin' },
+              { label: 'Sales Agent', value: 'salesman' },
+            ],
+          },
+          {
+            name: 'is_active',
+            label: 'Security',
+            placeholder: 'All Statuses',
+            options: [
+              { label: 'Active', value: '1' },
+              { label: 'Restricted', value: '0' },
+            ],
+          },
+        ]}
         extraActions={
           <Button variant="outline" className="h-9 px-4 rounded-lg border-brand-border bg-brand-white hover:bg-brand-surface font-medium text-brand-primary text-[13px]">
             <Download size={14} className="mr-2 opacity-50" />
@@ -215,23 +244,23 @@ export const Users = () => {
         }
       />
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-brand-white border-brand-border/50 sm:max-w-3xl rounded-xl shadow-xl p-0 overflow-hidden">
-          <div className="bg-brand-surface p-6 border-b border-brand-border/50">
-            <DialogHeader>
-              <DialogTitle className="text-[16px] font-semibold text-brand-primary flex items-center gap-3">
+      <Sheet open={dialogOpen} onOpenChange={setDialogOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl bg-brand-white border-brand-border/50 p-0 flex flex-col gap-0">
+          <div className="bg-brand-surface p-6 border-b border-brand-border/50 flex-shrink-0">
+            <SheetHeader className="space-y-0 text-left">
+              <SheetTitle className="text-[16px] font-semibold text-brand-primary flex items-center gap-3 pr-6">
                 <div className="h-10 w-10 rounded-xl bg-brand-accent/10 flex items-center justify-center text-brand-accent">
                   <Shield size={24} />
                 </div>
                 {editId ? 'Modify Access Control' : 'Grant New Access'}
-              </DialogTitle>
-              <DialogDescription className="text-[13px] font-medium text-brand-subtle mt-0.5">
+              </SheetTitle>
+              <SheetDescription className="text-[13px] font-medium text-brand-subtle mt-0.5">
                 Configure user roles, authentication, and module permissions.
-              </DialogDescription>
-            </DialogHeader>
+              </SheetDescription>
+            </SheetHeader>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+          <div className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-2 gap-0">
             {/* Identity Column */}
             <div className="p-6 space-y-5 border-r border-brand-border/50">
               <h4 className="text-[12px] font-semibold text-brand-secondary">Identity & Auth</h4>
@@ -329,7 +358,7 @@ export const Users = () => {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="grid grid-cols-1 gap-3 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
                   {AVAILABLE_MODULES.map(module => {
                     const isChecked = form.permissions?.includes(module.id) ?? false;
                     const Icon = module.icon;
@@ -371,8 +400,8 @@ export const Users = () => {
             </div>
           </div>
 
-          <div className="p-6 pt-2">
-            <DialogFooter className="gap-2">
+          <div className="p-6 pt-2 flex-shrink-0">
+            <SheetFooter className="gap-2 sm:justify-end">
               <Button variant="ghost" onClick={() => setDialogOpen(false)} className="rounded-lg text-[13px] font-medium">Cancel</Button>
               <Button
                 onClick={handleSave}
@@ -382,10 +411,10 @@ export const Users = () => {
                 {(create.isPending || update.isPending) ? <Spinner size={16} className="mr-2" /> : null}
                 {editId ? 'Update Access' : 'Create User'}
               </Button>
-            </DialogFooter>
+            </SheetFooter>
           </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

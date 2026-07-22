@@ -1,39 +1,41 @@
 import { getBasePath } from '@/hooks/useBasePath';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
-} from '@/components/ui/dialog';
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
+} from '@/components/ui/sheet';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
-import { UserPlus, Download, Upload, Search, Building2, MoreHorizontal, ArrowRight, Users, Mail, Phone, User as UserIcon, AlertTriangle } from 'lucide-react';
+import { UserPlus, Download, Upload, Search, MoreHorizontal, ArrowRight, Users, User as UserIcon, AlertTriangle, Tag, UserCircle2, ShieldCheck, Briefcase } from 'lucide-react';
 import { Spinner } from '@/components/shared/Spinner';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
+import { MultiSelectFilter } from '@/components/shared/MultiSelectFilter';
 import Avatar from 'boring-avatars';
 import { ActionGroup } from '@/components/shared/ActionGroup';
 import { LabelBadge } from '@/components/shared/LabelBadge';
 import { LabelSelector } from '@/components/shared/LabelSelector';
 
 import type { Customer, User, CustomerLabel } from '@/types';
-import { PhoneFlag } from '@/components/shared/PhoneFlag';
 import { Switch } from '@/components/ui/switch';
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useThemeStore } from '@/store/useThemeStore';
 import { useResourceList, useResourceList as useLabels, useResourceMutation } from '@/hooks/useApi';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useTopbarActions } from '@/hooks/useTopbarActions';
 import { toast } from 'sonner';
 
 /**
- * Customers Module
+ * Companies Module
  * Refactored to use the standardized State-Driven architecture.
  * Includes: Label support, Import (admin only), CSV Export (admin only)
  */
-export const Customers = () => {
+export const Companies = () => {
   const { theme } = useThemeStore();
   const avatarColors = theme === 'dark'
     ? ['#ff4d6d', '#ff758f', '#ffbe0b', '#fdfcdc', '#48cae4']
@@ -48,10 +50,11 @@ export const Customers = () => {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   // Form States
   const [form, setForm] = useState({
-    name: '', company: '', email: '', phone: '', address: '', trn: '', is_portal_active: true, user_ids: [] as string[],
+    name: '', company: '', email: '', phone: '', address: '', trn: '', industry: '', website: '', description: '', is_portal_active: true, user_ids: [] as string[],
   });
   const [formLabelIds, setFormLabelIds] = useState<number[]>([]);
 
@@ -63,15 +66,34 @@ export const Customers = () => {
   const { data: labelsData } = useLabels<CustomerLabel>('customer-labels', {});
   const allLabels: CustomerLabel[] = (labelsData as any) || [];
 
+  // Distinct industries for the Industry filter
+  const { data: industriesData } = useResourceList<string[]>('customers/industries', {});
+  const industries: string[] = industriesData || [];
+
   // CRUD State Hooks
   const { create, update, remove } = useResourceMutation('customers');
+
+  // Multi-select filter state
+  const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
+  const [selectedOwnerIds, setSelectedOwnerIds] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
+
+  const filterParams = useMemo(() => {
+    const f: Record<string, string> = {};
+    if (selectedLabelIds.length) f.label_id = selectedLabelIds.join(',');
+    if (selectedOwnerIds.length) f.user_id = selectedOwnerIds.join(',');
+    if (selectedStatuses.length) f.is_portal_active = selectedStatuses.join(',');
+    if (selectedIndustries.length) f.industry = selectedIndustries.join(',');
+    return f;
+  }, [selectedLabelIds, selectedOwnerIds, selectedStatuses, selectedIndustries]);
 
   // Handlers
   const openAdd = () => {
     setEditingCustomer(null);
     setFormLabelIds([]);
     setForm({
-      name: '', company: '', email: '', phone: '', address: '', trn: '',
+      name: '', company: '', email: '', phone: '', address: '', trn: '', industry: '', website: '', description: '',
       is_portal_active: true, user_ids: currentUser?.id ? [currentUser.id.toString()] : []
     });
     setDialogOpen(true);
@@ -87,6 +109,9 @@ export const Customers = () => {
       phone: customer.phone || '',
       address: customer.address || '',
       trn: customer.trn || '',
+      industry: customer.industry || '',
+      website: customer.website || '',
+      description: customer.description || '',
       is_portal_active: customer.is_portal_active ?? true,
       user_ids: customer.assigned_users?.map((u: any) => u.id.toString()) || [],
     });
@@ -136,18 +161,11 @@ export const Customers = () => {
 
   const columns: ColumnDef<Customer>[] = [
     {
-      accessorKey: 'customer_code',
-      header: 'ID',
-      cell: ({ row }) => (
-        <span className="font-mono text-[11px] font-bold text-zeronix-blue bg-zeronix-blue/5 px-2 py-0.5 rounded border border-zeronix-blue/10">
-          {row.original.customer_code || '—'}
-        </span>
-      ),
-    },
-    {
       accessorKey: 'name',
-      header: 'Customer Details',
+      header: 'Company',
       cell: ({ row }) => {
+        const primary = row.original.company || row.original.name;
+        const showContactPerson = !!row.original.company;
         return (
           <div className="flex items-center gap-3">
             <Avatar
@@ -157,10 +175,10 @@ export const Customers = () => {
               colors={avatarColors}
             />
             <div className="min-w-0">
-              <p className="text-sm font-bold text-admin-text-primary truncate">{row.original.name}</p>
-              {row.original.company && (
+              <p className="text-sm font-bold text-admin-text-primary truncate">{primary}</p>
+              {showContactPerson && (
                 <p className="text-[11px] text-admin-text-muted flex items-center gap-1 truncate font-medium">
-                  <Building2 size={10} /> {row.original.company}
+                  <UserIcon size={10} /> {row.original.name}
                 </p>
               )}
             </div>
@@ -189,62 +207,8 @@ export const Customers = () => {
       },
     },
     {
-      accessorKey: 'contact',
-      header: 'Contact Info',
-      cell: ({ row }) => (
-        <div className="space-y-1">
-          <p className="text-xs text-admin-text-primary flex items-center gap-1.5 font-medium">
-            <Mail size={12} className="text-admin-text-muted" /> {row.original.email}
-          </p>
-          <PhoneFlag phone={row.original.phone} />
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'location',
-      header: 'Location & TRN',
-      cell: ({ row }) => (
-        <div className="space-y-1.5 max-w-[180px]">
-          <p className="text-xs text-brand-secondary truncate" title={row.original.address || 'No Address Provided'}>
-            {row.original.address || <span className="italic text-brand-subtle">No Address Provided</span>}
-          </p>
-          {row.original.trn && (
-            <span className="inline-flex text-[10px] font-mono text-brand-secondary border border-brand-border/50 bg-brand-surface px-1.5 rounded">
-              TRN: {row.original.trn}
-            </span>
-          )}
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'is_portal_active',
-      header: 'Portal Access',
-      cell: ({ row }) => (
-        <div className="flex items-center">
-          {row.original.is_portal_active ? (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-              ACTIVE
-            </span>
-          ) : (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider bg-admin-bg text-admin-text-muted border border-admin-border">
-              OFFLINE
-            </span>
-          )}
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'created_at',
-      header: 'Registered',
-      cell: ({ row }) => (
-        <span className="text-xs text-brand-subtle font-medium">
-          {row.original.created_at ? new Date(row.original.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
-        </span>
-      ),
-    },
-    {
       accessorKey: 'assignedUser',
-      header: 'Assigned To',
+      header: 'Owner',
       cell: ({ row }) => {
         const users = row.original.assigned_users || [];
         if (users.length === 0) return (
@@ -292,13 +256,36 @@ export const Customers = () => {
       },
     },
     {
-      accessorKey: 'quotes_count',
-      header: 'Activity',
+      accessorKey: 'contacts_count',
+      header: 'Contacts',
       cell: ({ row }) => (
-        <div className="text-xs font-bold text-admin-text-secondary">
-          {row.original.quotes_count || 0} <span className="text-[10px] text-admin-text-muted font-medium ml-0.5">Quotes</span>
+        <div className="text-xs font-bold text-admin-text-secondary flex items-center gap-1">
+          <Users size={11} className="text-admin-text-muted" />
+          {row.original.contacts_count || 0} <span className="text-[10px] text-admin-text-muted font-medium ml-0.5">Contacts</span>
         </div>
       ),
+    },
+    {
+      accessorKey: 'deals_count',
+      header: 'Deals',
+      cell: ({ row }) => (
+        <div className="text-xs font-bold text-admin-text-secondary">
+          {row.original.deals_count || 0} <span className="text-[10px] text-admin-text-muted font-medium ml-0.5">Deals</span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'total_invoiced',
+      header: 'Revenue',
+      cell: ({ row }) => {
+        const revenue = row.original.total_invoiced || 0;
+        if (revenue <= 0) return <span className="text-[11px] text-brand-subtle italic">—</span>;
+        return (
+          <p className="font-mono text-[13px] font-semibold text-admin-text-primary">
+            {revenue.toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-[10px] text-admin-text-muted">AED</span>
+          </p>
+        );
+      },
     },
     {
       accessorKey: 'outstanding_balance',
@@ -322,62 +309,110 @@ export const Customers = () => {
       },
     },
     {
+      accessorKey: 'is_portal_active',
+      header: 'Status',
+      cell: ({ row }) => (
+        <div className="flex items-center">
+          {row.original.is_portal_active ? (
+            <Badge variant="success">ACTIVE</Badge>
+          ) : (
+            <Badge variant="secondary">OFFLINE</Badge>
+          )}
+        </div>
+      ),
+    },
+    {
       id: 'actions',
       header: '',
       cell: ({ row }) => (
         <ActionGroup
           onEdit={() => openEdit(row.original)}
           onDelete={() => { setDeletingId(row.original.id); setDeleteOpen(true); }}
-          onView={() => navigate(`${getBasePath()}/customers/${row.original.id}`)}
+          onView={() => navigate(`${getBasePath()}/companies/${row.original.id}`)}
         />
       ),
     },
   ];
 
-  // Label filter options for ResourceListingPage
-  const labelFilters = allLabels.length > 0 ? [{
-    name: 'label_id',
-    label: 'Label',
-    placeholder: 'Filter by label',
-    options: allLabels.map((l: CustomerLabel) => ({ label: l.name, value: String(l.id) })),
-  }] : [];
+  // Page actions render in the shared Topbar (top-right), not in a page-local header.
+  useTopbarActions(
+    <>
+      {isAdmin && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExportCsv}
+          className="text-admin-text-secondary hover:text-admin-text-primary"
+        >
+          <Download size={14} /> Export CSV
+        </Button>
+      )}
+      {isAdmin && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate(`${getBasePath()}/companies/import`)}
+          className="text-zeronix-blue border-zeronix-blue/30 hover:bg-zeronix-blue/5"
+        >
+          <Upload size={14} /> Import
+        </Button>
+      )}
+      <Button size="sm" onClick={openAdd} className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover">
+        <UserPlus size={14} /> Add Company
+      </Button>
+    </>
+  );
+
+  // Faceted filter toolbar (Tags, Owner, Status, Industry) rendered via ResourceListingPage's customFilters slot
+  const customFilters = (
+    <div className="flex flex-wrap items-center gap-2">
+      <MultiSelectFilter
+        title="Tags"
+        icon={<Tag />}
+        options={allLabels.map((l: CustomerLabel) => ({ label: l.name, value: String(l.id) }))}
+        selected={selectedLabelIds}
+        onChange={setSelectedLabelIds}
+      />
+      <MultiSelectFilter
+        title="Owner"
+        icon={<UserCircle2 />}
+        options={staffMembers.map((s: any) => ({ label: s.name, value: String(s.id) }))}
+        selected={selectedOwnerIds}
+        onChange={setSelectedOwnerIds}
+      />
+      <MultiSelectFilter
+        title="Status"
+        icon={<ShieldCheck />}
+        options={[{ label: 'Active', value: 'active' }, { label: 'Inactive', value: 'inactive' }]}
+        selected={selectedStatuses}
+        onChange={setSelectedStatuses}
+      />
+      <MultiSelectFilter
+        title="Industry"
+        icon={<Briefcase />}
+        options={industries.map((i: string) => ({ label: i, value: i }))}
+        selected={selectedIndustries}
+        onChange={setSelectedIndustries}
+      />
+    </div>
+  );
 
   return (
-    <div className="space-y-4">
+    <div className="h-full flex flex-col">
       <ResourceListingPage<Customer>
         resource="customers"
-        title="Client Directory"
-        subtitle="Manage customer profiles, portal access, and trade history."
+        title="Company Directory"
+        subtitle="Manage company profiles, portal access, and trade history."
         icon={<Users size={20} />}
         columns={columns}
-        onRowClick={(row) => navigate(`${getBasePath()}/customers/${row.id}`)}
-        createLabel="Add Customer"
-        createPath="#"
-        onCreateClick={openAdd}
+        onRowClick={(row) => navigate(`${getBasePath()}/companies/${row.id}`)}
         searchPlaceholder="Search by name, company, email, phone..."
-        filters={labelFilters}
-        extraActions={
-          <div className="flex gap-2">
-            {isAdmin && (
-              <Button
-                variant="outline"
-                onClick={handleExportCsv}
-                className="h-10 px-4 rounded-xl border-admin-border text-admin-text-secondary hover:text-admin-text-primary text-sm font-medium"
-              >
-                <Download size={15} className="mr-1.5" /> Export CSV
-              </Button>
-            )}
-            {isAdmin && (
-              <Button
-                variant="outline"
-                onClick={() => navigate(`${getBasePath()}/customers/import`)}
-                className="h-10 px-4 rounded-xl border-zeronix-blue/30 text-zeronix-blue hover:bg-zeronix-blue/5 text-sm font-medium"
-              >
-                <Upload size={15} className="mr-1.5" /> Import
-              </Button>
-            )}
-          </div>
-        }
+        filters={[]}
+        customFilters={customFilters}
+        baseFilters={filterParams}
+        enableRowSelection
+        selectedIds={selectedIds}
+        setSelectedIds={setSelectedIds}
       />
 
       {/* Floating Add Button (Mobile) */}
@@ -387,19 +422,21 @@ export const Customers = () => {
         </Button>
       </div>
 
-      {/* Add / Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-admin-surface border-admin-border sm:max-w-xl rounded-2xl shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-admin-text-primary">
-              {editingCustomer ? 'Update Client Profile' : 'Register New Client'}
-            </DialogTitle>
-            <DialogDescription className="text-sm text-admin-text-secondary">
-              Configure contact information and portal access settings.
-            </DialogDescription>
-          </DialogHeader>
+      {/* Add / Edit Sheet */}
+      <Sheet open={dialogOpen} onOpenChange={setDialogOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-xl bg-admin-surface border-admin-border p-0 flex flex-col gap-0">
+          <div className="p-6 border-b border-admin-border flex-shrink-0">
+            <SheetHeader className="space-y-1 text-left">
+              <SheetTitle className="text-xl font-bold text-admin-text-primary pr-6">
+                {editingCustomer ? 'Update Company Profile' : 'Register New Company'}
+              </SheetTitle>
+              <SheetDescription className="text-sm text-admin-text-secondary">
+                Configure contact information and portal access settings.
+              </SheetDescription>
+            </SheetHeader>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 py-4">
+          <div className="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-5 p-6">
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Full Name *</Label>
               <Input
@@ -447,6 +484,24 @@ export const Customers = () => {
               />
             </div>
             <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Industry</Label>
+              <Input
+                value={form.industry}
+                onChange={e => setForm({ ...form, industry: e.target.value })}
+                className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl"
+                placeholder="e.g. Manufacturing"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Website</Label>
+              <Input
+                value={form.website}
+                onChange={e => setForm({ ...form, website: e.target.value })}
+                className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl"
+                placeholder="https://example.com"
+              />
+            </div>
+            <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Portal Status</Label>
               <div className="flex items-center gap-3 h-11 px-3 bg-admin-bg border border-admin-border rounded-xl">
                 <Switch
@@ -465,6 +520,16 @@ export const Customers = () => {
                 onChange={e => setForm({ ...form, address: e.target.value })}
                 className="bg-admin-bg border-admin-border text-admin-text-primary rounded-xl resize-none"
                 placeholder="Unit, Building, Street, City..."
+                rows={2}
+              />
+            </div>
+            <div className="md:col-span-2 space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Description</Label>
+              <Textarea
+                value={form.description}
+                onChange={e => setForm({ ...form, description: e.target.value })}
+                className="bg-admin-bg border-admin-border text-admin-text-primary rounded-xl resize-none"
+                placeholder="Brief notes about this company..."
                 rows={2}
               />
             </div>
@@ -499,24 +564,26 @@ export const Customers = () => {
             )}
           </div>
 
-          <DialogFooter className="gap-2">
-            <Button variant="ghost" onClick={() => setDialogOpen(false)} className="rounded-xl">Cancel</Button>
-            <Button
-              onClick={handleSave}
-              disabled={!form.name || create.isPending || update.isPending}
-              className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover min-w-[140px] rounded-xl font-bold shadow-lg shadow-zeronix-blue/20"
-            >
-              {(create.isPending || update.isPending) ? <Spinner size={16} /> : (editingCustomer ? 'Update Profile' : 'Register Client')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <div className="p-6 pt-4 border-t border-admin-border flex-shrink-0">
+            <SheetFooter className="gap-2 sm:justify-end">
+              <Button variant="ghost" onClick={() => setDialogOpen(false)} className="rounded-xl">Cancel</Button>
+              <Button
+                onClick={handleSave}
+                disabled={!form.name || create.isPending || update.isPending}
+                className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover min-w-[140px] rounded-xl font-bold shadow-lg shadow-zeronix-blue/20"
+              >
+                {(create.isPending || update.isPending) ? <Spinner size={16} /> : (editingCustomer ? 'Update Profile' : 'Register Company')}
+              </Button>
+            </SheetFooter>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete Customer Profile?"
-        description="This will permanently delete the customer and all associated trade data. This action is irreversible."
+        title="Delete Company Profile?"
+        description="This will permanently delete the company and all associated trade data. This action is irreversible."
         confirmLabel="Yes, Delete Permanently"
         onConfirm={() => deletingId && remove.mutate(deletingId)}
         variant="destructive"

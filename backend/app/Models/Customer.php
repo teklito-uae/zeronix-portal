@@ -28,7 +28,10 @@ class Customer extends Authenticatable
         'password',
         'is_portal_active',
         'company_id',
-        'is_company_admin'
+        'is_company_admin',
+        'industry',
+        'website',
+        'description',
     ];
 
     protected $hidden = [
@@ -42,6 +45,15 @@ class Customer extends Authenticatable
             'is_company_admin' => 'boolean',
             'outstanding_balance' => 'float',
             'overdue_invoices_count' => 'integer',
+            'overdue_invoices_value' => 'float',
+            'total_invoiced' => 'float',
+            'total_volume' => 'float',
+            'open_deals_count' => 'integer',
+            'open_deals_value' => 'float',
+            'open_quotes_count' => 'integer',
+            'open_quotes_value' => 'float',
+            'open_invoices_count' => 'integer',
+            'open_invoices_value' => 'float',
         ];
     }
 
@@ -71,6 +83,11 @@ class Customer extends Authenticatable
     public function enquiries(): HasMany
     {
         return $this->hasMany(Enquiry::class);
+    }
+
+    public function deals(): HasMany
+    {
+        return $this->hasMany(Deal::class);
     }
 
     public function contacts(): HasMany

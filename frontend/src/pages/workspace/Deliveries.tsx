@@ -79,6 +79,17 @@ export const Deliveries = () => {
       activeTab={activeTab}
       onTabChange={setActiveTab}
       baseFilters={{ status: activeTab !== 'all' ? activeTab : undefined }}
+      filters={[
+        {
+          name: 'customer_confirmation',
+          label: 'Customer Confirmation',
+          placeholder: 'Filter by confirmation',
+          options: [
+            { label: 'Accepted', value: 'accepted' },
+            { label: 'Rejected', value: 'rejected' },
+          ],
+        },
+      ]}
     />
   );
 };

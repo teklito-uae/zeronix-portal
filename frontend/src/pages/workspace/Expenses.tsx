@@ -5,13 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from '@/components/ui/sheet';
 import {
   Select,
   SelectContent,
@@ -143,25 +143,43 @@ export const Expenses = () => {
         createPath="#"
         onCreateClick={openAdd}
         searchPlaceholder="Search by category..."
+        filters={[
+          {
+            name: 'category',
+            label: 'Category',
+            placeholder: 'Filter by category',
+            options: EXPENSE_CATEGORIES.map((c) => ({ label: c, value: c })),
+          },
+          {
+            name: 'paid_via',
+            label: 'Paid Via',
+            placeholder: 'Filter by payment',
+            options: [
+              { label: 'Cash', value: 'cash' },
+              { label: 'Bank', value: 'bank' },
+              { label: 'Card', value: 'card' },
+            ],
+          },
+        ]}
       />
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-brand-white border-brand-border/50 sm:max-w-lg rounded-xl shadow-xl p-0 overflow-hidden">
-          <div className="bg-brand-surface p-6 border-b border-brand-border/50">
-            <DialogHeader>
-              <DialogTitle className="text-[16px] font-semibold text-brand-primary flex items-center gap-3">
+      <Sheet open={dialogOpen} onOpenChange={setDialogOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-lg bg-brand-white border-brand-border/50 p-0 flex flex-col gap-0">
+          <div className="bg-brand-surface p-6 border-b border-brand-border/50 flex-shrink-0">
+            <SheetHeader className="space-y-0 text-left">
+              <SheetTitle className="text-[16px] font-semibold text-brand-primary flex items-center gap-3 pr-6">
                 <div className="h-10 w-10 rounded-xl bg-brand-accent/10 flex items-center justify-center text-brand-accent">
                   <Wallet size={20} />
                 </div>
                 {editingExpense ? 'Update Expense' : 'Record New Expense'}
-              </DialogTitle>
-              <DialogDescription className="text-[13px] font-medium text-brand-subtle mt-0.5">
+              </SheetTitle>
+              <SheetDescription className="text-[13px] font-medium text-brand-subtle mt-0.5">
                 Track business overhead for accurate profit &amp; loss reporting.
-              </DialogDescription>
-            </DialogHeader>
+              </SheetDescription>
+            </SheetHeader>
           </div>
 
-          <div className="p-6 space-y-5">
+          <div className="flex-1 overflow-y-auto p-6 space-y-5">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-[12px] font-medium text-brand-secondary ml-1">Category *</Label>
@@ -223,8 +241,8 @@ export const Expenses = () => {
             </div>
           </div>
 
-          <div className="p-6 pt-2">
-            <DialogFooter className="gap-2">
+          <div className="p-6 pt-2 flex-shrink-0">
+            <SheetFooter className="gap-2 sm:justify-end">
               <Button variant="ghost" onClick={() => setDialogOpen(false)} className="rounded-lg text-[13px] font-medium">
                 Cancel
               </Button>
@@ -236,10 +254,10 @@ export const Expenses = () => {
                 {(create.isPending || update.isPending) ? <Spinner size={16} className="mr-2" /> : null}
                 {editingExpense ? 'Update Expense' : 'Record Expense'}
               </Button>
-            </DialogFooter>
+            </SheetFooter>
           </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

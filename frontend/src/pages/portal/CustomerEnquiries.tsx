@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { SEO } from '@/components/shared/SEO';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 
 export const CustomerEnquiries = () => {
   const navigate = useNavigate();
@@ -136,16 +136,16 @@ export const CustomerEnquiries = () => {
             );
           })}
         </div>
-      )}      {/* Enquiry Details Dialog */}
-      <Dialog open={!!selectedEnquiryId} onOpenChange={(open) => !open && setSelectedEnquiryId(null)}>
-        <DialogContent className="bg-admin-surface border-admin-border text-admin-text-primary sm:max-w-[700px] p-0 overflow-hidden">
+      )}      {/* Enquiry Details Sheet */}
+      <Sheet open={!!selectedEnquiryId} onOpenChange={(open) => !open && setSelectedEnquiryId(null)}>
+        <SheetContent side="right" className="bg-admin-surface border-admin-border text-admin-text-primary w-full sm:max-w-[700px] p-0 flex flex-col gap-0">
           {isLoadingDetails ? (
             <div className="py-20 flex flex-col items-center justify-center">
               <Loader2 className="h-10 w-10 animate-spin text-zeronix-blue" />
             </div>
           ) : selectedEnquiry && (
-            <div className="flex flex-col">
-              <div className="p-8 border-b border-admin-border bg-admin-bg/30">
+            <div className="flex flex-col h-full">
+              <div className="p-8 border-b border-admin-border bg-admin-bg/30 flex-shrink-0 pr-14">
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h2 className="text-2xl font-bold text-admin-text-primary tracking-tight flex items-center gap-3">
@@ -178,7 +178,7 @@ export const CustomerEnquiries = () => {
                 </div>
               </div>
 
-              <div className="p-8 space-y-8">
+              <div className="flex-1 overflow-y-auto p-8 space-y-8">
                 {selectedEnquiry.status === 'cancelled' && (
                   <div className="p-6 bg-red-500/5 border border-red-500/20 rounded-2xl space-y-3 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-1 h-full bg-red-500/40" />
@@ -254,7 +254,7 @@ export const CustomerEnquiries = () => {
                 )}
               </div>
 
-              <div className="p-8 border-t border-admin-border bg-admin-bg/20 flex justify-between items-center">
+              <div className="p-8 border-t border-admin-border bg-admin-bg/20 flex justify-between items-center flex-shrink-0">
                  <p className="text-xs text-admin-text-muted max-w-[300px]">
                    If you have any changes to this request, please contact your account manager directly.
                  </p>
@@ -264,8 +264,8 @@ export const CustomerEnquiries = () => {
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

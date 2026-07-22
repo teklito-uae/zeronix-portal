@@ -1,38 +1,42 @@
 import { getBasePath } from '@/hooks/useBasePath';
-import { useSidebarStore } from '@/store/useSidebarStore';
 import { useThemeStore } from '@/store/useThemeStore';
-import { useAuthStore } from '@/store/useAuthStore';
 import { useBreadcrumbStore } from '@/store/useBreadcrumbStore';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useTopbarActionsStore } from '@/store/useTopbarActionsStore';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Logo } from '@/components/shared/Logo';
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  ChevronRight,
+  Home,
+  Search,
+  Sun,
+  Moon,
+  ShoppingCart,
+  UserCircle2,
+  Users,
+  MessageSquareText,
+  Handshake,
+  FileText,
+  ClipboardList,
+  PackageCheck,
+  Receipt,
+  Truck,
+  ShoppingCart as ShoppingCartIcon,
+  Wallet,
+  Package,
+} from 'lucide-react';
 import { GlobalSearch } from './GlobalSearch';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Menu, Sun, Moon, LogOut, Settings, User, ChevronRight, Home, Search, ShoppingCart, Bell, UserCircle2, Mail, MailOpen, CheckCircle2, AlertTriangle, ExternalLink } from 'lucide-react';
+import { NotificationBell } from './NotificationBell';
 import { CartDrawer } from '../portal/CartDrawer';
 import { useCartStore } from '@/store/useCartStore';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '@/lib/axios';
-import { toast } from 'sonner';
-
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 
 // Static fallback breadcrumbs from URL when no store segments are set
 const routeLabels: Record<string, string> = {
   dashboard: 'Dashboard',
-  customers: 'Customers',
+  companies: 'Companies',
+  contacts: 'Contacts',
   suppliers: 'Suppliers',
   products: 'Products',
   enquiries: 'Enquiries',
@@ -45,101 +49,17 @@ const routeLabels: Record<string, string> = {
 };
 
 export const Topbar = () => {
-  const { toggle } = useSidebarStore();
   const { theme, toggle: toggleTheme } = useThemeStore();
-  const admin = useAuthStore((s) => s.admin);
-  const customer = useAuthStore((s) => s.customer);
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
   const storeSegments = useBreadcrumbStore((s) => s.segments);
+  const pageActions = useTopbarActionsStore((s) => s.actions);
   const [searchOpen, setSearchOpen] = useState(false);
   const cartItems = useCartStore((s) => s.items);
   const totalCartItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  const queryClient = useQueryClient();
   const isCustomer = location.pathname.startsWith('/portal');
-  const user = isCustomer ? customer : admin;
   const initTheme = useThemeStore((s) => s.initTheme);
-
-  // Notifications logic (Both Admin and Customer)
-  const { data: unreadNotifs } = useQuery({
-    queryKey: ['unread-notifications', isCustomer ? 'customer' : 'admin'],
-    queryFn: async () => {
-      const endpoint = isCustomer ? '/customer/notifications/unread' : `${getBasePath()}/notifications/unread`;
-      return (await api.get(endpoint)).data;
-    },
-    enabled: !!user,
-    refetchInterval: 600000, // Poll every 10 minutes to reduce DB load
-    staleTime: 600000, // Consider data fresh for 10 minutes
-    refetchOnWindowFocus: false, // Don't refetch when switching tabs
-    refetchOnMount: false, // Don't refetch every time the component remounts
-  });
-
-  const [lastNotifCount, setLastNotifCount] = useState(0);
-  const [notifOpen, setNotifOpen] = useState(false);
-
-  const { data: allNotifs } = useQuery({
-    queryKey: ['topbar-notifications', isCustomer ? 'customer' : 'admin'],
-    queryFn: async () => {
-      const endpoint = isCustomer ? '/customer/notifications' : `${getBasePath()}/notifications`;
-      return (await api.get(endpoint)).data;
-    },
-    enabled: !!user && notifOpen,
-    staleTime: 30000,
-  });
-
-  const markAllReadMutation = useMutation({
-    mutationFn: () => {
-      const endpoint = isCustomer ? '/customer/notifications/mark-read' : `${getBasePath()}/notifications/mark-read`;
-      return api.post(endpoint);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['unread-notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['topbar-notifications'] });
-      toast.success('All notifications marked as read');
-    },
-  });
-
-  const markOneReadMutation = useMutation({
-    mutationFn: (id: string) => {
-      const endpoint = isCustomer ? `/customer/notifications/${id}/mark-read` : `${getBasePath()}/notifications/${id}/mark-read`;
-      return api.post(endpoint);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['unread-notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['topbar-notifications'] });
-    },
-  });
-
-  const getNotifIcon = (type: string) => {
-    switch (type) {
-      case 'success': return <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />;
-      case 'error':   return <AlertTriangle size={14} className="text-red-500 shrink-0" />;
-      case 'warning': return <AlertTriangle size={14} className="text-amber-500 shrink-0" />;
-      default:        return <Bell size={14} className="text-brand-accent shrink-0" />;
-    }
-  };
-
-  useEffect(() => {
-    if (unreadNotifs && unreadNotifs.length > lastNotifCount) {
-      const newNotif = unreadNotifs[0];
-      const notifUrl = isCustomer ? `/portal/${companySlug}/notifications` : `${getBasePath()}/notifications`;
-      
-      toast(newNotif.data?.title || 'New Notification', {
-        description: newNotif.data?.message || 'You have a new message.',
-        position: 'bottom-right',
-        action: {
-          label: 'View',
-          onClick: () => navigate(newNotif.data?.action_url || notifUrl)
-        }
-      });
-      setLastNotifCount(unreadNotifs.length);
-    } else if (unreadNotifs) {
-      setLastNotifCount(unreadNotifs.length);
-    }
-  }, [unreadNotifs, lastNotifCount, navigate]);
-
-
 
   useEffect(() => {
     initTheme(isCustomer);
@@ -147,6 +67,52 @@ export const Topbar = () => {
 
   const parts = location.pathname.split('/');
   const companySlug = isCustomer && parts.length > 2 ? parts[2] : 'company';
+  const homePath = isCustomer ? `/portal/${companySlug}/dashboard` : `${getBasePath()}/dashboard`;
+
+  // Section sub-navigation — mirrors the nav groups in Sidebar.tsx (CRM,
+  // Sales, Purchasing, Management). Whichever group contains the active
+  // route renders as an icon-tab row in place of breadcrumbs.
+  const tabBasePath = isCustomer ? null : getBasePath();
+  const tabGroups: { items: { id: string; label: string; icon: React.ReactNode; path: string }[] }[] = tabBasePath
+    ? [
+        {
+          items: [
+            { id: 'leads', label: 'Leads', icon: <UserCircle2 size={16} />, path: `${tabBasePath}/leads` },
+            { id: 'companies', label: 'Companies', icon: <Users size={16} />, path: `${tabBasePath}/companies` },
+            { id: 'contacts', label: 'Contacts', icon: <Users size={16} />, path: `${tabBasePath}/contacts` },
+            { id: 'enquiries', label: 'Enquiries', icon: <MessageSquareText size={16} />, path: `${tabBasePath}/enquiries` },
+            { id: 'deals', label: 'Deals', icon: <Handshake size={16} />, path: `${tabBasePath}/deals` },
+          ],
+        },
+        {
+          items: [
+            { id: 'quotes', label: 'Quotes', icon: <FileText size={16} />, path: `${tabBasePath}/quotes` },
+            { id: 'sales-orders', label: 'Sales Orders', icon: <ClipboardList size={16} />, path: `${tabBasePath}/sales-orders` },
+            { id: 'deliveries', label: 'Deliveries', icon: <PackageCheck size={16} />, path: `${tabBasePath}/deliveries` },
+            { id: 'invoices', label: 'Invoices', icon: <Receipt size={16} />, path: `${tabBasePath}/invoices` },
+            { id: 'receipts', label: 'Payment Receipts', icon: <Receipt size={16} />, path: `${tabBasePath}/payment-receipts` },
+          ],
+        },
+        {
+          items: [
+            { id: 'suppliers', label: 'Suppliers', icon: <Truck size={16} />, path: `${tabBasePath}/suppliers` },
+            { id: 'purchases', label: 'Purchases', icon: <ShoppingCartIcon size={16} />, path: `${tabBasePath}/purchases` },
+            { id: 'expenses', label: 'Expenses', icon: <Wallet size={16} />, path: `${tabBasePath}/expenses` },
+          ],
+        },
+        {
+          items: [
+            { id: 'products', label: 'Products', icon: <Package size={16} />, path: `${tabBasePath}/products` },
+            { id: 'users', label: 'Team', icon: <Users size={16} />, path: `${tabBasePath}/users` },
+          ],
+        },
+      ]
+    : [];
+  const isTabItemActive = (path: string) =>
+    location.pathname === path || location.pathname.startsWith(path + '/');
+  const activeTabGroup = tabGroups.find((group) => group.items.some((item) => isTabItemActive(item.path)));
+  const activeTabItem = activeTabGroup?.items.find((item) => isTabItemActive(item.path));
+  const isTabSection = Boolean(activeTabGroup);
 
   // Ctrl+K / Cmd+K to open search
   useEffect(() => {
@@ -177,198 +143,101 @@ export const Topbar = () => {
         });
       })();
 
-  const logout = useAuthStore((s) => s.logout);
-
-  const handleLogout = () => {
-    logout(isCustomer ? 'customer' : 'admin');
-    toast.success('Logged out successfully');
-    navigate(isCustomer ? '/portal/login' : `${getBasePath()}/login`);
-  };
-
   return (
-    <header className="flex items-center justify-between mb-2 flex-shrink-0">
-      {/* Left: Logo (mobile) / Menu toggle + Breadcrumbs (desktop) */}
-      <div className="flex items-center gap-3">
+    <header className="flex items-center justify-between mb-2 flex-shrink-0 h-11">
+      {/* Left: Logo (mobile) / Breadcrumbs (desktop) */}
+      <div className="flex items-center gap-3 min-w-0">
         {/* Mobile: Show logo */}
         <div className="md:hidden">
           <Logo size="sm" showText />
         </div>
-        {/* Desktop: Show sidebar toggle */}
-        <button
-          onClick={toggle}
-          className="hidden md:flex p-2 rounded-lg hover:bg-brand-white border border-transparent hover:border-brand-border transition-colors text-brand-muted hover:text-brand-secondary"
-        >
-          <Menu size={16} />
-        </button>
 
-        <nav className="hidden sm:flex items-center gap-2 text-sm">
-          {breadcrumbs.map((crumb, i) => (
-            <span key={i} className="flex items-center gap-2">
-              {i > 0 && <ChevronRight size={14} className="text-brand-subtle" />}
-              {crumb.href ? (
-                <Link
-                  to={crumb.href}
-                  className="text-brand-muted hover:text-brand-secondary transition-colors text-[14px]"
+        {/* Breadcrumbs, or section icon-tabs when on a page within one of the tab groups */}
+        {isTabSection ? (
+          <Tabs value={activeTabItem?.id} className="hidden sm:flex min-w-0">
+            <TabsList className="bg-brand-accent-light p-1 h-8">
+              {activeTabGroup!.items.map((item) => (
+                <TabsTrigger
+                  key={item.id}
+                  value={item.id}
+                  onClick={() => navigate(item.path)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-2.5 py-1 text-brand-muted data-[state=active]:bg-brand-white data-[state=active]:text-brand-accent data-[state=active]:shadow-sm'
+                  )}
                 >
-                  {crumb.label}
-                </Link>
-              ) : (
-                <h1 className="text-[20px] font-semibold text-brand-primary">
-                  {crumb.label}
-                </h1>
-              )}
-            </span>
-          ))}
-        </nav>
-      </div>
-
-      {/* Right: Theme + Chat + User */}
-      <div className="flex items-center gap-2">
-        {/* Mobile Search icon */}
-        <button
-          onClick={() => setSearchOpen(true)}
-          className="md:hidden p-2 rounded-lg hover:bg-brand-white border border-transparent hover:border-brand-border transition-colors text-brand-muted hover:text-brand-secondary"
-        >
-          <Search size={16} />
-        </button>
-        
-        {/* Desktop search trigger */}
-        <button
-          onClick={() => setSearchOpen(true)}
-          className="hidden md:flex items-center gap-2 bg-brand-white border border-brand-border rounded-lg px-3 py-1.5 w-64 hover:border-brand-border-strong transition-colors"
-        >
-          <Search size={14} className="text-brand-subtle" />
-          <span className="text-[13px] text-brand-subtle flex-1 text-left">Search...</span>
-          <kbd className="text-[10px] text-brand-subtle bg-brand-surface px-1.5 py-0.5 rounded">⌘K</kbd>
-        </button>
-
-        {/* Notification Popover */}
-        <Popover open={notifOpen} onOpenChange={setNotifOpen}>
-          <PopoverTrigger asChild>
-            <button className="p-2 rounded-lg hover:bg-brand-white border border-transparent hover:border-brand-border transition-colors text-brand-muted hover:text-brand-secondary relative">
-              <Mail size={16} />
-              {user && (unreadNotifs?.length || 0) > 0 && (
-                <span className="absolute top-1 right-1 h-3 w-3 text-[8px] font-bold text-brand-white flex items-center justify-center rounded-full bg-brand-danger shadow-sm">
-                  {unreadNotifs.length}
-                </span>
-              )}
-            </button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-[360px] p-0 bg-brand-white border border-brand-border shadow-xl rounded-2xl overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-brand-border bg-brand-surface">
-              <div className="flex items-center gap-2">
-                <Bell size={14} className="text-brand-accent" />
-                <span className="text-[13px] font-bold text-brand-primary">Notifications</span>
-                {(unreadNotifs?.length || 0) > 0 && (
-                  <span className="bg-brand-danger text-brand-white text-[9px] font-black px-1.5 py-0.5 rounded-full">
-                    {unreadNotifs.length}
+                  {item.icon}
+                  <span className="hidden md:inline">{item.label}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        ) : (
+          <nav className="hidden sm:flex items-center gap-1.5 text-sm min-w-0">
+            <Link
+              to={homePath}
+              className="flex items-center justify-center h-6 w-6 rounded-md text-brand-subtle hover:text-brand-accent hover:bg-brand-accent-light transition-colors shrink-0"
+            >
+              <Home size={13} />
+            </Link>
+            {breadcrumbs.map((crumb, i) => (
+              <span key={i} className="flex items-center gap-1.5 min-w-0">
+                <ChevronRight size={13} className="text-brand-border shrink-0" />
+                {crumb.href ? (
+                  <Link
+                    to={crumb.href}
+                    className="text-[13px] font-medium text-brand-muted hover:text-brand-accent transition-colors truncate max-w-[160px]"
+                  >
+                    {crumb.label}
+                  </Link>
+                ) : (
+                  <span className="text-[13px] font-semibold text-brand-primary truncate max-w-[240px]">
+                    {crumb.label}
                   </span>
                 )}
-              </div>
-              <div className="flex items-center gap-2">
-                {(unreadNotifs?.length || 0) > 0 && (
-                  <button
-                    onClick={() => markAllReadMutation.mutate()}
-                    className="text-[11px] font-bold text-brand-accent hover:opacity-70 transition-opacity flex items-center gap-1"
-                  >
-                    <MailOpen size={12} /> Mark all read
-                  </button>
-                )}
-              </div>
-            </div>
+              </span>
+            ))}
+          </nav>
+        )}
+      </div>
 
-            {/* Notification List */}
-            <div className="max-h-[380px] overflow-y-auto divide-y divide-brand-border">
-              {!allNotifs?.notifications?.length ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="w-12 h-12 rounded-full bg-brand-surface border border-brand-border flex items-center justify-center mb-3">
-                    <Bell size={22} className="text-brand-subtle/40" />
-                  </div>
-                  <p className="text-[12px] font-bold text-brand-subtle">No notifications yet</p>
-                  <p className="text-[11px] text-brand-muted mt-0.5">You're all caught up!</p>
-                </div>
-              ) : (
-                allNotifs.notifications.slice(0, 5).map((notif: any) => (
-                  <div
-                    key={notif.id}
-                    className={`flex items-start gap-3 px-4 py-3 hover:bg-brand-surface transition-colors group ${
-                      !notif.read_at ? 'bg-brand-accent/5 border-l-2 border-l-brand-accent' : ''
-                    }`}
-                  >
-                    <div className="mt-0.5">{getNotifIcon(notif.data?.type)}</div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-[12px] font-semibold truncate ${
-                        !notif.read_at ? 'text-brand-primary' : 'text-brand-secondary'
-                      }`}>
-                        {notif.data?.title || 'Notification'}
-                      </p>
-                      <p className="text-[11px] text-brand-muted leading-snug mt-0.5 line-clamp-2">
-                        {notif.data?.message}
-                      </p>
-                      <p className="text-[10px] text-brand-subtle mt-1">
-                        {new Date(notif.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1.5 shrink-0">
-                      {notif.data?.action_url && (
-                        <button
-                          onClick={() => { navigate(notif.data.action_url); setNotifOpen(false); }}
-                          className="text-brand-accent hover:opacity-70 transition-opacity"
-                          title="View"
-                        >
-                          <ExternalLink size={13} />
-                        </button>
-                      )}
-                      {!notif.read_at && (
-                        <button
-                          onClick={() => markOneReadMutation.mutate(notif.id)}
-                          className="text-[9px] font-bold text-brand-subtle hover:text-brand-primary transition-colors opacity-0 group-hover:opacity-100"
-                          title="Mark as read"
-                        >
-                          <CheckCircle2 size={13} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="px-4 py-3 border-t border-brand-border bg-brand-surface">
-              <button
-                onClick={() => { navigate(isCustomer ? `/portal/${companySlug}/notifications` : `${getBasePath()}/notifications`); setNotifOpen(false); }}
-                className="w-full text-[12px] font-bold text-brand-accent hover:opacity-70 transition-opacity flex items-center justify-center gap-1.5"
-              >
-                View more <ExternalLink size={12} />
-              </button>
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        {isCustomer && (
-          <CartDrawer>
-            <button
-              className="p-2 rounded-lg hover:bg-brand-white border border-transparent hover:border-brand-border transition-colors text-brand-muted hover:text-brand-secondary relative group"
-            >
-              <ShoppingCart size={16} className="group-hover:scale-110 transition-transform" />
-              {totalCartItems > 0 && (
-                <span className="absolute top-1 right-1 h-3 w-3 bg-brand-success text-[8px] font-bold text-brand-white flex items-center justify-center rounded-full shadow-sm animate-in zoom-in">
-                  {totalCartItems}
-                </span>
-              )}
-            </button>
-          </CartDrawer>
+      {/* Right: page-injected actions (desktop) + mobile-only utility icons (desktop equivalents live in the sidebar) */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {pageActions && (
+          <div className="hidden md:flex items-center gap-2">
+            {pageActions}
+          </div>
         )}
 
-        <button
-          onClick={() => toggleTheme(isCustomer)}
-          className="p-2 rounded-lg hover:bg-brand-white border border-transparent hover:border-brand-border transition-colors text-brand-muted hover:text-brand-secondary"
-        >
-          {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
-        </button>
+        <div className="flex md:hidden items-center gap-1">
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="p-2 rounded-lg hover:bg-brand-white border border-transparent hover:border-brand-border transition-colors text-brand-muted hover:text-brand-secondary"
+          >
+            <Search size={16} />
+          </button>
 
+          <NotificationBell side="bottom" align="end" />
+
+          {isCustomer && (
+            <CartDrawer>
+              <button className="p-2 rounded-lg hover:bg-brand-white border border-transparent hover:border-brand-border transition-colors text-brand-muted hover:text-brand-secondary relative">
+                <ShoppingCart size={16} />
+                {totalCartItems > 0 && (
+                  <span className="absolute top-1 right-1 h-3 w-3 bg-brand-success text-[8px] font-bold text-brand-white flex items-center justify-center rounded-full shadow-sm">
+                    {totalCartItems}
+                  </span>
+                )}
+              </button>
+            </CartDrawer>
+          )}
+
+          <button
+            onClick={() => toggleTheme(isCustomer)}
+            className="p-2 rounded-lg hover:bg-brand-white border border-transparent hover:border-brand-border transition-colors text-brand-muted hover:text-brand-secondary"
+          >
+            {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+          </button>
+        </div>
       </div>
 
       <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />

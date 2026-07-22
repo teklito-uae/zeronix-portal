@@ -42,6 +42,7 @@ use App\Http\Controllers\StickyNoteController;
 use App\Http\Controllers\CustomerContactController;
 use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\DeliveryController;
+use App\Http\Controllers\DealController;
 use App\Http\Controllers\MarketingDashboardController;
 use App\Http\Controllers\MarketingCampaignController;
 use App\Http\Controllers\MarketingTemplateController;
@@ -141,13 +142,24 @@ foreach (['admin', 'staff'] as $prefix) {
         Route::delete('/leads/{lead}', [LeadController::class, 'destroy']);
         Route::post('/leads/{lead}/convert', [LeadController::class, 'convert']);
 
+        // Deals
+        Route::get('/deals/pipeline', [DealController::class, 'pipeline']);
+        Route::get('/deals', [DealController::class, 'index']);
+        Route::post('/deals', [DealController::class, 'store']);
+        Route::get('/deals/{deal}', [DealController::class, 'show']);
+        Route::put('/deals/{deal}', [DealController::class, 'update']);
+        Route::delete('/deals/{deal}', [DealController::class, 'destroy']);
+        Route::post('/deals/{deal}/activities', [DealController::class, 'addActivity']);
+
         // Customers
         Route::get('/customers', [CustomerController::class, 'index']);
         Route::post('/customers', [CustomerController::class, 'store']);
+        Route::get('/customers/industries', [CustomerController::class, 'industries']);
         Route::get('/customers/{customer}', [CustomerController::class, 'show']);
         Route::put('/customers/{customer}', [CustomerController::class, 'update']);
         Route::delete('/customers/{customer}', [CustomerController::class, 'destroy']);
         Route::post('/customers/{customer}/register-portal', [CustomerController::class, 'registerPortal']);
+        Route::get('/customers/{customer}/activities', [CustomerController::class, 'activities']);
 
         // Customer Contacts
         Route::get('/customers/{customer}/contacts', [CustomerContactController::class, 'index']);
@@ -155,6 +167,7 @@ foreach (['admin', 'staff'] as $prefix) {
         Route::put('/customers/{customer}/contacts/{contact}', [CustomerContactController::class, 'update']);
         Route::delete('/customers/{customer}/contacts/{contact}', [CustomerContactController::class, 'destroy']);
         Route::post('/customers/{customer}/contacts/{contact}/set-primary', [CustomerContactController::class, 'setPrimary']);
+        Route::get('/contacts', [CustomerContactController::class, 'indexAll']);
 
         // Companies
         Route::apiResource('companies', CompanyController::class);
@@ -169,11 +182,16 @@ foreach (['admin', 'staff'] as $prefix) {
         // Quotes
         Route::get('/quotes', [QuoteController::class, 'index']);
         Route::post('/quotes', [QuoteController::class, 'store']);
+        Route::get('/quotes/next-number', [QuoteController::class, 'previewNextNumber']);
         Route::get('/quotes/{quote}', [QuoteController::class, 'show']);
         Route::put('/quotes/{quote}', [QuoteController::class, 'update']);
         Route::delete('/quotes/{quote}', [QuoteController::class, 'destroy']);
         Route::post('/quotes/{quote}/send-email', [QuoteController::class, 'sendEmail']);
         Route::post('/quotes/{quote}/convert-to-sales-order', [QuoteController::class, 'convertToSalesOrder']);
+        Route::patch('/quotes/{quote}/quick-update', [QuoteController::class, 'quickUpdate']);
+        Route::post('/quotes/{quote}/duplicate', [QuoteController::class, 'duplicate']);
+        Route::post('/quotes/{quote}/attachments', [QuoteController::class, 'uploadAttachment']);
+        Route::delete('/quotes/{quote}/attachments/{index}', [QuoteController::class, 'removeAttachment']);
 
         // Sales Orders
         Route::get('/sales-orders', [SalesOrderController::class, 'index']);
@@ -190,14 +208,22 @@ foreach (['admin', 'staff'] as $prefix) {
         Route::put('/deliveries/{delivery}', [DeliveryController::class, 'update']);
         Route::delete('/deliveries/{delivery}', [DeliveryController::class, 'destroy']);
         Route::post('/deliveries/{delivery}/mark-delivered', [DeliveryController::class, 'markDelivered']);
+        Route::post('/deliveries/{delivery}/convert-to-invoice', [DeliveryController::class, 'convertToInvoice']);
 
         // Invoices
         Route::get('/invoices', [InvoiceController::class, 'index']);
         Route::post('/invoices', [InvoiceController::class, 'store']);
+        Route::get('/invoices/next-number', [InvoiceController::class, 'previewNextNumber']);
         Route::get('/invoices/{invoice}', [InvoiceController::class, 'show']);
         Route::put('/invoices/{invoice}', [InvoiceController::class, 'update']);
         Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy']);
         Route::post('/invoices/{invoice}/send-email', [InvoiceController::class, 'sendEmail']);
+        Route::post('/invoices/{invoice}/convert-to-delivery', [InvoiceController::class, 'convertToDelivery']);
+        Route::post('/invoices/{invoice}/convert-to-sales-order', [InvoiceController::class, 'convertToSalesOrder']);
+        Route::patch('/invoices/{invoice}/quick-update', [InvoiceController::class, 'quickUpdate']);
+        Route::post('/invoices/{invoice}/duplicate', [InvoiceController::class, 'duplicate']);
+        Route::post('/invoices/{invoice}/attachments', [InvoiceController::class, 'uploadAttachment']);
+        Route::delete('/invoices/{invoice}/attachments/{index}', [InvoiceController::class, 'removeAttachment']);
 
         // Products
         Route::get('/products', [ProductController::class, 'index']);

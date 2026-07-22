@@ -11,12 +11,18 @@ class ExpenseController extends Controller
     {
         $query = Expense::with('user');
 
+        $query->forUser($request->user());
+
         if ($request->filled('search')) {
             $query->where('category', 'like', "%{$request->search}%");
         }
 
         if ($request->filled('category') && $request->category !== 'all') {
             $query->where('category', $request->category);
+        }
+
+        if ($request->filled('paid_via') && $request->paid_via !== 'all') {
+            $query->where('paid_via', $request->paid_via);
         }
 
         if ($request->filled('date_from')) {

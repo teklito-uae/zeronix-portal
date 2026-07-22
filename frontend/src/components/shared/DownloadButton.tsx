@@ -32,7 +32,9 @@ export const DownloadButton = ({
     setLoading(true);
     
     const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
-    const role = (location.pathname.startsWith('/admin') || location.pathname.startsWith('/staff')) ? 'admin' : 'customer';
+    // Workspace (admin/staff) and platform (super_admin) both live outside /portal,
+    // and both hit the same /admin/* document endpoints.
+    const role = location.pathname.startsWith('/portal') ? 'customer' : 'admin';
 
     // Priority: Number-based Global URL for View
     if (mode === 'view' && number) {

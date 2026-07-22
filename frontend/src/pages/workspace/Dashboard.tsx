@@ -8,7 +8,10 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { PageLoader } from '@/components/shared/PageLoader';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
-import { StaffDashboard } from './staff/StaffDashboard';
+import { ClockInHeader } from '@/components/dashboard/ClockInHeader';
+import { ModuleShortcuts } from '@/components/dashboard/ModuleShortcuts';
+import { PipelinePanel } from '@/components/dashboard/PipelinePanel';
+import { ProductivitySuite } from '@/components/dashboard/ProductivitySuite';
 import {
   FileText, MessageSquare, TrendingUp, Building2, Banknote,
   Package, Receipt, Users, Activity,
@@ -60,16 +63,14 @@ const chartConfig = {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export const Dashboard = () => {
-  const admin = useAuthStore(state => state.admin);
-  if (admin?.role !== 'admin') {
-    return <StaffDashboard />;
-  }
   return <AdminDashboard />;
 };
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const admin = useAuthStore(state => state.admin);
+  const isStaff = admin?.role !== 'admin';
+  const [view, setView] = useState<'overview' | 'pipeline'>('overview');
   const [activeChart, setActiveChart] = useState<"bank" | "cash">("bank");
   const [activityTab, setActivityTab] = useState<'chart'|'log'>('chart');
   const { theme, toggle } = useThemeStore();
@@ -126,6 +127,20 @@ const AdminDashboard = () => {
           {/* Left Section: Title */}
           <div className="flex items-center gap-4 md:gap-6">
             <h1 className="text-[16px] md:text-[18px] font-bold text-brand-primary">Dashboard</h1>
+            <div className="flex bg-brand-surface rounded-md p-1 border border-brand-border">
+              <button
+                onClick={() => setView('overview')}
+                className={`px-3 py-1 text-[12px] font-semibold rounded transition-colors ${view === 'overview' ? 'bg-brand-white shadow-sm text-brand-primary border border-brand-border/50' : 'text-brand-subtle hover:text-brand-primary'}`}
+              >
+                Overview
+              </button>
+              <button
+                onClick={() => setView('pipeline')}
+                className={`px-3 py-1 text-[12px] font-semibold rounded transition-colors ${view === 'pipeline' ? 'bg-brand-white shadow-sm text-brand-primary border border-brand-border/50' : 'text-brand-subtle hover:text-brand-primary'}`}
+              >
+                Pipeline
+              </button>
+            </div>
           </div>
 
           {/* Mobile Right: Notification Icons */}
@@ -175,7 +190,12 @@ const AdminDashboard = () => {
       </div>
 
       <div className="flex-1 overflow-auto p-5 flex flex-col gap-4 bg-brand-surface/30">
+        {view === 'pipeline' ? (
+          <PipelinePanel />
+        ) : (
         <>
+      {isStaff && <ClockInHeader />}
+      {isStaff && <ModuleShortcuts permissions={admin?.permissions || []} />}
       {/* Row 1 — Financial KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard title="Bank Received" value={fmt(stats.total_bank_received)} icon={<Building2 size={16} />} href={`${getBasePath()}/payment-receipts`} />
@@ -187,7 +207,7 @@ const AdminDashboard = () => {
       {/* Row 2 — People & Ops KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard title="Enquiries" value={stats.total_enquiries} icon={<MessageSquare size={16} />} href={`${getBasePath()}/enquiries`} />
-        <StatCard title="Customers" value={stats.active_customers} icon={<Users size={16} />} href={`${getBasePath()}/customers`} />
+        <StatCard title="Companies" value={stats.active_customers} icon={<Users size={16} />} href={`${getBasePath()}/companies`} />
         <StatCard title="Team Members" value={`${stats.active_users ?? 0} / ${stats.total_users ?? 0}`} subtitle="Active users" icon={<User size={16} />} href={`${getBasePath()}/users`} />
         <StatCard title="Products" value={stats.total_products} icon={<Package size={16} />} href={`${getBasePath()}/products`} />
       </div>
@@ -486,7 +506,10 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
+
+      {isStaff && <ProductivitySuite activities={recent_activities} />}
       </>
+        )}
       </div>
     </div>
   );

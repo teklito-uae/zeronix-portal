@@ -6,13 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from '@/components/ui/sheet';
 import {
   Select,
   SelectContent,
@@ -212,7 +212,7 @@ export const Leads = () => {
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="h-full flex flex-col">
       <ResourceListingPage<Lead>
         resource="leads"
         title="Leads"
@@ -226,25 +226,33 @@ export const Leads = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         baseFilters={{ status: activeTab !== 'all' ? activeTab : undefined }}
+        filters={[
+          {
+            name: 'source',
+            label: 'Source',
+            placeholder: 'Filter by source',
+            options: LEAD_SOURCES.map((s) => ({ label: s.charAt(0).toUpperCase() + s.slice(1), value: s })),
+          },
+        ]}
       />
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-brand-white border-brand-border/50 sm:max-w-lg rounded-xl shadow-xl p-0 overflow-hidden">
-          <div className="bg-brand-surface p-6 border-b border-brand-border/50">
-            <DialogHeader>
-              <DialogTitle className="text-[16px] font-semibold text-brand-primary flex items-center gap-3">
+      <Sheet open={dialogOpen} onOpenChange={setDialogOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-lg bg-brand-white border-brand-border/50 p-0 flex flex-col gap-0">
+          <div className="bg-brand-surface p-6 border-b border-brand-border/50 flex-shrink-0">
+            <SheetHeader className="space-y-0 text-left">
+              <SheetTitle className="text-[16px] font-semibold text-brand-primary flex items-center gap-3 pr-6">
                 <div className="h-10 w-10 rounded-xl bg-brand-accent/10 flex items-center justify-center text-brand-accent">
                   <UserPlus size={20} />
                 </div>
                 {editingLead ? 'Update Lead' : 'Register New Lead'}
-              </DialogTitle>
-              <DialogDescription className="text-[13px] font-medium text-brand-subtle mt-0.5">
+              </SheetTitle>
+              <SheetDescription className="text-[13px] font-medium text-brand-subtle mt-0.5">
                 A Lead is a prospect — it becomes a Customer only once converted.
-              </DialogDescription>
-            </DialogHeader>
+              </SheetDescription>
+            </SheetHeader>
           </div>
 
-          <div className="p-6 space-y-5">
+          <div className="flex-1 p-6 space-y-5 overflow-y-auto">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5 col-span-2 md:col-span-1">
                 <Label className="text-[12px] font-medium text-brand-secondary ml-1">Full Name *</Label>
@@ -303,8 +311,8 @@ export const Leads = () => {
             </div>
           </div>
 
-          <div className="p-6 pt-2">
-            <DialogFooter className="gap-2">
+          <div className="p-6 pt-2 flex-shrink-0">
+            <SheetFooter className="gap-2 sm:justify-end">
               <Button variant="ghost" onClick={() => setDialogOpen(false)} className="rounded-lg text-[13px] font-medium">
                 Cancel
               </Button>
@@ -316,10 +324,10 @@ export const Leads = () => {
                 {(create.isPending || update.isPending) ? <Spinner size={16} className="mr-2" /> : null}
                 {editingLead ? 'Update Lead' : 'Register Lead'}
               </Button>
-            </DialogFooter>
+            </SheetFooter>
           </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

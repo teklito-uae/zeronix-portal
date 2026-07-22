@@ -116,6 +116,17 @@ export const MarketingCampaigns = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         baseFilters={activeTab === 'all' ? {} : { status: activeTab }}
+        filters={[
+          {
+            name: 'schedule_type',
+            label: 'Send Type',
+            placeholder: 'All Types',
+            options: [
+              { label: 'Immediate', value: 'immediate' },
+              { label: 'Scheduled', value: 'scheduled' },
+            ],
+          },
+        ]}
       />
     </MarketingLayout>
   );

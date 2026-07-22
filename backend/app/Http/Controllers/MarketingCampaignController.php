@@ -28,6 +28,10 @@ class MarketingCampaignController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->filled('schedule_type') && $request->schedule_type !== 'all') {
+            $query->where('schedule_type', $request->schedule_type);
+        }
+
         $campaigns = $query->latest()->paginate($request->get('per_page', config('zeronix.default_per_page', 15)));
 
         return response()->json([

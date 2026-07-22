@@ -18,21 +18,22 @@ import { PlatformSettings } from './pages/platform/PlatformSettings';
 
 // --- WORKSPACE IMPORTS (Tenant Admin & Staff) ---
 import { Dashboard as WorkspaceDashboard } from './pages/workspace/Dashboard';
-import { CrmDashboard } from './pages/workspace/CrmDashboard';
 import { Leads } from './pages/workspace/Leads';
-import { Customers } from './pages/workspace/Customers';
-import { CustomerProfile as AdminCustomerProfile } from './pages/workspace/CustomerProfile';
+import { Companies } from './pages/workspace/Companies';
+import { CompanyProfile as AdminCompanyProfile } from './pages/workspace/CompanyProfile';
+import { Contacts } from './pages/workspace/Contacts';
 import { Suppliers } from './pages/workspace/Suppliers';
 import { SupplierProfile } from './pages/workspace/SupplierProfile';
 import { Products } from './pages/workspace/Products';
 import { Enquiries } from './pages/workspace/Enquiries';
-import { Quotes } from './pages/workspace/Quotes';
+import { Deals } from './pages/workspace/Deals';
+import { QuotesSplitView } from './pages/workspace/QuotesSplitView';
 import { QuoteDetail } from './pages/workspace/QuoteDetail';
 import { SalesOrders } from './pages/workspace/SalesOrders';
 import { SalesOrderDetail } from './pages/workspace/SalesOrderDetail';
 import { Deliveries } from './pages/workspace/Deliveries';
 import { DeliveryDetail } from './pages/workspace/DeliveryDetail';
-import { Invoices } from './pages/workspace/Invoices';
+import { InvoicesSplitView } from './pages/workspace/InvoicesSplitView';
 import { InvoiceDetail } from './pages/workspace/InvoiceDetail';
 import { PaymentReceipts } from './pages/workspace/PaymentReceipts';
 import { Purchases } from './pages/workspace/Purchases';
@@ -42,7 +43,7 @@ import { Reports } from './pages/workspace/Reports';
 import { Users } from './pages/workspace/Users';
 import { Settings as WorkspaceSettings } from './pages/workspace/Settings';
 import { Notifications } from './pages/workspace/Notifications';
-import { CustomerImport } from './pages/workspace/CustomerImport';
+import { CompanyImport } from './pages/workspace/CompanyImport';
 import { AttendanceReport } from './pages/workspace/AttendanceReport';
 
 // --- MARKETING IMPORTS (Workspace module) ---
@@ -88,21 +89,24 @@ const PlatformRoutes = () => (
 const WorkspaceRoutes = () => (
   <Route element={<AdminLayout />}>
     <Route path="dashboard" element={<WorkspaceDashboard />} />
-    <Route path="crm-dashboard" element={<CrmDashboard />} />
     <Route path="leads" element={<Leads />} />
-    <Route path="customers" element={<Customers />} />
-    <Route path="customers/:id" element={<AdminCustomerProfile />} />
+    <Route path="companies" element={<Companies />} />
+    <Route path="companies/:id" element={<AdminCompanyProfile />} />
+    <Route path="contacts" element={<Contacts />} />
+    <Route path="customers" element={<Navigate to="/workspace/companies" replace />} />
+    <Route path="customers/:id" element={<Navigate to="/workspace/companies" replace />} />
     <Route path="suppliers" element={<Suppliers />} />
     <Route path="suppliers/:id" element={<SupplierProfile />} />
     <Route path="products" element={<Products />} />
     <Route path="enquiries" element={<Enquiries />} />
-    <Route path="quotes" element={<Quotes />} />
+    <Route path="deals" element={<Deals />} />
+    <Route path="quotes" element={<QuotesSplitView />} />
     <Route path="quotes/:id" element={<QuoteDetail />} />
     <Route path="sales-orders" element={<SalesOrders />} />
     <Route path="sales-orders/:id" element={<SalesOrderDetail />} />
     <Route path="deliveries" element={<Deliveries />} />
     <Route path="deliveries/:id" element={<DeliveryDetail />} />
-    <Route path="invoices" element={<Invoices />} />
+    <Route path="invoices" element={<InvoicesSplitView />} />
     <Route path="invoices/:id" element={<InvoiceDetail />} />
     <Route path="payment-receipts" element={<PaymentReceipts />} />
     <Route path="purchases" element={<Purchases />} />
@@ -112,7 +116,8 @@ const WorkspaceRoutes = () => (
     <Route path="users" element={<Users />} />
     <Route path="settings" element={<WorkspaceSettings />} />
     <Route path="notifications" element={<Notifications />} />
-    <Route path="customers/import" element={<CustomerImport />} />
+    <Route path="companies/import" element={<CompanyImport />} />
+    <Route path="customers/import" element={<Navigate to="/workspace/companies/import" replace />} />
     <Route path="attendance" element={<AttendanceReport />} />
     <Route path="marketing" element={<Navigate to="dashboard" replace />} />
     <Route path="marketing/dashboard" element={<MarketingDashboard />} />

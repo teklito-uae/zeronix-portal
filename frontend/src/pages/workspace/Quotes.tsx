@@ -2,9 +2,9 @@ import { getBasePath } from '@/hooks/useBasePath';
 import { useNavigate } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { StatusBadge } from '@/components/shared/StatusBadge';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
-import type { Quote } from '@/types';
+import type { Quote, User } from '@/types';
 import { FileText, Building2, CheckCircle2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
@@ -19,6 +19,11 @@ export const Quotes = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('all');
+
+  const { data: usersList = [] } = useQuery({
+    queryKey: ['users', 'all'],
+    queryFn: async () => (await api.get(`/admin/users?per_page=100`)).data.data as User[],
+  });
 
   const quoteTabs = [
     { id: 'all', label: 'All Quotes' },
@@ -132,6 +137,14 @@ export const Quotes = () => {
       activeTab={activeTab}
       onTabChange={setActiveTab}
       baseFilters={{ status: activeTab !== 'all' ? activeTab : undefined }}
+      filters={[
+        {
+          name: 'user_id',
+          label: 'Sales Rep',
+          placeholder: 'Filter by sales rep',
+          options: usersList.map((u) => ({ label: u.name, value: String(u.id) })),
+        },
+      ]}
     />
   );
 };

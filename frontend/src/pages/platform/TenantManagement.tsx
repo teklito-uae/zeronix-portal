@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Search, Loader2, Building2, CheckCircle, XCircle, FileText, Ban } from 'lucide-react';
 import { toast } from 'sonner';
@@ -188,21 +188,23 @@ export const TenantManagement = () => {
         </CardContent>
       </Card>
 
-      {/* Review Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Building2 className="text-emerald-500" />
-              Company Review
-            </DialogTitle>
-            <DialogDescription>
-              Review company details and uploaded documents to verify their application.
-            </DialogDescription>
-          </DialogHeader>
+      {/* Review Sheet */}
+      <Sheet open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-[600px] p-0 flex flex-col gap-0">
+          <div className="p-6 border-b flex-shrink-0">
+            <SheetHeader className="space-y-1 text-left">
+              <SheetTitle className="flex items-center gap-2 pr-6">
+                <Building2 className="text-emerald-500" />
+                Company Review
+              </SheetTitle>
+              <SheetDescription>
+                Review company details and uploaded documents to verify their application.
+              </SheetDescription>
+            </SheetHeader>
+          </div>
 
           {selectedCompany && (
-            <div className="space-y-6 py-4">
+            <div className="flex-1 overflow-y-auto space-y-6 p-6">
               {/* Status Header */}
               <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border">
                 <div>
@@ -302,8 +304,8 @@ export const TenantManagement = () => {
               )}
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

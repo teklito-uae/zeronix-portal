@@ -25,10 +25,10 @@ export const AdminRoute = () => {
 
   // Permission Check for Salesmen/Staff in Workspace
   if (isWorkspacePath && admin.role !== 'admin' && admin.role !== 'super_admin') {
-    const path = location.pathname.split('/')[2]; // /workspace/customers -> customers
-    
+    const path = location.pathname.split('/')[2]; // /workspace/companies -> companies
+
     const publicModules = ['dashboard', 'settings', 'profile', 'notifications'];
-    const adminOnlyModules = ['users', 'activities', 'companies', 'system-docs'];
+    const adminOnlyModules = ['users', 'activities', 'system-docs'];
 
     if (path && !publicModules.includes(path)) {
         if (adminOnlyModules.includes(path)) {

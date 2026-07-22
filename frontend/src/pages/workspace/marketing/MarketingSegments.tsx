@@ -12,13 +12,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from '@/components/ui/sheet';
 import { Plus, Filter, Pencil, Trash2, RefreshCw, Users2 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/axios';
@@ -146,13 +146,15 @@ export const MarketingSegments = () => {
         </div>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-[15px]">{editing ? 'Edit Segment' : 'New Segment'}</DialogTitle>
-            <DialogDescription className="text-[12px]">Segments are re-evaluated live whenever a campaign uses them.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
+      <Sheet open={dialogOpen} onOpenChange={setDialogOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl p-0 flex flex-col gap-0">
+          <div className="p-6 border-b border-brand-border/50 flex-shrink-0">
+            <SheetHeader className="space-y-1 text-left">
+              <SheetTitle className="text-[15px] pr-6">{editing ? 'Edit Segment' : 'New Segment'}</SheetTitle>
+              <SheetDescription className="text-[12px]">Segments are re-evaluated live whenever a campaign uses them.</SheetDescription>
+            </SheetHeader>
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-4 p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-[12px]">Segment name</Label>
@@ -187,12 +189,14 @@ export const MarketingSegments = () => {
               </Button>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-[13px]">Cancel</Button>
-            <Button onClick={save} disabled={saving} className="text-[13px] bg-brand-primary">{saving ? 'Saving…' : 'Save Segment'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <div className="p-6 pt-4 border-t border-brand-border/50 flex-shrink-0">
+            <SheetFooter className="sm:justify-end">
+              <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-[13px]">Cancel</Button>
+              <Button onClick={save} disabled={saving} className="text-[13px] bg-brand-primary">{saving ? 'Saving…' : 'Save Segment'}</Button>
+            </SheetFooter>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <ConfirmDialog
         open={!!deleteTarget}

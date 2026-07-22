@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/table';
 import { useQuery } from '@tanstack/react-query';
 import type { Customer, Product } from '@/types';
-import { ArrowLeft, Save, Plus, Trash2, Loader2, Calendar, User, Truck, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Loader2, Calendar, User, Truck, CheckCircle2, FileCheck2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface DeliveryEditorProps {
@@ -125,6 +125,23 @@ export const DeliveryEditor = ({ id, isNew }: DeliveryEditorProps) => {
     }
   };
 
+  const handleConvertToInvoice = async () => {
+    setLoading(true);
+    try {
+      const res = await api.post(`/admin/deliveries/${id}/convert-to-invoice`);
+      toast.success('Invoice created.');
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      navigate(`${getBasePath()}/invoices/${res.data.id}`);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to create invoice.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const linkedInvoice = docData.invoice || docData.invoices?.[0];
+  const canInvoice = !isNew && docData.status === 'delivered' && !linkedInvoice;
+
   const updateItem = (i: number, patch: any) => {
     const next = [...items];
     next[i] = { ...next[i], ...patch };
@@ -163,6 +180,11 @@ export const DeliveryEditor = ({ id, isNew }: DeliveryEditorProps) => {
           {!isNew && docData.status !== 'delivered' && docData.status !== 'cancelled' && (
             <Button onClick={handleMarkDelivered} disabled={loading} size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-10 px-5 font-bold text-[11px] uppercase tracking-wider shadow-lg shadow-emerald-600/10">
               <CheckCircle2 size={16} className="mr-2" /> Mark Delivered
+            </Button>
+          )}
+          {canInvoice && (
+            <Button onClick={handleConvertToInvoice} disabled={loading} size="sm" className="bg-zeronix-blue hover:bg-zeronix-blue-hover text-white rounded-xl h-10 px-5 font-bold text-[11px] uppercase tracking-wider shadow-lg">
+              <FileCheck2 size={16} className="mr-2" /> Convert to Invoice
             </Button>
           )}
           {!isLocked && (
@@ -217,6 +239,17 @@ export const DeliveryEditor = ({ id, isNew }: DeliveryEditorProps) => {
                   </p>
                 </div>
               )}
+
+              {!isNew && (
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted ml-1 flex items-center gap-1.5">
+                    <FileCheck2 size={12} className="text-zeronix-blue" /> Linked Invoice
+                  </Label>
+                  <p className="h-11 flex items-center px-3 bg-admin-bg border border-admin-border rounded-xl text-sm text-admin-text-secondary">
+                    {linkedInvoice?.invoice_number || '— (not yet invoiced)'}
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -228,6 +261,25 @@ export const DeliveryEditor = ({ id, isNew }: DeliveryEditorProps) => {
                 className="bg-admin-bg border-admin-border rounded-xl text-sm resize-none min-h-[70px]"
               />
             </div>
+
+            {!isNew && docData.customer_confirmation && (
+              <div className={`rounded-xl border p-4 flex gap-3 ${docData.customer_confirmation === 'accepted' ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-danger/5 border-danger/30'}`}>
+                {docData.customer_confirmation === 'accepted' ? (
+                  <CheckCircle2 size={18} className="text-emerald-500 shrink-0 mt-0.5" />
+                ) : (
+                  <XCircle size={18} className="text-danger shrink-0 mt-0.5" />
+                )}
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-admin-text-primary uppercase tracking-wide">
+                    Customer {docData.customer_confirmation === 'accepted' ? 'confirmed receipt' : 'rejected delivery'}
+                    {docData.customer_confirmed_at && ` on ${new Date(docData.customer_confirmed_at).toLocaleString()}`}
+                  </p>
+                  {docData.customer_notes && (
+                    <p className="text-xs text-admin-text-secondary italic">"{docData.customer_notes}"</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="bg-admin-surface border border-admin-border rounded-lg overflow-hidden shadow-sm">

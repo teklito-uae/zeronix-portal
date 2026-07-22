@@ -17,9 +17,16 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from '@/components/ui/sheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Pencil, Trash2, Send, Save } from 'lucide-react';
 import type { MarketingSettings as MarketingSettingsType, MarketingSmtpAccount } from '@/types';
@@ -415,13 +422,15 @@ const SmtpAccountsTab = () => {
         </Table>
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-[15px]">{editing ? 'Edit SMTP Account' : 'Add SMTP Account'}</DialogTitle>
-            <DialogDescription className="text-[12px]">Used for outgoing marketing campaign emails.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
+      <Sheet open={dialogOpen} onOpenChange={setDialogOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-lg p-0 flex flex-col gap-0">
+          <div className="p-6 border-b border-brand-border/50 flex-shrink-0">
+            <SheetHeader className="space-y-1 text-left">
+              <SheetTitle className="text-[15px] pr-6">{editing ? 'Edit SMTP Account' : 'Add SMTP Account'}</SheetTitle>
+              <SheetDescription className="text-[12px]">Used for outgoing marketing campaign emails.</SheetDescription>
+            </SheetHeader>
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-3 p-6">
             <Field label="Label">
               <Input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} className="h-9 text-[13px]" />
             </Field>
@@ -470,12 +479,14 @@ const SmtpAccountsTab = () => {
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-[13px]">Cancel</Button>
-            <Button onClick={save} disabled={saving} className="text-[13px] bg-brand-primary">{saving ? 'Saving…' : 'Save'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <div className="p-6 pt-4 border-t border-brand-border/50 flex-shrink-0">
+            <SheetFooter className="sm:justify-end">
+              <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-[13px]">Cancel</Button>
+              <Button onClick={save} disabled={saving} className="text-[13px] bg-brand-primary">{saving ? 'Saving…' : 'Save'}</Button>
+            </SheetFooter>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <Dialog open={!!testDialog} onOpenChange={(v) => !v && setTestDialog(null)}>
         <DialogContent className="max-w-md">

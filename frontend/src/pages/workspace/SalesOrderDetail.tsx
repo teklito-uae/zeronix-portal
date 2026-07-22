@@ -1,11 +1,11 @@
 import { useParams } from 'react-router-dom';
-import { SalesOrderEditor } from '@/components/shared/SalesOrderEditor';
+import { TransactionEditor } from '@/components/shared/TransactionEditor';
 
 export const SalesOrderDetail = () => {
   const { id } = useParams();
   const isNew = id === 'create';
 
   return (
-    <SalesOrderEditor id={id} isNew={isNew} />
+    <TransactionEditor type="sales-order" id={id} isNew={isNew} />
   );
 };

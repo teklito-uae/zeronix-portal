@@ -6,7 +6,9 @@ export type EnquirySource = 'manual' | 'website' | 'email' | 'referral' | 'impor
 export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired' | 'converted' | 'invoiced';
 export type SalesOrderStatus = 'draft' | 'confirmed' | 'processing' | 'completed' | 'cancelled';
 export type DeliveryStatus = 'pending' | 'processing' | 'delivered' | 'cancelled';
-export type InvoiceStatus = 'draft' | 'posted' | 'partially_paid' | 'paid' | 'overdue' | 'cancelled';
+export type InvoiceStatus = 'draft' | 'sent' | 'accepted' | 'on_hold' | 'cancelled';
+/** Computed from payment receipts (Invoice::getPaymentStatusAttribute) — never written directly. */
+export type InvoicePaymentStatus = 'unpaid' | 'partially_paid' | 'paid' | 'overdue';
 export type PurchaseBillStatus = 'unpaid' | 'partial' | 'paid' | 'cancelled';
 
 // ── Core Models ────────────────────────────────────────
@@ -62,13 +64,27 @@ export interface Customer {
   user_ids?: number[];
   assigned_users?: User[];
   labels?: CustomerLabel[];
+  industry?: string;
+  website?: string;
+  description?: string;
   // Computed / relationship counts
   enquiries_count?: number;
   quotes_count?: number;
   invoices_count?: number;
   outstanding_balance?: number;
   overdue_invoices_count?: number;
+  overdue_invoices_value?: number;
   contacts?: CustomerContact[];
+  contacts_count?: number;
+  deals_count?: number;
+  total_invoiced?: number;
+  total_volume?: number;
+  open_deals_count?: number;
+  open_deals_value?: number;
+  open_quotes_count?: number;
+  open_quotes_value?: number;
+  open_invoices_count?: number;
+  open_invoices_value?: number;
 }
 
 export interface CustomerContact {
@@ -88,6 +104,7 @@ export interface CustomerContact {
   notes?: string;
   created_at?: string;
   updated_at?: string;
+  customer?: Customer;
 }
 
 
@@ -225,6 +242,44 @@ export interface Enquiry {
   items_count?: number;
 }
 
+export type DealStage = 'new' | 'qualified' | 'proposal' | 'negotiation' | 'won' | 'lost';
+
+export interface Deal {
+  id: number;
+  deal_code?: string;
+  title: string;
+  description?: string;
+  lead_id?: number | null;
+  customer_id?: number | null;
+  customer_contact_id?: number | null;
+  value: number;
+  stage: DealStage;
+  expected_close_date?: string | null;
+  closed_at?: string | null;
+  lost_reason?: string | null;
+  user_id?: number | null;
+  created_at?: string;
+  updated_at?: string;
+  // Relations
+  lead?: Lead;
+  customer?: Customer;
+  customerContact?: CustomerContact;
+  user?: User;
+}
+
+export interface DealActivity {
+  id: number;
+  deal_id: number;
+  type: 'call' | 'email' | 'meeting' | 'note' | 'task';
+  notes?: string;
+  due_date?: string | null;
+  completed_at?: string | null;
+  user_id?: number | null;
+  created_at?: string;
+  updated_at?: string;
+  user?: User;
+}
+
 export interface EnquiryItem {
   id: number;
   enquiry_id: number;
@@ -237,12 +292,21 @@ export interface EnquiryItem {
   product?: Product;
 }
 
+export interface QuoteAttachment {
+  name: string;
+  path: string;
+  size?: number;
+  uploaded_at?: string;
+}
+
 export interface Quote {
   id: number;
   quote_number?: string;
   enquiry_id?: number | null;
+  deal_id?: number | null;
   customer_id?: number | null;
   customer_contact_id?: number | null;
+  user_id?: number | null;
   status: QuoteStatus;
   date?: string;
   subtotal: number;
@@ -255,12 +319,38 @@ export interface Quote {
   due_date?: string;
   closing_ratio?: number;
   last_notified_at?: string;
+  tags?: string[] | null;
+  attachments?: QuoteAttachment[] | null;
+  payment_terms?: string | null;
+  delivery_date?: string | null;
+  notes?: string | null;
+  terms?: string | null;
+  discount_percent?: number;
+  shipping_amount?: number;
   created_at?: string;
   updated_at?: string;
   // Relations
   customer?: Customer;
+  customerContact?: CustomerContact;
   enquiry?: Enquiry;
+  deal?: Deal;
   items?: QuoteItem[];
+  user?: User;
+  activities?: ActivityLogEntry[];
+}
+
+export interface ActivityLogEntry {
+  id: number;
+  user_id?: number | null;
+  customer_id?: number | null;
+  action: string;
+  subject_type?: string;
+  subject_id?: number;
+  description: string;
+  properties?: { changes?: Record<string, any> } | null;
+  created_at?: string;
+  user?: User;
+  customer?: Customer;
 }
 
 export interface QuoteItem {
@@ -272,6 +362,8 @@ export interface QuoteItem {
   quantity: number;
   unit_price: number;
   tax_percent?: number;
+  discount_percent?: number;
+  discount_amount?: number;
   total: number;
   product?: Product;
 }
@@ -317,16 +409,22 @@ export interface Delivery {
   delivery_number?: string;
   customer_id: number;
   sales_order_id?: number | null;
+  invoice_id?: number | null;
   delivered_by?: number | null;
   delivery_date?: string;
   status: DeliveryStatus;
   notes?: string;
   delivered_at?: string;
+  customer_confirmation?: 'accepted' | 'rejected' | null;
+  customer_confirmed_at?: string | null;
+  customer_notes?: string | null;
   created_at?: string;
   updated_at?: string;
   // Relations
   customer?: Customer;
   salesOrder?: SalesOrder;
+  invoice?: Invoice;
+  invoices?: Invoice[];
   deliveredBy?: User;
   items?: DeliveryItem[];
   items_count?: number;
@@ -350,6 +448,7 @@ export interface Invoice {
   delivery_id?: number | null;
   customer_id?: number | null;
   customer_contact_id?: number | null;
+  user_id?: number | null;
   status: InvoiceStatus;
   date?: string;
   subtotal: number;
@@ -358,10 +457,15 @@ export interface Invoice {
   total: number;
   due_date?: string;
   paid_at?: string;
-  notes?: string;
-  delivery_status?: string;
-  delivery_confirmed_at?: string;
-  delivery_notes?: string;
+  reference_id?: string | null;
+  deal_id?: number | null;
+  notes?: string | null;
+  terms?: string | null;
+  payment_terms?: string | null;
+  discount_percent?: number;
+  shipping_amount?: number;
+  tags?: string[] | null;
+  attachments?: QuoteAttachment[] | null;
   email_sent_at?: string;
   created_at?: string;
   updated_at?: string;
@@ -369,10 +473,19 @@ export interface Invoice {
   days_due: number;
   amount_paid: number;
   balance: number;
+  payment_status: InvoicePaymentStatus;
+  // The delivery tied to this invoice, whichever direction created the link.
+  linked_delivery?: Delivery | null;
   // Relations
   customer?: Customer;
+  customerContact?: CustomerContact;
   quote?: Quote;
+  deal?: Deal;
+  delivery?: Delivery;
+  deliveries?: Delivery[];
   items?: InvoiceItem[];
+  user?: User;
+  activities?: ActivityLogEntry[];
 }
 
 export interface InvoiceItem {
@@ -384,6 +497,8 @@ export interface InvoiceItem {
   quantity: number;
   unit_price: number;
   tax_percent?: number;
+  discount_percent?: number;
+  discount_amount?: number;
   total: number;
   product?: Product;
 }

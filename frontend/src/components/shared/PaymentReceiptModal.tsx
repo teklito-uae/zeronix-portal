@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -68,16 +68,16 @@ export const PaymentReceiptModal = ({ isOpen, onClose, invoice }: PaymentReceipt
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[440px] bg-admin-surface border-admin-border p-0 overflow-hidden rounded-md">
-        <DialogHeader className="px-5 py-3 border-b border-admin-border bg-admin-bg/50">
-          <DialogTitle className="text-sm font-medium text-admin-text-primary flex items-center gap-2">
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent side="right" className="w-full sm:max-w-[440px] bg-admin-surface border-admin-border p-0 flex flex-col gap-0">
+        <SheetHeader className="px-5 py-3 border-b border-admin-border bg-admin-bg/50 space-y-0 text-left flex-shrink-0">
+          <SheetTitle className="text-sm font-medium text-admin-text-primary flex items-center gap-2 pr-6">
             <Receipt size={16} className="text-zeronix-blue" />
             Record Payment
-          </DialogTitle>
-        </DialogHeader>
+          </SheetTitle>
+        </SheetHeader>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto flex flex-col p-5 space-y-4">
           {invoice && (
             <div className="bg-admin-bg/50 p-3 rounded-md border border-admin-border space-y-1.5 text-sm">
               <div className="flex justify-between">
@@ -136,7 +136,7 @@ export const PaymentReceiptModal = ({ isOpen, onClose, invoice }: PaymentReceipt
             </Button>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 };

@@ -241,10 +241,19 @@
 body {
   font-family: var(--font-sans);
   font-size: 13px;
+  font-weight: 500;
   color: #111827;
   background: var(--page-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'cv11', 'ss01';
+  letter-spacing: -0.006em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  letter-spacing: -0.015em;
 }
 
 /* Remove default outlines, use focus rings */

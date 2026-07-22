@@ -1,17 +1,22 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSidebarStore } from '@/store/useSidebarStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useThemeStore } from '@/store/useThemeStore';
+import { useCartStore } from '@/store/useCartStore';
 import { Logo } from '@/components/shared/Logo';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { NotificationBell } from './NotificationBell';
+import { CartDrawer } from '../portal/CartDrawer';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -41,7 +46,11 @@ import {
   BarChart3,
   ClipboardList,
   PackageCheck,
-  Megaphone
+  Megaphone,
+  Handshake,
+  Search,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 interface NavItem {
@@ -54,6 +63,7 @@ interface NavItem {
 
 interface NavGroup {
   label: string;
+  description?: string;
   items: NavItem[];
 }
 
@@ -89,31 +99,39 @@ const getTenantAdminNavGroups = (basePath: string): NavGroup[] => [
   },
   {
     label: 'CRM',
+    description: 'Lead → Enquiry → Customer',
     items: [
-      { id: 'crm-dashboard', label: 'CRM Dashboard', icon: <BarChart3 size={18} />, path: `${basePath}/crm-dashboard` },
       { id: 'leads', label: 'Leads', icon: <UserCircle2 size={18} />, path: `${basePath}/leads` },
-      { id: 'customers', label: 'Customers', icon: <Users size={18} />, path: `${basePath}/customers` },
+      { id: 'companies', label: 'Companies', icon: <Building2 size={18} />, path: `${basePath}/companies` },
+      { id: 'contacts', label: 'Contacts', icon: <Users size={18} />, path: `${basePath}/contacts` },
       { id: 'enquiries', label: 'Enquiries', icon: <MessageSquareText size={18} />, path: `${basePath}/enquiries` },
+      { id: 'deals', label: 'Deals', icon: <Handshake size={18} />, path: `${basePath}/deals` },
     ],
   },
   {
-    label: 'Management',
-    items: [
-      { id: 'suppliers', label: 'Suppliers', icon: <Truck size={18} />, path: `${basePath}/suppliers` },
-      { id: 'products', label: 'Products', icon: <Package size={18} />, path: `${basePath}/products` },
-      { id: 'users', label: 'Team', icon: <Users size={18} />, path: `${basePath}/users` },
-    ],
-  },
-  {
-    label: 'Operations',
+    label: 'Sales',
+    description: 'Quote → Order → Delivery → Invoice → Receipt',
     items: [
       { id: 'quotes', label: 'Quotes', icon: <FileText size={18} />, path: `${basePath}/quotes` },
       { id: 'sales-orders', label: 'Sales Orders', icon: <ClipboardList size={18} />, path: `${basePath}/sales-orders` },
       { id: 'deliveries', label: 'Deliveries', icon: <PackageCheck size={18} />, path: `${basePath}/deliveries` },
       { id: 'invoices', label: 'Invoices', icon: <Receipt size={18} />, path: `${basePath}/invoices` },
       { id: 'receipts', label: 'Payment Receipts', icon: <Receipt size={18} />, path: `${basePath}/payment-receipts` },
+    ],
+  },
+  {
+    label: 'Purchasing',
+    items: [
+      { id: 'suppliers', label: 'Suppliers', icon: <Truck size={18} />, path: `${basePath}/suppliers` },
       { id: 'purchases', label: 'Purchases', icon: <ShoppingCart size={18} />, path: `${basePath}/purchases` },
       { id: 'expenses', label: 'Expenses', icon: <Wallet size={18} />, path: `${basePath}/expenses` },
+    ],
+  },
+  {
+    label: 'Management',
+    items: [
+      { id: 'products', label: 'Products', icon: <Package size={18} />, path: `${basePath}/products` },
+      { id: 'users', label: 'Team', icon: <Users size={18} />, path: `${basePath}/users` },
     ],
   },
   {
@@ -151,30 +169,38 @@ const getTenantStaffNavGroups = (basePath: string): NavGroup[] => [
   },
   {
     label: 'CRM',
+    description: 'Lead → Enquiry → Customer',
     items: [
-      { id: 'crm-dashboard', label: 'CRM Dashboard', icon: <BarChart3 size={18} />, path: `${basePath}/crm-dashboard` },
       { id: 'leads', label: 'Leads', icon: <UserCircle2 size={18} />, path: `${basePath}/leads` },
-      { id: 'customers', label: 'Customers', icon: <Users size={18} />, path: `${basePath}/customers` },
+      { id: 'companies', label: 'Companies', icon: <Building2 size={18} />, path: `${basePath}/companies` },
+      { id: 'contacts', label: 'Contacts', icon: <Users size={18} />, path: `${basePath}/contacts` },
       { id: 'enquiries', label: 'Enquiries', icon: <MessageSquareText size={18} />, path: `${basePath}/enquiries` },
+      { id: 'deals', label: 'Deals', icon: <Handshake size={18} />, path: `${basePath}/deals` },
     ],
   },
   {
-    label: 'Management',
-    items: [
-      { id: 'suppliers', label: 'Suppliers', icon: <Truck size={18} />, path: `${basePath}/suppliers` },
-      { id: 'products', label: 'Products', icon: <Package size={18} />, path: `${basePath}/products` },
-    ],
-  },
-  {
-    label: 'Operations',
+    label: 'Sales',
+    description: 'Quote → Order → Delivery → Invoice → Receipt',
     items: [
       { id: 'quotes', label: 'Quotes', icon: <FileText size={18} />, path: `${basePath}/quotes` },
       { id: 'sales-orders', label: 'Sales Orders', icon: <ClipboardList size={18} />, path: `${basePath}/sales-orders` },
       { id: 'deliveries', label: 'Deliveries', icon: <PackageCheck size={18} />, path: `${basePath}/deliveries` },
       { id: 'invoices', label: 'Invoices', icon: <Receipt size={18} />, path: `${basePath}/invoices` },
       { id: 'receipts', label: 'Payment Receipts', icon: <Receipt size={18} />, path: `${basePath}/payment-receipts` },
+    ],
+  },
+  {
+    label: 'Purchasing',
+    items: [
+      { id: 'suppliers', label: 'Suppliers', icon: <Truck size={18} />, path: `${basePath}/suppliers` },
       { id: 'purchases', label: 'Purchases', icon: <ShoppingCart size={18} />, path: `${basePath}/purchases` },
       { id: 'expenses', label: 'Expenses', icon: <Wallet size={18} />, path: `${basePath}/expenses` },
+    ],
+  },
+  {
+    label: 'Management',
+    items: [
+      { id: 'products', label: 'Products', icon: <Package size={18} />, path: `${basePath}/products` },
     ],
   },
   {
@@ -210,12 +236,22 @@ const getCustomerNavGroups = (companySlug: string): NavGroup[] => [
 ];
 
 export const Sidebar = () => {
-  const { isOpen, toggle } = useSidebarStore();
+  const { isOpen, toggle, setOpen } = useSidebarStore();
+  const asideRef = useRef<HTMLElement>(null);
   const adminUser = useAuthStore((state) => state.admin);
   const customerUser = useAuthStore((state) => state.customer);
   const logout = useAuthStore((state) => state.logout);
+  const { theme, toggle: toggleTheme } = useThemeStore();
+  const cartItems = useCartStore((s) => s.items);
+  const totalCartItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // The Topbar owns the actual search modal + Cmd/Ctrl+K listener (it's
+  // mounted on every breakpoint); this button just re-dispatches the same
+  // shortcut so there's a single source of truth for the open state.
+  const openGlobalSearch = () =>
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }));
 
   // Group-flyout hover state (collapsed mode only)
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
@@ -229,6 +265,19 @@ export const Sidebar = () => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
     closeTimer.current = setTimeout(() => setHoveredGroup(null), 150);
   };
+
+  // Auto-hide: once expanded, collapse back as soon as the user interacts
+  // outside the sidebar, so it doesn't permanently eat into the content area.
+  useEffect(() => {
+    if (!isOpen) return;
+    const handlePointerDown = (e: MouseEvent) => {
+      if (asideRef.current && !asideRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [isOpen, setOpen]);
 
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
   const isCustomer = location.pathname.startsWith('/portal');
@@ -273,8 +322,9 @@ export const Sidebar = () => {
   return (
     <TooltipProvider delayDuration={0}>
       <aside
+        ref={asideRef}
         className={cn(
-          'hidden md:flex flex-col h-[calc(100vh-24px)] bg-brand-white border border-brand-border rounded-xl shadow-sm flex-shrink-0 transition-all duration-300 relative z-20',
+          'hidden md:flex flex-col h-screen bg-brand-white border-r border-brand-border flex-shrink-0 transition-all duration-300 relative z-20',
           isOpen ? 'w-64' : 'w-17'
         )}
       >
@@ -288,7 +338,7 @@ export const Sidebar = () => {
 
         {/* Navigation */}
         <ScrollArea className="flex-1 py-3">
-          <nav className="space-y-5 px-3">
+          <nav className="flex flex-col gap-5 px-3">
             {navGroups.map((group) => (
               <div
                 key={group.label}
@@ -297,10 +347,15 @@ export const Sidebar = () => {
               >
                 {/* Group Label */}
                 {isOpen ? (
-                  <div className="flex items-center px-2.5 mb-1.5">
+                  <div className="px-2.5 mb-1.5">
                     <span className="text-[10px] font-semibold text-brand-subtle uppercase tracking-[0.08em]">
                       {group.label}
                     </span>
+                    {group.description && (
+                      <span className="block text-[10px] text-brand-subtle/70 normal-case tracking-normal mt-0.5">
+                        {group.description}
+                      </span>
+                    )}
                   </div>
                 ) : (
                   <Separator className="my-2 bg-brand-border/50" />
@@ -309,13 +364,13 @@ export const Sidebar = () => {
                 {/* Nav Items */}
                 <Popover open={!isOpen && hoveredGroup === group.label}>
                   <PopoverAnchor asChild>
-                    <div className="space-y-0.5">
+                    <div className="flex flex-col gap-0.5">
                       {group.items.map((item) => {
                         const active = isActive(item.path);
                         const button = (
                           <button
                             key={item.path}
-                            onClick={() => navigate(item.path)}
+                            onClick={() => { navigate(item.path); setOpen(false); }}
                             className={cn(
                               'w-full flex items-center gap-2 rounded-lg transition-colors relative',
                               isOpen ? 'px-2.5 py-2.5' : 'justify-center p-2.5 mx-auto',
@@ -327,7 +382,7 @@ export const Sidebar = () => {
                             {active && isOpen && (
                               <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-brand-accent" />
                             )}
-                            <span className={cn("flex-shrink-0 flex items-center justify-center", active ? "text-brand-accent" : "text-brand-subtle")}>
+                            <span className={cn('flex-shrink-0 flex items-center justify-center', active ? 'text-brand-accent' : 'text-brand-subtle')}>
                               {item.icon}
                             </span>
                             {isOpen && (
@@ -365,7 +420,7 @@ export const Sidebar = () => {
                     <p className="px-2.5 pt-1 pb-1.5 text-[10px] font-semibold text-brand-subtle uppercase tracking-[0.06em]">
                       {group.label}
                     </p>
-                    <div className="space-y-0.5">
+                    <div className="flex flex-col gap-0.5">
                       {group.items.map((item) => {
                         const active = isActive(item.path);
                         return (
@@ -379,7 +434,7 @@ export const Sidebar = () => {
                                 : 'text-brand-secondary hover:bg-brand-surface hover:text-brand-primary'
                             )}
                           >
-                            <span className={cn("flex-shrink-0", active ? "text-brand-accent" : "text-brand-subtle")}>
+                            <span className={cn('flex-shrink-0', active ? 'text-brand-accent' : 'text-brand-subtle')}>
                               {item.icon}
                             </span>
                             <span className="truncate">{item.label}</span>
@@ -396,6 +451,54 @@ export const Sidebar = () => {
 
         {/* Bottom Section */}
         <div className="border-t border-brand-border/60 mt-2 pt-2 px-2 flex flex-col gap-0.5 shrink-0">
+          {/* Quick Actions — search, notifications, theme, cart. Hidden on
+              mobile since this <aside> doesn't render there; Topbar carries
+              mobile-only equivalents instead. */}
+          <div className={cn('hidden md:flex pb-1.5 mb-1 border-b border-brand-border/60', isOpen ? 'items-center justify-around' : 'flex-col items-center gap-1')}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={openGlobalSearch}
+                  className="p-2 rounded-lg text-brand-muted hover:bg-brand-surface hover:text-brand-primary transition-colors"
+                >
+                  <Search size={16} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side={isOpen ? 'top' : 'right'} className="bg-brand-surface text-brand-primary border-brand-border/50 text-[12px] font-medium">
+                Search <kbd className="ml-1 text-[10px] opacity-60">⌘K</kbd>
+              </TooltipContent>
+            </Tooltip>
+
+            <NotificationBell side={isOpen ? 'top' : 'right'} align="start" />
+
+            {isCustomer && (
+              <CartDrawer>
+                <button className="p-2 rounded-lg text-brand-muted hover:bg-brand-surface hover:text-brand-primary transition-colors relative">
+                  <ShoppingCart size={16} />
+                  {totalCartItems > 0 && (
+                    <span className="absolute top-1 right-1 h-3 w-3 bg-brand-success text-[8px] font-bold text-brand-white flex items-center justify-center rounded-full shadow-sm">
+                      {totalCartItems}
+                    </span>
+                  )}
+                </button>
+              </CartDrawer>
+            )}
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => toggleTheme(isCustomer)}
+                  className="p-2 rounded-lg text-brand-muted hover:bg-brand-surface hover:text-brand-primary transition-colors"
+                >
+                  {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side={isOpen ? 'top' : 'right'} className="bg-brand-surface text-brand-primary border-brand-border/50 text-[12px] font-medium">
+                Toggle theme
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
           {docsPath && (
             isOpen ? (
               <button
@@ -431,11 +534,10 @@ export const Sidebar = () => {
                   isOpen ? 'px-2 py-2' : 'justify-center p-2'
                 )}
               >
-                <Avatar className="h-7 w-7 border border-brand-border shrink-0">
-                  <img
+                <Avatar className="size-7 border border-brand-border shrink-0">
+                  <AvatarImage
                     src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'User'}`}
                     alt={user?.name}
-                    className="h-full w-full object-cover"
                   />
                   <AvatarFallback className="bg-brand-accent text-brand-white text-[10px] font-semibold">
                     {user?.name?.charAt(0) || (isCustomer ? 'C' : 'A')}
@@ -468,25 +570,29 @@ export const Sidebar = () => {
                   </span>
                 </div>
               )}
-              <DropdownMenuItem
-                className="text-brand-secondary hover:bg-brand-surface cursor-pointer text-[13px]"
-                onClick={() => navigate(isCustomer ? `/portal/${companySlug}/profile` : '#')}
-              >
-                <User size={14} className="mr-2" /> Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-brand-secondary hover:bg-brand-surface cursor-pointer text-[13px]"
-                onClick={() => navigate(isCustomer ? `/portal/${companySlug}/profile` : `${getBasePath()}/settings`)}
-              >
-                <Settings size={14} className="mr-2" /> Settings
-              </DropdownMenuItem>
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  className="text-brand-secondary hover:bg-brand-surface cursor-pointer text-[13px]"
+                  onClick={() => navigate(isCustomer ? `/portal/${companySlug}/profile` : '#')}
+                >
+                  <User size={14} className="mr-2" /> Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-brand-secondary hover:bg-brand-surface cursor-pointer text-[13px]"
+                  onClick={() => navigate(isCustomer ? `/portal/${companySlug}/profile` : `${getBasePath()}/settings`)}
+                >
+                  <Settings size={14} className="mr-2" /> Settings
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
               <DropdownMenuSeparator className="bg-brand-border" />
-              <DropdownMenuItem
-                onClick={handleLogout}
-                className="text-brand-danger hover:bg-brand-danger-bg cursor-pointer text-[13px]"
-              >
-                <LogOut size={14} className="mr-2" /> Logout
-              </DropdownMenuItem>
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="text-brand-danger hover:bg-brand-danger-bg cursor-pointer text-[13px]"
+                >
+                  <LogOut size={14} className="mr-2" /> Logout
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
