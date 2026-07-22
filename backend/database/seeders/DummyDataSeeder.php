@@ -172,7 +172,7 @@ class DummyDataSeeder extends Seeder
                 'subtotal' => $quote->subtotal,
                 'vat_amount' => $quote->vat_amount,
                 'total' => $quote->total,
-                'status' => $faker->randomElement(['draft', 'sent', 'paid', 'partially_paid', 'overdue', 'cancelled']),
+                'status' => $faker->randomElement(['draft', 'sent', 'accepted', 'on_hold', 'cancelled']),
             ]);
 
             // Invoice Items based on quote items

@@ -106,7 +106,15 @@ class AttendanceController extends Controller
         if ($request->filled('user_id') && $request->user_id !== 'all') {
             $query->where('user_id', $request->user_id);
         }
-        
+
+        if ($request->filled('status') && $request->status !== 'all') {
+            if ($request->status === 'active') {
+                $query->whereNull('clock_out');
+            } elseif ($request->status === 'completed') {
+                $query->whereNotNull('clock_out');
+            }
+        }
+
         if ($request->filled('start_date') && $request->filled('end_date')) {
             $start = Carbon::parse($request->start_date)->startOfDay();
             $end = Carbon::parse($request->end_date)->endOfDay();

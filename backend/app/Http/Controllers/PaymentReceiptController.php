@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\PaymentReceipt;
-use App\Models\Invoice;
 use App\Mail\PaymentReceiptMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -24,6 +23,10 @@ class PaymentReceiptController extends Controller
 
         if ($request->customer_id) {
             $query->where('customer_id', $request->customer_id);
+        }
+
+        if ($request->filled('payment_method') && $request->payment_method !== 'all') {
+            $query->where('payment_method', $request->payment_method);
         }
 
         if ($request->search) {
@@ -51,18 +54,9 @@ class PaymentReceiptController extends Controller
 
         $receipt = PaymentReceipt::create($validated);
 
-        // If invoice_id is provided, update invoice status if fully paid
-        if ($receipt->invoice_id) {
-            $invoice = Invoice::find($receipt->invoice_id);
-            if ($invoice) {
-                $totalPaid = PaymentReceipt::where('invoice_id', $invoice->id)->sum('amount');
-                if ($totalPaid >= $invoice->total) {
-                    $invoice->update(['status' => 'paid']);
-                } else {
-                    $invoice->update(['status' => 'partially_paid']);
-                }
-            }
-        }
+        // Payment state (paid/partially_paid/overdue/unpaid) is computed from
+        // receipts via Invoice::getPaymentStatusAttribute() — nothing to write
+        // back to the invoice's workflow `status` here.
 
         // Notify Customer
         if ($receipt->customer) {

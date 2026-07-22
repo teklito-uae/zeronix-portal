@@ -76,4 +76,31 @@ class CustomerContactController extends Controller
         $contact->update(['is_primary' => true]);
         return response()->json($customer->contacts()->orderByDesc('is_primary')->get());
     }
+
+    public function indexAll(Request $request)
+    {
+        $query = CustomerContact::with('customer:id,name,company')
+            ->whereHas('customer', fn ($q) => $q->forUser($request->user()));
+
+        if ($request->filled('search')) {
+            $s = $request->get('search');
+            $query->where(fn ($q) => $q->where('full_name', 'like', "%{$s}%")
+                ->orWhere('email', 'like', "%{$s}%")
+                ->orWhere('designation', 'like', "%{$s}%")
+                ->orWhereHas('customer', fn ($q2) => $q2->where('name', 'like', "%{$s}%")
+                    ->orWhere('company', 'like', "%{$s}%")));
+        }
+        if ($request->filled('customer_id')) {
+            $query->where('customer_id', $request->get('customer_id'));
+        }
+
+        $contacts = $query->orderByDesc('is_primary')->latest()
+            ->paginate($request->get('per_page', config('zeronix.default_per_page', 15)));
+
+        return response()->json([
+            'data' => $contacts->items(), 'total' => $contacts->total(),
+            'current_page' => $contacts->currentPage(), 'last_page' => $contacts->lastPage(),
+            'per_page' => $contacts->perPage(),
+        ]);
+    }
 }

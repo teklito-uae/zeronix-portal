@@ -32,6 +32,10 @@ class SalesOrderController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->filled('user_id') && $request->user_id !== 'all') {
+            $query->where('user_id', $request->user_id);
+        }
+
         $orders = $query->latest()->paginate($request->get('per_page', config('zeronix.default_per_page', 15)));
 
         return response()->json([
@@ -146,6 +150,11 @@ class SalesOrderController extends Controller
 
     public function convertToDelivery(Request $request, SalesOrder $salesOrder)
     {
+        $existingDelivery = $salesOrder->deliveries()->latest()->first();
+        if ($existingDelivery) {
+            return response()->json($existingDelivery->load(['customer', 'items']));
+        }
+
         $salesOrder->load('items');
 
         DB::beginTransaction();

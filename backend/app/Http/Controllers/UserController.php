@@ -26,6 +26,10 @@ class UserController extends Controller
             $query->where('role', $request->role);
         }
 
+        if ($request->filled('is_active') && $request->is_active !== 'all') {
+            $query->where('is_active', $request->boolean('is_active'));
+        }
+
         $users = $query->latest()->paginate($request->get('per_page', config('zeronix.default_per_page', 15)));
 
         return response()->json([

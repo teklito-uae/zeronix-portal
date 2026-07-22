@@ -19,6 +19,10 @@ class QuoteController extends Controller
             $query->where('quote_number', 'like', "%{$s}%");
         }
 
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
         $quotes = $query->latest()->paginate($request->get('per_page', 15));
         return response()->json($quotes);
     }

@@ -2,7 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Customer;
+use App\Models\CustomerContact;
+use App\Models\Deal;
+use App\Models\Enquiry;
+use App\Models\Invoice;
+use App\Models\Quote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -12,31 +18,41 @@ class CustomerController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Customer::with(['assigned_users', 'labels'])->withCount(['quotes', 'invoices', 'enquiries']);
+        $query = Customer::with(['assigned_users', 'labels'])->withCount(['quotes', 'invoices', 'enquiries', 'deals', 'contacts']);
 
         // Outstanding balance: sum of (invoice total - amount already received) across
         // this customer's unsettled invoices, computed in one correlated subquery per
         // page load rather than N+1'ing Invoice::balance across every row.
-        $paidPerInvoice = DB::table('payment_receipts')
+        $paidPerInvoice = fn () => DB::table('payment_receipts')
             ->selectRaw('invoice_id, SUM(amount) as paid')
             ->groupBy('invoice_id');
 
+        // "Unsettled" is now balance-driven (total > paid) rather than keying off
+        // a 'paid' status value, since payment state is computed, not stored.
         $balanceSub = DB::table('invoices as inv')
-            ->leftJoinSub($paidPerInvoice, 'pr', 'pr.invoice_id', '=', 'inv.id')
-            ->selectRaw('COALESCE(SUM(inv.total - COALESCE(pr.paid, 0)), 0)')
+            ->leftJoinSub($paidPerInvoice(), 'pr', 'pr.invoice_id', '=', 'inv.id')
+            ->selectRaw('COALESCE(SUM(GREATEST(inv.total - COALESCE(pr.paid, 0), 0)), 0)')
             ->whereColumn('inv.customer_id', 'customers.id')
-            ->whereNotIn('inv.status', ['paid', 'cancelled']);
+            ->where('inv.status', '!=', 'cancelled');
 
         $overdueSub = DB::table('invoices as inv2')
+            ->leftJoinSub($paidPerInvoice(), 'pr2', 'pr2.invoice_id', '=', 'inv2.id')
             ->selectRaw('COUNT(*)')
             ->whereColumn('inv2.customer_id', 'customers.id')
-            ->whereNotIn('inv2.status', ['paid', 'cancelled'])
+            ->where('inv2.status', '!=', 'cancelled')
+            ->whereRaw('inv2.total > COALESCE(pr2.paid, 0)')
             ->whereNotNull('inv2.due_date')
             ->where('inv2.due_date', '<', now());
+
+        $totalInvoicedSub = DB::table('invoices as inv3')
+            ->selectRaw('COALESCE(SUM(inv3.total), 0)')
+            ->whereColumn('inv3.customer_id', 'customers.id')
+            ->where('inv3.status', '!=', 'cancelled');
 
         $query->addSelect([
             'outstanding_balance' => $balanceSub,
             'overdue_invoices_count' => $overdueSub,
+            'total_invoiced' => $totalInvoicedSub,
         ]);
 
         // Data Scoping
@@ -56,7 +72,24 @@ class CustomerController extends Controller
 
         // Filter by label
         if ($request->filled('label_id')) {
-            $query->whereHas('labels', fn($q) => $q->where('customer_labels.id', $request->get('label_id')));
+            $labelIds = explode(',', $request->get('label_id'));
+            $query->whereHas('labels', fn($q) => $q->whereIn('customer_labels.id', $labelIds));
+        }
+
+        if ($request->filled('user_id')) {
+            $userIds = explode(',', $request->get('user_id'));
+            $query->whereHas('assigned_users', fn($q) => $q->whereIn('users.id', $userIds));
+        }
+
+        if ($request->filled('industry')) {
+            $industries = explode(',', $request->get('industry'));
+            $query->whereIn('industry', $industries);
+        }
+
+        if ($request->filled('is_portal_active')) {
+            $statuses = explode(',', $request->get('is_portal_active'));
+            $bools = array_map(fn ($s) => $s === 'active', $statuses);
+            $query->whereIn('is_portal_active', $bools);
         }
 
         $customers = $query->latest()->paginate($request->get('per_page', config('zeronix.default_per_page', 15)));
@@ -70,6 +103,18 @@ class CustomerController extends Controller
         ]);
     }
 
+    public function industries(Request $request)
+    {
+        $industries = Customer::forUser($request->user())
+            ->whereNotNull('industry')
+            ->where('industry', '!=', '')
+            ->distinct()
+            ->orderBy('industry')
+            ->pluck('industry');
+
+        return response()->json($industries);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -79,6 +124,9 @@ class CustomerController extends Controller
             'phone'            => 'nullable|string|max:50',
             'address'          => 'nullable|string',
             'trn'              => 'nullable|string|max:50',
+            'industry'         => 'nullable|string|max:255',
+            'website'          => 'nullable|string|max:255',
+            'description'      => 'nullable|string',
             'password'         => 'nullable|string|min:6',
             'is_portal_active' => 'nullable|boolean',
             'user_ids'         => 'nullable|array',
@@ -119,15 +167,66 @@ class CustomerController extends Controller
     {
         $this->authorize('view', $customer);
 
-        $customer->loadCount(['quotes', 'invoices', 'enquiries']);
+        $customer->loadCount(['quotes', 'invoices', 'enquiries', 'deals', 'contacts']);
+        $customer->load(['labels', 'assigned_users']);
         $customer->total_volume = (float) $customer->invoices()->sum('total');
+
+        $openDeals = $customer->deals()->whereNotIn('stage', ['won', 'lost']);
+        $customer->open_deals_count = (clone $openDeals)->count();
+        $customer->open_deals_value = (float) (clone $openDeals)->sum('value');
+
+        $openQuotes = $customer->quotes()->whereIn('status', ['draft', 'sent']);
+        $customer->open_quotes_count = (clone $openQuotes)->count();
+        $customer->open_quotes_value = (float) (clone $openQuotes)->sum('total');
+
+        $openInvoices = $customer->invoices()
+            ->where('status', '!=', 'cancelled')
+            ->whereRaw('invoices.total > COALESCE((SELECT SUM(amount) FROM payment_receipts WHERE payment_receipts.invoice_id = invoices.id), 0)');
+        $customer->open_invoices_count = (clone $openInvoices)->count();
+        $customer->open_invoices_value = (float) (clone $openInvoices)->sum('total');
+
+        $overdueInvoices = (clone $openInvoices)->whereNotNull('due_date')->where('due_date', '<', now());
+        $customer->overdue_invoices_count = (clone $overdueInvoices)->count();
+        $customer->overdue_invoices_value = (float) (clone $overdueInvoices)->sum('total');
 
         return response()->json([
             'customer' => $customer,
             'enquiries' => $customer->enquiries()->with('items')->latest()->limit(10)->get(),
             'quotes' => $customer->quotes()->with('items')->latest()->limit(10)->get(),
             'invoices' => $customer->invoices()->with('items')->latest()->limit(10)->get(),
+            'deals' => $customer->deals()->with('user')->latest()->limit(10)->get(),
         ]);
+    }
+
+    /**
+     * Unified activity feed for this customer: edits to the customer record itself,
+     * plus activity logged against their quotes/invoices/deals/enquiries/contacts.
+     */
+    public function activities(Request $request, Customer $customer)
+    {
+        $this->authorize('view', $customer);
+
+        $quoteIds = $customer->quotes()->pluck('id');
+        $invoiceIds = $customer->invoices()->pluck('id');
+        $dealIds = $customer->deals()->pluck('id');
+        $enquiryIds = $customer->enquiries()->pluck('id');
+        $contactIds = $customer->contacts()->pluck('id');
+
+        $activities = ActivityLog::with('user')
+            ->where(function ($q) use ($customer, $quoteIds, $invoiceIds, $dealIds, $enquiryIds, $contactIds) {
+                $q->where(fn ($q2) => $q2->where('subject_type', Customer::class)->where('subject_id', $customer->id))
+                  ->orWhere('customer_id', $customer->id)
+                  ->orWhere(fn ($q2) => $q2->where('subject_type', Quote::class)->whereIn('subject_id', $quoteIds))
+                  ->orWhere(fn ($q2) => $q2->where('subject_type', Invoice::class)->whereIn('subject_id', $invoiceIds))
+                  ->orWhere(fn ($q2) => $q2->where('subject_type', Deal::class)->whereIn('subject_id', $dealIds))
+                  ->orWhere(fn ($q2) => $q2->where('subject_type', Enquiry::class)->whereIn('subject_id', $enquiryIds))
+                  ->orWhere(fn ($q2) => $q2->where('subject_type', CustomerContact::class)->whereIn('subject_id', $contactIds));
+            })
+            ->latest()
+            ->limit(30)
+            ->get();
+
+        return response()->json($activities);
     }
 
     public function update(Request $request, Customer $customer)
@@ -141,6 +240,9 @@ class CustomerController extends Controller
             'phone'            => 'nullable|string|max:50',
             'address'          => 'nullable|string',
             'trn'              => 'nullable|string|max:50',
+            'industry'         => 'nullable|string|max:255',
+            'website'          => 'nullable|string|max:255',
+            'description'      => 'nullable|string',
             'is_portal_active' => 'nullable|boolean',
             'user_ids'         => 'nullable|array',
             'user_ids.*'       => 'exists:users,id',

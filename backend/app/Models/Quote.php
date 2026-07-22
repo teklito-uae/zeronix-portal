@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 use App\Traits\LogsActivity;
@@ -18,6 +19,7 @@ class Quote extends Model
     protected $fillable = [
         'quote_number',
         'enquiry_id',
+        'deal_id',
         'customer_id',
         'customer_contact_id',
         'user_id',
@@ -31,7 +33,20 @@ class Quote extends Model
         'email_sent_at',
         'due_date',
         'closing_ratio',
-        'last_notified_at'
+        'last_notified_at',
+        'tags',
+        'attachments',
+        'payment_terms',
+        'delivery_date',
+        'notes',
+        'terms',
+        'discount_percent',
+        'shipping_amount',
+    ];
+
+    protected $casts = [
+        'tags' => 'array',
+        'attachments' => 'array',
     ];
 
     public function customer(): BelongsTo
@@ -64,8 +79,18 @@ class Quote extends Model
         return $this->belongsTo(Enquiry::class);
     }
 
+    public function deal(): BelongsTo
+    {
+        return $this->belongsTo(Deal::class);
+    }
+
     public function invoice(): BelongsTo
     {
         return $this->belongsTo(Invoice::class);
+    }
+
+    public function activities(): MorphMany
+    {
+        return $this->morphMany(ActivityLog::class, 'subject')->latest();
     }
 }

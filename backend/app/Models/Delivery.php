@@ -19,15 +19,20 @@ class Delivery extends Model
         'delivery_number',
         'customer_id',
         'sales_order_id',
+        'invoice_id',
         'delivered_by',
         'delivery_date',
         'status',
         'notes',
         'delivered_at',
+        'customer_confirmation',
+        'customer_confirmed_at',
+        'customer_notes',
     ];
 
     protected $casts = [
         'delivered_at' => 'datetime',
+        'customer_confirmed_at' => 'datetime',
     ];
 
     public function customer(): BelongsTo
@@ -38,6 +43,15 @@ class Delivery extends Model
     public function salesOrder(): BelongsTo
     {
         return $this->belongsTo(SalesOrder::class);
+    }
+
+    /**
+     * Set when this delivery was generated directly from an Invoice (bill-first
+     * flow), as opposed to via a Sales Order or created ad hoc.
+     */
+    public function invoice(): BelongsTo
+    {
+        return $this->belongsTo(Invoice::class);
     }
 
     public function deliveredBy(): BelongsTo

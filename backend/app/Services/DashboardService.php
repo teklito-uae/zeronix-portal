@@ -31,7 +31,10 @@ class DashboardService
             'total_paid' => $this->getTotalPaid($user),
             'total_quotes' => Quote::forUser($user)->count(),
             'total_invoices' => Invoice::forUser($user)->count(),
-            'paid_invoices_count' => Invoice::forUser($user)->where('status', 'paid')->count(),
+            'paid_invoices_count' => Invoice::forUser($user)
+                ->where('status', '!=', 'cancelled')
+                ->whereRaw('total <= COALESCE((SELECT SUM(amount) FROM payment_receipts WHERE payment_receipts.invoice_id = invoices.id), 0)')
+                ->count(),
             'converted_leads_count' => Enquiry::forUser($user)->has('quotes')->count(),
         ];
     }

@@ -83,8 +83,12 @@ class ReportController extends Controller
         $from = $request->date_from;
         $to = $request->date_to;
 
-        $revenueQuery = Invoice::query();
-        $cogsQuery = PurchaseBill::query();
+        // Revenue is recognized for any finalized invoice regardless of payment
+        // state (paid/partially_paid/overdue are now computed, not stored).
+        $revenueQuery = Invoice::forUser($request->user())
+            ->whereNotIn('status', ['draft', 'cancelled']);
+        $cogsQuery = PurchaseBill::query()
+            ->where('status', '!=', 'cancelled');
         $expensesQuery = Expense::query();
 
         if ($from) {
@@ -114,8 +118,10 @@ class ReportController extends Controller
 
     public function receivablesAging(Request $request)
     {
+        // Candidate set is any finalized invoice; the loop below skips
+        // zero-balance ones, which now covers what "paid" used to exclude.
         $invoices = Invoice::forUser($request->user())
-            ->whereIn('status', ['posted', 'partially_paid', 'overdue'])
+            ->whereNotIn('status', ['draft', 'cancelled'])
             ->get();
 
         $buckets = [

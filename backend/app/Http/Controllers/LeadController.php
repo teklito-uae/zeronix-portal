@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\CustomerContact;
 use App\Models\Lead;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class LeadController extends Controller
 {
@@ -29,6 +30,10 @@ class LeadController extends Controller
 
         if ($request->filled('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
+        }
+
+        if ($request->filled('source') && $request->source !== 'all') {
+            $query->where('source', $request->source);
         }
 
         $leads = $query->latest()->paginate($request->get('per_page', config('zeronix.default_per_page', 15)));
@@ -95,31 +100,54 @@ class LeadController extends Controller
             return response()->json(['message' => 'Lead has already been converted.'], 422);
         }
 
-        $customer = Customer::create([
-            'name' => $lead->name,
-            'company' => $lead->company,
-            'email' => $lead->email,
-            'phone' => $lead->phone,
-        ]);
+        DB::beginTransaction();
+        try {
+            // Email is globally unique on customers — reuse an existing account
+            // instead of letting a duplicate insert fail, so the same business
+            // doesn't end up split across two customer records.
+            $customer = $lead->email
+                ? Customer::where('email', $lead->email)->first()
+                : null;
 
-        CustomerContact::create([
-            'customer_id' => $customer->id,
-            'first_name' => $lead->name,
-            'email' => $lead->email,
-            'phone' => $lead->phone,
-            'is_primary' => true,
-            'is_active' => true,
-        ]);
+            if (!$customer) {
+                $customer = Customer::create([
+                    'name' => $lead->name,
+                    'company' => $lead->company,
+                    'email' => $lead->email,
+                    'phone' => $lead->phone,
+                ]);
+            }
 
-        $lead->update([
-            'status' => 'converted',
-            'converted_customer_id' => $customer->id,
-            'converted_at' => now(),
-        ]);
+            $hasContact = $lead->email
+                ? CustomerContact::where('customer_id', $customer->id)->where('email', $lead->email)->exists()
+                : false;
 
-        // Only customer_id is touched here — lead_id is intentionally preserved on
-        // these enquiries for historical reporting (the lead is never deleted).
-        $lead->enquiries()->update(['customer_id' => $customer->id]);
+            if (!$hasContact) {
+                CustomerContact::create([
+                    'customer_id' => $customer->id,
+                    'first_name' => $lead->name,
+                    'email' => $lead->email,
+                    'phone' => $lead->phone,
+                    'is_primary' => !CustomerContact::where('customer_id', $customer->id)->exists(),
+                    'is_active' => true,
+                ]);
+            }
+
+            $lead->update([
+                'status' => 'converted',
+                'converted_customer_id' => $customer->id,
+                'converted_at' => now(),
+            ]);
+
+            // Only customer_id is touched here — lead_id is intentionally preserved on
+            // these enquiries for historical reporting (the lead is never deleted).
+            $lead->enquiries()->update(['customer_id' => $customer->id]);
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Failed to convert lead', 'error' => $e->getMessage()], 500);
+        }
 
         return response()->json([
             'lead' => $lead->fresh(['owner', 'convertedCustomer']),

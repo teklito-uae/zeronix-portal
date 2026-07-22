@@ -40,6 +40,12 @@ class InvoicePolicy
 
     public function delete(User $user, Invoice $invoice)
     {
-        return $user->role === 'admin';
+        if ($user->role === 'admin') {
+            return true;
+        }
+
+        // Staff may only delete their own invoices before they've been accepted —
+        // once accepted (or later: on_hold), it's treated as a live business record.
+        return $invoice->user_id === $user->id && in_array($invoice->status, ['draft', 'sent']);
     }
 }
