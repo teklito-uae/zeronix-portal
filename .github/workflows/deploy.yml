@@ -67,7 +67,11 @@ jobs:
           touch deploy/backend/storage/framework/views/.gitkeep
           touch deploy/backend/storage/logs/.gitkeep
           chmod -R 775 deploy/backend/storage
-          
+
+          # 4b. Public storage symlink (tracked in git so it survives future
+          # deploys even if the host cleans untracked files on pull)
+          ln -s backend/storage/app/public deploy/storage
+
           # 5. Create root .htaccess for routing
           cat > deploy/.htaccess <<EOF
           <IfModule mod_rewrite.c>
