@@ -96,6 +96,7 @@ export const Topbar = () => {
           return {
             label: routeLabels[seg] ?? (seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, ' ')),
             href: i < baseParts.length - 1 ? href : undefined, // last segment is current page — no link
+            badge: undefined,
           };
         });
       })();

@@ -283,7 +283,7 @@ export const Settings = () => {
                   disabled={saveBrandMutation.isPending}
                   className="bg-gradient-to-r from-zeronix-blue to-blue-600 hover:from-blue-600 hover:to-zeronix-blue text-white rounded-xl shadow-lg shadow-zeronix-blue/30 gap-2 h-10 px-6 transition-all duration-300"
                 >
-                  {saveBrandMutation.isPending ? <Spinner size="sm" /> : <Save size={16} />}
+                  {saveBrandMutation.isPending ? <Spinner size={16} /> : <Save size={16} />}
                   Save Brand
                 </Button>
               </div>

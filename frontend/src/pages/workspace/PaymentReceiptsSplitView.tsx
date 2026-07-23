@@ -176,7 +176,7 @@ export const PaymentReceiptsSplitView = () => {
                                 </p>
                               )}
                               <p className="text-[11px] text-brand-subtle mt-1">
-                                <span className="font-mono text-brand-accent">{inv.invoice_number}</span>
+                                <span className="font-mono text-brand-accent">{inv.receipt_number}</span>
                                 {' · '}
                                 {inv.created_at ? new Date(inv.created_at).toLocaleDateString() : '—'}
                               </p>
@@ -184,9 +184,9 @@ export const PaymentReceiptsSplitView = () => {
                           </div>
                           <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                             <p className="font-mono text-[13px] font-semibold text-brand-primary">
-                              {Number(inv.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              {Number(inv.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </p>
-                            <StatusBadge status={inv.status} className="text-[10px] px-2 py-0" />
+                            <StatusBadge status={inv.payment_method} className="text-[10px] px-2 py-0" />
                           </div>
                         </div>
                       </button>
