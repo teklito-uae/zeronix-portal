@@ -1,8 +1,11 @@
 import { create } from 'zustand';
 
+import type { ReactNode } from 'react';
+
 interface BreadcrumbSegment {
   label: string;
   href?: string;
+  badge?: ReactNode;
 }
 
 interface BreadcrumbStore {

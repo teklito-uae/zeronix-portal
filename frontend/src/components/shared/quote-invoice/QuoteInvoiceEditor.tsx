@@ -3,8 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { getBasePath } from '@/hooks/useBasePath';
 import { useBreadcrumb } from '@/hooks/useBreadcrumb';
+import { useTopbarActions } from '@/hooks/useTopbarActions';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -37,8 +40,9 @@ import { ItemsTable } from './ItemsTable';
 import { AddFromLibraryDialog } from './AddFromLibraryDialog';
 import { NotesEditor } from './NotesEditor';
 import { SummaryPanel } from './SummaryPanel';
-import { ActivityTimeline } from './ActivityTimeline';
 import { AttachmentsPanel } from './AttachmentsPanel';
+import { StatusBadge } from '@/components/shared/StatusBadge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { normalizeQIAItems, type QIALineItem } from './types';
 import api from '@/lib/axios';
 import { TRANSACTION_CONFIGS, type TransactionType, type TransactionConversionConfig } from '@/lib/transactionTypes';
@@ -57,6 +61,8 @@ import {
   Trash2,
   ChevronRight,
   FileText,
+  ChevronUp,
+  Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -88,6 +94,7 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const admin = useAuthStore((s) => s.admin);
+  const currency = useCurrencyStore((s) => s.currency);
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -118,13 +125,18 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
 
   const [docData, setDocData] = useState<any>(buildDefaultDoc);
   const [items, setItems] = useState<QIALineItem[]>([]);
+  const [showNotes, setShowNotes] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+  const [showActions, setShowActions] = useState(false);
 
   const docLabel = isNew ? config.newTitle : (docData[config.numberField] || `#${id}`);
-  const headerTitle = isNew ? `Create ${config.label}` : (docData[config.numberField] || `#${id}`);
 
   useBreadcrumb([
     { label: config.pluralLabel, href: `${getBasePath()}/${config.listRoute}` },
-    { label: docLabel },
+    { 
+      label: docLabel,
+      badge: loading ? <Skeleton className="h-4 w-16" /> : (!isNew && docData.status && <StatusBadge status={docData.status} />)
+    },
   ]);
 
   const { data: productsList = [] } = useQuery({
@@ -160,6 +172,8 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
       setItems(normalizeQIAItems(data.items || []));
       setIsDirty(false);
       setSavedAt(data.updated_at ? new Date(data.updated_at) : (data.created_at ? new Date(data.created_at) : null));
+      if (data.notes) setShowNotes(true);
+      if (data.terms) setShowTerms(true);
     } catch {
       toast.error(`Failed to load ${config.label.toLowerCase()}`);
     } finally {
@@ -179,13 +193,17 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
 
   const isLocked = config.isLocked ? config.isLocked(docData, admin?.role) : false;
 
-  const persist = async (overrides: any = {}): Promise<any | null> => {
+  const persist = async (overrides: any = {}, { skipNavigate = false }: { skipNavigate?: boolean } = {}): Promise<any | null> => {
     if (!docData[config.party.idField]) {
       toast.error(`Please select a ${config.party.label.toLowerCase()} first.`);
       return null;
     }
     if (items.length === 0) {
       toast.error('Add at least one line item.');
+      return null;
+    }
+    if (items.some(item => Number(item.unit_price) === 0)) {
+      toast.error('One or more items have a price of zero.');
       return null;
     }
     setSaving(true);
@@ -201,7 +219,7 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
       setIsDirty(false);
       setSavedAt(new Date());
       config.invalidateQueries.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
-      if (isNew && saved?.id) {
+      if (isNew && saved?.id && !skipNavigate) {
         navigate(`${getBasePath()}/${config.listRoute}/${saved.id}`, { replace: true });
       }
       return saved;
@@ -298,7 +316,20 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
     persist({ status });
   };
 
+  const handleStatusChange = async (newStatus: string) => {
+    if (isNew) {
+      updateDoc({ status: newStatus });
+    } else {
+      await persist({ status: newStatus });
+    }
+  };
+
   const goToList = () => navigate(`${getBasePath()}/${config.listRoute}`);
+
+  const handleSaveAndClose = async () => {
+    const saved = await persist({ status: config.defaultStatus }, { skipNavigate: true });
+    if (saved) goToList();
+  };
 
   const handleBackClick = () => {
     if (isDirty) setLeaveConfirmOpen(true);
@@ -315,15 +346,6 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
     setLeaveConfirmOpen(false);
     if (saved) goToList();
   };
-
-  if (loading && !isNew && !docData.id) {
-    return (
-      <div className="h-96 flex flex-col items-center justify-center gap-3">
-        <Loader2 className="animate-spin text-brand-accent" size={32} />
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle">Loading…</p>
-      </div>
-    );
-  }
 
   const eligibleConversions = (config.conversions || []).filter((c) => !isNew && !!docData.id && c.isEligible(docData));
   const canPreview = !!docData.id;
@@ -345,34 +367,18 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
     </button>
   );
 
-  return (
-    <div className="flex flex-col h-full min-h-0 bg-brand-bg animate-in fade-in duration-200 pb-24 xl:pb-0">
-      {/* Sticky local page header */}
-      <div className="sticky top-0 z-10 bg-brand-white/95 backdrop-blur border-b border-brand-border px-4 md:px-6 py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleBackClick}
-            className="rounded-full border-brand-border h-9 w-9 flex-shrink-0"
-          >
-            <ArrowLeft size={16} />
-          </Button>
-          <div className="min-w-0">
-            <p className="text-[11px] text-brand-subtle leading-none">{config.pluralLabel} /</p>
-            <p className="text-[15px] font-bold text-brand-primary truncate leading-tight mt-0.5">{headerTitle}</p>
-          </div>
-          <div className="ml-2 hidden sm:block">
-            {isDirty ? (
-              <span className="text-[11px] text-brand-subtle">Unsaved changes</span>
-            ) : savedAt ? (
-              <span className="flex items-center gap-1 text-[11px] text-brand-success font-medium">
-                <CheckCircle2 size={12} /> Saved {formatDistanceToNow(savedAt, { addSuffix: true })}
-              </span>
-            ) : null}
-          </div>
+  useTopbarActions(
+    (loading && !isNew && !docData.id) ? null : (
+      <div className="flex items-center gap-3">
+        <div className="hidden sm:flex items-center mr-2">
+          {isDirty ? (
+            <span className="text-[11px] text-brand-subtle">Unsaved changes</span>
+          ) : savedAt ? (
+            <span className="flex items-center gap-1 text-[11px] text-brand-success font-medium">
+              <CheckCircle2 size={12} /> Saved {formatDistanceToNow(savedAt, { addSuffix: true })}
+            </span>
+          ) : null}
         </div>
-
         <div className="flex flex-wrap items-center gap-2">
           {canPreview ? (
             <DownloadButton id={docData.id} type={type as 'quote' | 'invoice'} mode="view" variant="outline" label="Preview" />
@@ -381,24 +387,6 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
               <Eye size={13} className="mr-1.5" /> Preview
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={saving || isLocked}
-            onClick={() => persist({ status: config.statusOptions.includes('draft') ? 'draft' : config.defaultStatus })}
-            className="h-8 px-3 rounded-lg text-[12px] font-medium border-brand-border"
-          >
-            {saving ? <Loader2 size={13} className="animate-spin mr-1.5" /> : null} Save Draft
-          </Button>
-          <Button
-            size="sm"
-            disabled={sending || isLocked}
-            onClick={handleSend}
-            className="h-8 px-3.5 rounded-lg text-[12px] font-semibold bg-brand-accent hover:bg-brand-accent-hover text-white"
-          >
-            {sending ? <Loader2 size={13} className="animate-spin mr-1.5" /> : <Send size={13} className="mr-1.5" />}
-            {sendLabel}
-          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-brand-muted hover:text-brand-primary">
@@ -431,102 +419,84 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
           </DropdownMenu>
         </div>
       </div>
+    )
+  );
 
+  if (loading && !isNew && !docData.id) {
+    return (
+      <div className="h-96 flex flex-col items-center justify-center gap-3">
+        <Loader2 className="animate-spin text-brand-accent" size={32} />
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle">Loading…</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full min-h-0 bg-brand-page-bg animate-in fade-in duration-200">
       {/* 3-column body */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[320px_1fr_320px] gap-5 max-w-[1400px] mx-auto">
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
+        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] xl:grid-cols-[280px_1fr_280px] divide-y lg:divide-y-0 lg:divide-x divide-brand-border bg-brand-white max-w-[1500px] mx-auto min-h-full lg:border-x border-brand-border">
           {/* Left column */}
-          <div className="space-y-5">
+          <div className="lg:sticky lg:top-0 lg:h-[calc(100vh-130px)] overflow-y-auto no-scrollbar">
             <CustomerPanel type={type} docData={docData} onUpdate={updateDoc} disabled={isLocked} />
+          </div>
 
-            <div className="bg-brand-white border border-brand-border rounded-lg p-4 space-y-4">
-              <p className="text-[13px] font-semibold text-brand-primary">{config.label} Information</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1 col-span-2">
-                  <label className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle">Number</label>
+          {/* Middle column */}
+          <div className="flex flex-col min-w-0">
+            <div className="p-4 md:p-5 border-b border-brand-border space-y-4">
+              <p className="text-[14px] font-semibold text-brand-primary">{config.label} Information</p>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-medium text-brand-subtle">{config.label} Number</label>
                   <div className="relative">
                     <Input
                       readOnly
                       value={!isNew ? (docData[config.numberField] || '') : (nextNumberPreview || '')}
-                      placeholder="Auto-generated on save"
-                      className="h-9 bg-brand-bg border-brand-border rounded-lg text-[13px] pr-8 text-brand-muted"
+                      placeholder="Auto-generated"
+                      className="h-9 bg-brand-bg/50 border-brand-border rounded-lg text-[13px] pr-8 text-brand-primary font-medium"
                     />
                     <Lock size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-subtle" />
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle flex items-center gap-1.5">
-                    <Calendar size={11} /> Issue Date
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-medium text-brand-subtle flex items-center gap-1.5">
+                    <Calendar size={12} className="opacity-70" /> Issue Date
                   </label>
                   <Input
                     type="date"
                     value={docData.date ? docData.date.split('T')[0] : ''}
                     onChange={(e) => updateDoc({ date: e.target.value })}
                     disabled={isLocked}
-                    className="h-9 bg-brand-bg border-brand-border rounded-lg text-[13px]"
+                    className="h-9 bg-brand-bg/50 border-brand-border rounded-lg text-[13px] text-brand-primary"
                   />
                 </div>
                 {config.dateFields[0] && (
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle flex items-center gap-1.5">
-                      <Calendar size={11} /> {config.dateFields[0].label}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-medium text-brand-subtle flex items-center gap-1.5">
+                      <Calendar size={12} className="opacity-70" /> {config.dateFields[0].label}
                     </label>
                     <Input
                       type="date"
                       value={docData[config.dateFields[0].key] ? docData[config.dateFields[0].key].split('T')[0] : ''}
                       onChange={(e) => updateDoc({ [config.dateFields[0].key]: e.target.value })}
                       disabled={isLocked}
-                      className="h-9 bg-brand-bg border-brand-border rounded-lg text-[13px]"
+                      className="h-9 bg-brand-bg/50 border-brand-border rounded-lg text-[13px] text-brand-primary"
                     />
                   </div>
                 )}
-                <div className="space-y-1 col-span-2">
-                  <label className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle">Reference / Subject</label>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-medium text-brand-subtle">Reference / Subject</label>
                   <Input
                     value={docData.reference_id || ''}
                     onChange={(e) => updateDoc({ reference_id: e.target.value })}
                     disabled={isLocked}
-                    placeholder="e.g. Project name, PO number…"
-                    className="h-9 bg-brand-bg border-brand-border rounded-lg text-[13px]"
+                    placeholder="e.g. Office Renovation"
+                    className="h-9 bg-brand-bg/50 border-brand-border rounded-lg text-[13px] text-brand-primary"
                   />
                 </div>
-                <div className="space-y-1 col-span-2">
-                  <label className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle">Payment Terms</label>
-                  <Select
-                    value={docData.payment_terms || ''}
-                    onValueChange={(v) => updateDoc({ payment_terms: v })}
-                    disabled={isLocked}
-                  >
-                    <SelectTrigger className="h-9 bg-brand-bg border-brand-border rounded-lg text-[13px]">
-                      <SelectValue placeholder="Select payment terms…" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-brand-white border-brand-border rounded-lg">
-                      {PAYMENT_TERMS_OPTIONS.map((term) => (
-                        <SelectItem key={term} value={term} className="text-[12px]">{term}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {type === 'quote' && (
-                  <div className="space-y-1 col-span-2">
-                    <label className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle flex items-center gap-1.5">
-                      <Calendar size={11} /> Delivery Date
-                    </label>
-                    <Input
-                      type="date"
-                      value={docData.delivery_date ? docData.delivery_date.split('T')[0] : ''}
-                      onChange={(e) => updateDoc({ delivery_date: e.target.value })}
-                      disabled={isLocked}
-                      className="h-9 bg-brand-bg border-brand-border rounded-lg text-[13px]"
-                    />
-                  </div>
-                )}
               </div>
             </div>
-          </div>
 
-          {/* Middle column */}
-          <div className="space-y-5 min-w-0">
             <ItemsTable
               items={items}
               onChange={updateItems}
@@ -541,27 +511,43 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
               onAdd={(rows) => updateItems([...items, ...rows])}
             />
 
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle ml-1">Notes to Customer</label>
-              <NotesEditor value={docData.notes || ''} onChange={(html) => updateDoc({ notes: html })} />
-            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-brand-border border-t border-brand-border">
+              <div className="p-4 md:p-5 flex flex-col gap-3 transition-all duration-200">
+                <div className="flex items-center justify-between">
+                  <label className="text-[13px] font-semibold text-brand-primary">Notes to Customer</label>
+                  <Button variant="ghost" size="sm" onClick={() => setShowNotes(!showNotes)} className="h-7 px-2 text-[12px] text-brand-subtle hover:text-brand-primary">
+                    {showNotes ? 'Collapse' : '+ Add Notes'}
+                  </Button>
+                </div>
+                {showNotes && (
+                  <div className="flex-1 min-h-[150px] animate-in fade-in slide-in-from-top-2 duration-200">
+                    <NotesEditor value={docData.notes || ''} onChange={(html) => updateDoc({ notes: html })} />
+                  </div>
+                )}
+              </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle ml-1">Terms & Conditions</label>
-              <Textarea
-                value={docData.terms || ''}
-                onChange={(e) => updateDoc({ terms: e.target.value })}
-                disabled={isLocked}
-                className="bg-brand-white border-brand-border text-[13px] rounded-lg resize-none min-h-[110px] p-3"
-                placeholder={'1. This quote is valid until the expiry date.\n2. 30% advance payment required.\n3. Prices are subject to change without notice.'}
-              />
+              <div className="p-4 md:p-5 flex flex-col gap-3 transition-all duration-200">
+                <div className="flex items-center justify-between">
+                  <label className="text-[13px] font-semibold text-brand-primary">Terms & Conditions</label>
+                  <Button variant="ghost" size="sm" onClick={() => setShowTerms(!showTerms)} className="h-7 px-2 text-[12px] text-brand-subtle hover:text-brand-primary">
+                    {showTerms ? 'Collapse' : '+ Add Terms'}
+                  </Button>
+                </div>
+                {showTerms && (
+                  <Textarea
+                    value={docData.terms || ''}
+                    onChange={(e) => updateDoc({ terms: e.target.value })}
+                    disabled={isLocked}
+                    className="flex-1 min-h-[150px] bg-transparent border-0 text-[12px] resize-none p-0 focus-visible:ring-0 text-brand-primary leading-relaxed animate-in fade-in slide-in-from-top-2 duration-200"
+                    placeholder={'1. This quote is valid until the expiry date.\n2. 30% advance payment required.\n3. 60% upon delivery & installation.\n4. 10% after final handover.\n5. Any changes may affect the final price.'}
+                  />
+                )}
+              </div>
             </div>
-
-            <AttachmentsPanel type={type} docId={docData.id} isNew={isNew} attachments={attachments} apiBase={config.apiBase} />
           </div>
 
           {/* Right column — xl and up only */}
-          <div className="hidden xl:block space-y-5">
+          <div className="hidden xl:flex flex-col sticky top-0 h-[calc(100vh-130px)] overflow-y-auto no-scrollbar">
             <SummaryPanel
               type={type}
               totals={totals}
@@ -572,9 +558,9 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
               disabled={isLocked}
             />
 
-            <div className="bg-brand-white border border-brand-border rounded-lg p-4 space-y-3">
-              <p className="text-[13px] font-semibold text-brand-primary">{config.label} Status</p>
-              <Select value={String(docData.status || '')} onValueChange={(v) => updateDoc({ status: v })} disabled={isLocked}>
+            <div className="p-4 md:p-5 border-b border-brand-border space-y-3">
+              <p className="text-[14px] font-semibold text-brand-primary">{config.label} Status</p>
+              <Select value={String(docData.status || '')} onValueChange={handleStatusChange} disabled={isLocked || saving}>
                 <SelectTrigger className="h-9 bg-brand-bg border-brand-border rounded-lg text-[12px]">
                   <SelectValue placeholder="Select status…" />
                 </SelectTrigger>
@@ -597,41 +583,131 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
               )}
             </div>
 
-            <div className="bg-brand-white border border-brand-border rounded-lg p-2 space-y-0.5">
-              <p className="text-[13px] font-semibold text-brand-primary px-3 pt-2 pb-1">Actions</p>
-              <ActionRow icon={Eye} label="Preview PDF" disabled={!canPreview} onClick={handlePreviewPdf} />
-              <ActionRow icon={Send} label={sendLabel} onClick={handleSend} disabled={sending || isLocked} />
-              <ActionRow icon={Copy} label="Duplicate" onClick={handleDuplicate} disabled={!docData.id || duplicating} />
-              {eligibleConversions[0] && (
-                <ActionRow
-                  icon={eligibleConversions[0].icon}
-                  label={eligibleConversions[0].label}
-                  onClick={() => handleConvert(eligibleConversions[0])}
-                />
+            <div className="border-b border-brand-border">
+              <button 
+                onClick={() => setShowActions(!showActions)}
+                className="w-full flex items-center justify-between p-4 md:p-5 hover:bg-brand-bg transition-colors"
+              >
+                <p className="text-[14px] font-semibold text-brand-primary">Actions</p>
+                <ChevronRight size={16} className={`text-brand-subtle transition-transform duration-200 ${showActions ? 'rotate-90' : ''}`} />
+              </button>
+              
+              {showActions && (
+                <div className="px-3 pb-3 space-y-0.5 animate-in slide-in-from-top-2 duration-200">
+                  <ActionRow icon={Eye} label="Preview PDF" disabled={!canPreview} onClick={handlePreviewPdf} />
+                  <ActionRow icon={Send} label={sendLabel} onClick={handleSend} disabled={sending || isLocked} />
+                  <ActionRow icon={Copy} label="Duplicate" onClick={handleDuplicate} disabled={!docData.id || duplicating} />
+                  {eligibleConversions[0] && (
+                    <ActionRow
+                      icon={eligibleConversions[0].icon}
+                      label={eligibleConversions[0].label}
+                      onClick={() => handleConvert(eligibleConversions[0])}
+                    />
+                  )}
+                </div>
               )}
             </div>
 
-            {!isNew && <ActivityTimeline activities={docData.activities} />}
+            <div className="border-b border-brand-border flex flex-col min-h-[200px]">
+              <AttachmentsPanel type={type} docId={docData.id} isNew={isNew} attachments={attachments} apiBase={config.apiBase} />
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Mobile/tablet fallback summary bar — shown whenever the right column (xl:) is hidden */}
-      <div className="xl:hidden fixed bottom-0 inset-x-0 z-20 bg-brand-white border-t border-brand-border shadow-[0_-2px_8px_rgba(0,0,0,0.06)] px-4 py-2.5">
-        <div className="flex items-center gap-4 overflow-x-auto text-[11px] text-brand-muted no-scrollbar">
-          <span className="flex-shrink-0"><FileText size={12} className="inline mr-1" />Sub: <span className="font-mono text-brand-primary">{totals.subtotal.toFixed(2)}</span></span>
-          <span className="flex-shrink-0">Disc: <span className="font-mono text-brand-primary">{totals.discountAmount.toFixed(2)}</span></span>
-          <span className="flex-shrink-0">Tax: <span className="font-mono text-brand-primary">{totals.vat.toFixed(2)}</span></span>
-          <span className="flex-shrink-0">Ship: <span className="font-mono text-brand-primary">{totals.shippingAmount.toFixed(2)}</span></span>
-          <span className="flex-shrink-0 font-semibold text-brand-primary">Total: <span className="font-mono text-brand-accent">{totals.total.toFixed(2)}</span></span>
-          <Button
-            size="sm"
-            disabled={saving || isLocked}
-            onClick={() => persist({ status: config.statusOptions.includes('draft') ? 'draft' : config.defaultStatus })}
-            className="ml-auto flex-shrink-0 h-8 px-3 rounded-lg text-[12px] font-semibold"
-          >
-            Save Draft
-          </Button>
+          {/* Sticky Footer spanning Col 2 & 3 */}
+          <div className="col-start-1 lg:col-start-2 xl:col-span-2 sticky bottom-0 z-30 bg-brand-white/95 backdrop-blur-sm border-t border-brand-border px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center text-[12px] md:text-[13px] font-medium text-brand-subtle">
+              <span className="uppercase tracking-wider">Subtotal:</span>
+              <span className="text-brand-primary font-bold ml-1.5 mr-3">{totals.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+
+              {totals.discountAmount > 0 && (
+                <>
+                  <span className="text-brand-border mx-1">|</span>
+                  <span className="uppercase tracking-wider ml-2">Discount:</span>
+                  <span className="text-brand-primary font-bold ml-1.5 mr-3">-{totals.discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </>
+              )}
+
+              <span className="text-brand-border mx-1">|</span>
+              <span className="uppercase tracking-wider ml-2">VAT:</span>
+              <span className="text-brand-primary font-bold ml-1.5 mr-3">{totals.vat.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+
+              {totals.shippingAmount > 0 && (
+                <>
+                  <span className="text-brand-border mx-1">|</span>
+                  <span className="uppercase tracking-wider ml-2">Shipping:</span>
+                  <span className="text-brand-primary font-bold ml-1.5 mr-3">{totals.shippingAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </>
+              )}
+
+              <span className="text-brand-border mx-1">|</span>
+              <span className="uppercase tracking-wider text-brand-primary ml-2">Total:</span>
+              <span className="text-[15px] md:text-[16px] text-brand-primary font-bold ml-2"><CurrencyAmount amount={totals.total} currency={currency} /></span>
+            </div>
+            <div className="flex items-center">
+              {eligibleConversions.length > 0 ? (
+                <div className="flex items-center rounded-lg shadow-sm border border-brand-accent/20 overflow-hidden">
+                  <Button
+                    onClick={() => handleConvert(eligibleConversions[0])}
+                    className="bg-brand-accent hover:bg-brand-accent-hover text-white rounded-none h-10 px-5 font-semibold text-[13px] border-r border-brand-accent/50"
+                  >
+                    {(() => {
+                      const Icon = eligibleConversions[0].icon;
+                      return <Icon size={15} className="mr-2" />;
+                    })()}
+                    {eligibleConversions[0].label}
+                  </Button>
+                  {eligibleConversions.length > 1 && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button className="bg-brand-accent hover:bg-brand-accent-hover text-white rounded-none h-10 px-3">
+                          <ChevronUp size={15} />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-brand-white border-brand-border rounded-lg min-w-[160px]">
+                        {eligibleConversions.slice(1).map((conversion) => {
+                          const ConvIcon = conversion.icon;
+                          return (
+                            <DropdownMenuItem key={conversion.label} onClick={() => handleConvert(conversion)} className="cursor-pointer text-[12px] font-medium">
+                              <ConvIcon size={13} className="mr-2" />
+                              {conversion.label}
+                            </DropdownMenuItem>
+                          );
+                        })}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center rounded-lg shadow-sm border border-emerald-700/20 overflow-hidden">
+                  <Button
+                    onClick={handleSaveAndClose}
+                    disabled={saving || isLocked}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-none h-10 px-5 font-semibold text-[13px] border-r border-emerald-700/50"
+                  >
+                    {saving ? <Loader2 size={15} className="animate-spin mr-2" /> : <Check size={15} className="mr-2" />}
+                    Save {config.label}
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button disabled={saving || isLocked} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-none h-10 px-3">
+                        <ChevronUp size={15} />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-brand-white border-brand-border rounded-lg min-w-[160px]">
+                      {config.statusOptions.includes('draft') && (
+                        <DropdownMenuItem onClick={() => persist({ status: 'draft' })} className="cursor-pointer text-[12px] font-medium">
+                          Save as Draft
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={() => persist({ status: quickStatusValue })} className="cursor-pointer text-[12px] font-medium">
+                        Mark as {quickStatusLabel.replace('Mark as ', '')}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

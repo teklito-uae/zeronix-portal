@@ -49,6 +49,9 @@ import {
   KanbanSquare,
   List,
 } from 'lucide-react';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { type CurrencyCode } from '@/lib/currency';
+import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 
 const STAGES: { id: DealStage; label: string; colorClassName: string }[] = [
   { id: 'new', label: 'New', colorClassName: 'bg-blue-500' },
@@ -94,7 +97,7 @@ type DealFormValues = z.infer<typeof dealSchema>;
 
 type PipelineResponse = Record<DealStage, { deals: Deal[]; count: number; value: number }>;
 
-const dealColumns: ColumnDef<Deal>[] = [
+const getDealColumns = (currency: CurrencyCode): ColumnDef<Deal>[] => [
   {
     accessorKey: 'title',
     header: 'Deal',
@@ -118,7 +121,7 @@ const dealColumns: ColumnDef<Deal>[] = [
     header: 'Value',
     cell: ({ row }) => (
       <span className="font-semibold">
-        {Number(row.original.value).toLocaleString(undefined, { minimumFractionDigits: 2 })} AED
+        <CurrencyAmount amount={row.original.value} currency={currency} />
       </span>
     ),
   },
@@ -141,6 +144,7 @@ const dealColumns: ColumnDef<Deal>[] = [
 ];
 
 export const Deals = () => {
+  const currency = useCurrencyStore((s) => s.currency);
   const queryClient = useQueryClient();
   const [view, setView] = useState<DealView>('pipeline');
   const [stageFilter, setStageFilter] = useState<DealStage | 'all'>('all');
@@ -317,7 +321,7 @@ export const Deals = () => {
               const value = pipeline?.[stageId as DealStage]?.value ?? 0;
               return value > 0 ? (
                 <span className="text-[10px] font-bold text-brand-subtle">
-                  {Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })} AED
+                  <CurrencyAmount amount={value} currency={currency} />
                 </span>
               ) : null;
             }}
@@ -340,8 +344,7 @@ export const Deals = () => {
 
                 <div className="flex justify-between items-end mt-1 pt-2 border-t border-brand-border/30">
                   <p className="text-[12px] font-bold text-admin-text-primary">
-                    {Number(deal.value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    <span className="text-[10px] text-brand-subtle font-medium ml-1">AED</span>
+                    <CurrencyAmount amount={deal.value} currency={currency} />
                   </p>
                   {deal.expected_close_date && (
                     <span className="text-[10px] text-brand-subtle flex items-center gap-1">
@@ -354,7 +357,7 @@ export const Deals = () => {
           />
         ) : (
           <div className="pb-3">
-            <DataTable<Deal, unknown> columns={dealColumns} data={filteredDeals} onRowClick={(deal) => setSelectedDeal(deal)} pageSize={20} />
+            <DataTable<Deal, unknown> columns={getDealColumns(currency)} data={filteredDeals} onRowClick={(deal) => setSelectedDeal(deal)} pageSize={20} />
           </div>
         )}
       </div>
@@ -477,7 +480,7 @@ export const Deals = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label className="text-[12px] font-medium text-brand-secondary ml-1">Value (AED)</Label>
+                  <Label className="text-[12px] font-medium text-brand-secondary ml-1">Value ({currency})</Label>
                   <Input {...register('value')} type="number" step="0.01" min="0" placeholder="0.00" className="h-[38px] text-[13px] rounded-lg" />
                 </div>
                 <div className="space-y-1.5">
@@ -527,7 +530,7 @@ export const Deals = () => {
                     <Building2 size={12} /> {selectedDeal.customer?.company || selectedDeal.customer?.name || selectedDeal.lead?.company || selectedDeal.lead?.name || 'Unlinked'}
                   </p>
                   <p className="text-[16px] font-bold text-brand-primary mt-1">
-                    {Number(selectedDeal.value).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-[11px] font-medium text-brand-subtle">AED</span>
+                    <CurrencyAmount amount={selectedDeal.value} currency={currency} />
                   </p>
                 </div>
 

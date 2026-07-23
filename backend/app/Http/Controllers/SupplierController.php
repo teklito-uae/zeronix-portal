@@ -52,13 +52,13 @@ class SupplierController extends Controller
         return response()->json($supplier);
     }
 
-    public function show(Supplier $supplier)
+    public function show(Request $request, Supplier $supplier)
     {
         return response()->json([
             'supplier' => $supplier->loadCount(['brands', 'products']),
             'products' => $supplier->products()
                 ->with(['product', 'category'])
-                ->paginate(10)
+                ->paginate($request->get('per_page', 10))
         ]);
     }
 

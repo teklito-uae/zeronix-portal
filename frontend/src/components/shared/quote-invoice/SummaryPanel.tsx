@@ -1,6 +1,8 @@
 import { Input } from '@/components/ui/input';
 import type { DocTotals } from '@/lib/lineItemMath';
 import type { TransactionType } from '@/lib/transactionTypes';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 
 interface SummaryPanelProps {
   type: TransactionType;
@@ -23,15 +25,16 @@ export const SummaryPanel = ({
   onShippingAmountChange,
   disabled,
 }: SummaryPanelProps) => {
-  const label = type === 'quote' ? 'Quote' : 'Invoice';
+  const currency = useCurrencyStore((s) => s.currency);
+  const label = type === 'quote' ? 'Quote' : type === 'invoice' ? 'Invoice' : 'Purchase Bill';
 
   return (
-    <div className="bg-brand-white border border-brand-border rounded-lg p-4 space-y-3">
-      <p className="text-[13px] font-semibold text-brand-primary">{label} Summary</p>
+    <div className="p-4 md:p-5 border-b border-brand-border space-y-3">
+      <p className="text-[14px] font-semibold text-brand-primary">{label} Summary</p>
 
       <div className="flex items-center justify-between text-[13px]">
         <span className="text-brand-muted">Subtotal</span>
-        <span className="font-mono text-brand-primary">{fmt(totals.subtotal)}</span>
+        <span className="font-mono font-medium text-brand-primary">{totals.subtotal > 0 ? fmt(totals.subtotal) : '-'}</span>
       </div>
 
       <div className="flex items-center justify-between text-[13px] gap-2">
@@ -49,37 +52,40 @@ export const SummaryPanel = ({
             />
             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-brand-subtle pointer-events-none">%</span>
           </div>
-          <span className="font-mono text-brand-primary">{fmt(totals.discountAmount)}</span>
+          <span className="font-mono font-medium text-brand-danger">{totals.discountAmount > 0 ? `- ${fmt(totals.discountAmount)}` : '-'}</span>
         </div>
       </div>
 
       <div className="flex items-center justify-between text-[13px]">
         <span className="text-brand-muted">Tax</span>
-        <span className="font-mono text-brand-primary">{fmt(totals.vat)}</span>
+        <span className="font-mono font-medium text-brand-primary">{totals.vat > 0 ? fmt(totals.vat) : '-'}</span>
       </div>
 
       <div className="flex items-center justify-between text-[13px] gap-2">
         <span className="text-brand-muted flex-shrink-0">Shipping</span>
-        <Input
-          type="number"
-          min={0}
-          value={shippingAmount}
-          disabled={disabled}
-          onChange={(e) => onShippingAmountChange(e.target.value === '' ? 0 : Number(e.target.value))}
-          className="h-7 w-24 text-[12px] text-right bg-brand-bg border-brand-border rounded-md"
-        />
+        <div className="flex items-center gap-2">
+          <Input
+            type="number"
+            min={0}
+            value={shippingAmount}
+            disabled={disabled}
+            onChange={(e) => onShippingAmountChange(e.target.value === '' ? 0 : Number(e.target.value))}
+            className="h-7 w-20 text-[12px] text-right bg-brand-bg border-brand-border rounded-md"
+          />
+          <span className="font-mono font-medium text-brand-primary">{shippingAmount > 0 ? fmt(shippingAmount) : '-'}</span>
+        </div>
       </div>
 
-      <div className="border-t border-brand-border pt-3 flex items-baseline justify-between">
-        <span className="text-[13px] font-semibold text-brand-primary">Grand Total</span>
-        <span className="text-xl font-bold text-brand-accent font-mono">
-          {fmt(totals.total)} <span className="text-[11px] font-semibold text-brand-muted">AED</span>
+      <div className="border-t border-brand-border pt-4 flex items-baseline justify-between mt-2">
+        <span className="text-[14px] font-bold text-brand-primary">Grand Total</span>
+        <span className="text-xl font-bold text-[#10B981] font-mono">
+          <CurrencyAmount amount={totals.total} currency={currency} />
         </span>
       </div>
 
       {totals.discountAmount > 0 && (
-        <p className="text-[11px] font-medium text-brand-success">
-          You save AED {fmt(totals.discountAmount)}
+        <p className="text-[11px] font-medium text-[#10B981] text-right">
+          You save <CurrencyAmount amount={totals.discountAmount} currency={currency} />
         </p>
       )}
     </div>

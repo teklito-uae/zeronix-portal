@@ -12,6 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Package, Search } from 'lucide-react';
 import type { Product } from '@/types';
 import { emptyQIALine, type QIALineItem } from './types';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 
 interface AddFromLibraryDialogProps {
   open: boolean;
@@ -22,6 +24,7 @@ interface AddFromLibraryDialogProps {
 
 /** Small dialog for multi-selecting products to append to the items list in bulk. */
 export const AddFromLibraryDialog = ({ open, onOpenChange, products, onAdd }: AddFromLibraryDialogProps) => {
+  const currency = useCurrencyStore((s) => s.currency);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
@@ -89,7 +92,7 @@ export const AddFromLibraryDialog = ({ open, onOpenChange, products, onAdd }: Ad
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] font-medium text-brand-primary truncate">{p.name}</p>
                   {p.price != null && (
-                    <p className="text-[11px] text-brand-subtle font-mono">{Number(p.price).toLocaleString()} AED</p>
+                    <p className="text-[11px] text-brand-subtle font-mono"><CurrencyAmount amount={p.price} currency={currency} /></p>
                   )}
                 </div>
               </label>

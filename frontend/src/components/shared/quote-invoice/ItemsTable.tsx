@@ -32,11 +32,15 @@ interface ItemsTableProps {
   products: Product[];
   disabled?: boolean;
   onOpenLibrary: () => void;
+  /** Purchase Bills only: adds a read-only "Stock" column showing current → projected stock per line. */
+  showStock?: boolean;
+  /** Purchase Bills only: product_id -> supplier cost price, preferred over Product.price when prefilling a line's unit_price. */
+  costLookup?: Record<number, number>;
 }
 
 const TAX_OPTIONS = [0, 5, 10, 15, 20];
 
-export const ItemsTable = ({ items, onChange, products, disabled, onOpenLibrary }: ItemsTableProps) => {
+export const ItemsTable = ({ items, onChange, products, disabled, onOpenLibrary, showStock, costLookup }: ItemsTableProps) => {
   const refs = useRef<Record<string, HTMLInputElement | null>>({});
   const [focusTarget, setFocusTarget] = useState<string | null>(null);
 
@@ -62,10 +66,28 @@ export const ItemsTable = ({ items, onChange, products, disabled, onOpenLibrary 
   };
 
   return (
-    <div className="bg-brand-white border border-brand-border rounded-lg overflow-hidden shadow-sm">
+    <div className="flex flex-col">
+      <div className="px-5 py-4 border-b border-brand-border flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <h3 className="text-[14px] font-semibold text-brand-primary">Items</h3>
+          <span className="bg-brand-bg text-brand-primary text-[11px] font-medium px-2 py-0.5 rounded-full">
+            {items.length} {items.length === 1 ? 'item' : 'items'}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={onOpenLibrary}
+          disabled={disabled}
+          className="flex items-center gap-1.5 bg-brand-accent hover:bg-brand-accent-hover text-white px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+        >
+          <Library size={14} />
+          Product Library
+        </button>
+      </div>
+
       <div className="overflow-x-auto">
         <Table>
-          <TableHeader className="bg-brand-bg/60">
+          <TableHeader className="bg-transparent">
             <TableRow className="border-brand-border hover:bg-transparent">
               <TableHead className="w-10" />
               <TableHead className="min-w-[240px] text-[11px] font-semibold uppercase tracking-wider text-brand-subtle">Product / Description</TableHead>
@@ -74,6 +96,9 @@ export const ItemsTable = ({ items, onChange, products, disabled, onOpenLibrary 
               <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-brand-subtle w-28">Unit Price</TableHead>
               <TableHead className="text-center text-[11px] font-semibold uppercase tracking-wider text-brand-subtle w-20">Tax %</TableHead>
               <TableHead className="text-center text-[11px] font-semibold uppercase tracking-wider text-brand-subtle w-20">Disc %</TableHead>
+              {showStock && (
+                <TableHead className="text-center text-[11px] font-semibold uppercase tracking-wider text-brand-subtle w-24">Stock</TableHead>
+              )}
               <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-brand-subtle w-28">Amount</TableHead>
               <TableHead className="w-10" />
             </TableRow>
@@ -102,7 +127,7 @@ export const ItemsTable = ({ items, onChange, products, disabled, onOpenLibrary 
                       onSelect={(product) => update(i, {
                         product_id: product.id,
                         description: item.description || product.name,
-                        unit_price: product.price ?? item.unit_price,
+                        unit_price: costLookup ? (costLookup[product.id] ?? product.price ?? item.unit_price) : (product.price ?? item.unit_price),
                         product,
                       })}
                     />
@@ -169,6 +194,17 @@ export const ItemsTable = ({ items, onChange, products, disabled, onOpenLibrary 
                       className="w-full bg-transparent text-[13px] text-brand-primary text-center outline-none px-1 py-1 rounded focus:bg-brand-bg focus:ring-1 focus:ring-brand-accent/30 disabled:opacity-60"
                     />
                   </TableCell>
+                  {showStock && (
+                    <TableCell className="text-center py-2.5">
+                      {item.product ? (
+                        <span className="text-[11px] font-mono text-brand-muted whitespace-nowrap">
+                          {item.product.stock_quantity ?? 0} <span className="text-brand-subtle">&rarr;</span> {(item.product.stock_quantity ?? 0) + (Number(item.quantity) || 0)}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-brand-subtle">—</span>
+                      )}
+                    </TableCell>
+                  )}
                   <TableCell className="text-right text-[13px] font-mono font-semibold text-brand-primary py-2.5 pr-3">
                     {amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </TableCell>
@@ -196,8 +232,19 @@ export const ItemsTable = ({ items, onChange, products, disabled, onOpenLibrary 
             })}
             {items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="h-24 text-center text-[12px] text-brand-subtle">
-                  No line items yet.
+                <TableCell colSpan={showStock ? 10 : 9} className="h-32 text-center align-middle">
+                  <div className="flex flex-col items-center justify-center gap-3">
+                    <span className="text-[13px] text-brand-subtle font-medium">No line items yet.</span>
+                    {!disabled && (
+                      <button
+                        type="button"
+                        onClick={onOpenLibrary}
+                        className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-medium text-brand-primary border border-brand-border hover:bg-brand-bg rounded-lg transition-colors bg-brand-white shadow-sm"
+                      >
+                        <Library size={14} /> Add from Library
+                      </button>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             )}
@@ -206,20 +253,20 @@ export const ItemsTable = ({ items, onChange, products, disabled, onOpenLibrary 
       </div>
 
       {!disabled && (
-        <div className="border-t border-brand-border bg-brand-bg/30 px-4 py-2.5 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={addLine}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-brand-muted hover:text-brand-accent hover:bg-brand-bg rounded-md transition-colors"
-          >
-            <Plus size={14} /> Add Item
-          </button>
+        <div className="p-4 border-t border-brand-border bg-brand-white/50 flex flex-col gap-2">
           <button
             type="button"
             onClick={onOpenLibrary}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-brand-muted hover:text-brand-accent hover:bg-brand-bg rounded-md transition-colors"
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-[13px] font-semibold text-brand-accent hover:bg-brand-accent/5 border border-dashed border-brand-accent/30 rounded-lg transition-colors"
           >
-            <Library size={14} /> Add from Library
+            <Library size={15} /> Add from Library
+          </button>
+          <button
+            type="button"
+            onClick={addLine}
+            className="w-full text-[11px] text-brand-subtle hover:text-brand-primary font-medium underline underline-offset-2 text-center transition-colors"
+          >
+            or add a blank row
           </button>
         </div>
       )}

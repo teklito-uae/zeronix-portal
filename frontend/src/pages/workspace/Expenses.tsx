@@ -26,10 +26,13 @@ import { Spinner } from '@/components/shared/Spinner';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import { useResourceMutation } from '@/hooks/useApi';
 import { ActionGroup } from '@/components/shared/ActionGroup';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 
 const EXPENSE_CATEGORIES = ['Rent', 'Utilities', 'Salaries', 'Marketing', 'Logistics', 'Office Supplies', 'Other'];
 
 export const Expenses = () => {
+  const currency = useCurrencyStore((s) => s.currency);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [form, setForm] = useState({
@@ -89,7 +92,7 @@ export const Expenses = () => {
       header: 'Amount',
       cell: ({ row }) => (
         <p className="font-mono text-[14px] font-semibold text-brand-primary">
-          {Number(row.original.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-[11px] text-brand-subtle">AED</span>
+          <CurrencyAmount amount={row.original.amount} currency={currency} />
         </p>
       ),
     },
@@ -195,7 +198,7 @@ export const Expenses = () => {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[12px] font-medium text-brand-secondary ml-1">Amount (AED) *</Label>
+                <Label className="text-[12px] font-medium text-brand-secondary ml-1">Amount ({currency}) *</Label>
                 <Input
                   type="number"
                   step="0.01"

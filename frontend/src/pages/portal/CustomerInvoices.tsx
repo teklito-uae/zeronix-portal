@@ -14,6 +14,8 @@ import { SEO } from '@/components/shared/SEO';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 
 const INVOICE_STATUSES = [
   { label: 'Posted', value: 'posted' },
@@ -24,6 +26,7 @@ const INVOICE_STATUSES = [
 ];
 
 export const CustomerInvoices = () => {
+  const currency = useCurrencyStore((s) => s.currency);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
@@ -100,7 +103,7 @@ export const CustomerInvoices = () => {
       header: 'Total',
       cell: ({ row }) => (
         <span className="font-mono text-sm font-bold text-admin-text-primary">
-          {Number(row.original.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} AED
+          <CurrencyAmount amount={row.original.total} currency={currency} />
         </span>
       ),
     },
@@ -182,7 +185,7 @@ export const CustomerInvoices = () => {
         <div className="hidden md:flex bg-admin-surface border border-admin-border rounded-lg px-4 h-10 items-center gap-3 shadow-sm">
            <Wallet size={14} className="text-emerald-500" />
            <p className="text-xs font-bold text-admin-text-primary uppercase tracking-widest">
-             Account Balance: <span className="text-emerald-500 font-black">AED 0.00</span>
+             Account Balance: <span className="text-emerald-500 font-black"><CurrencyAmount amount={0} currency={currency} /></span>
            </p>
         </div>
       </div>
@@ -242,7 +245,7 @@ export const CustomerInvoices = () => {
                       <span className="text-admin-text-primary font-medium">{item.product_name || item.description}</span>
                       <div className="flex items-center gap-6">
                          <span className="text-xs text-admin-text-muted">Qty: {item.quantity}</span>
-                         <span className="text-xs font-bold text-admin-text-primary">{Number(item.total).toLocaleString()} AED</span>
+                         <span className="text-xs font-bold text-admin-text-primary"><CurrencyAmount amount={item.total} currency={currency} /></span>
                       </div>
                     </div>
                   ))}

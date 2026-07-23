@@ -69,50 +69,7 @@ export const Topbar = () => {
   const companySlug = isCustomer && parts.length > 2 ? parts[2] : 'company';
   const homePath = isCustomer ? `/portal/${companySlug}/dashboard` : `${getBasePath()}/dashboard`;
 
-  // Section sub-navigation — mirrors the nav groups in Sidebar.tsx (CRM,
-  // Sales, Purchasing, Management). Whichever group contains the active
-  // route renders as an icon-tab row in place of breadcrumbs.
-  const tabBasePath = isCustomer ? null : getBasePath();
-  const tabGroups: { items: { id: string; label: string; icon: React.ReactNode; path: string }[] }[] = tabBasePath
-    ? [
-        {
-          items: [
-            { id: 'leads', label: 'Leads', icon: <UserCircle2 size={16} />, path: `${tabBasePath}/leads` },
-            { id: 'companies', label: 'Companies', icon: <Users size={16} />, path: `${tabBasePath}/companies` },
-            { id: 'contacts', label: 'Contacts', icon: <Users size={16} />, path: `${tabBasePath}/contacts` },
-            { id: 'enquiries', label: 'Enquiries', icon: <MessageSquareText size={16} />, path: `${tabBasePath}/enquiries` },
-            { id: 'deals', label: 'Deals', icon: <Handshake size={16} />, path: `${tabBasePath}/deals` },
-          ],
-        },
-        {
-          items: [
-            { id: 'quotes', label: 'Quotes', icon: <FileText size={16} />, path: `${tabBasePath}/quotes` },
-            { id: 'sales-orders', label: 'Sales Orders', icon: <ClipboardList size={16} />, path: `${tabBasePath}/sales-orders` },
-            { id: 'deliveries', label: 'Deliveries', icon: <PackageCheck size={16} />, path: `${tabBasePath}/deliveries` },
-            { id: 'invoices', label: 'Invoices', icon: <Receipt size={16} />, path: `${tabBasePath}/invoices` },
-            { id: 'receipts', label: 'Payment Receipts', icon: <Receipt size={16} />, path: `${tabBasePath}/payment-receipts` },
-          ],
-        },
-        {
-          items: [
-            { id: 'suppliers', label: 'Suppliers', icon: <Truck size={16} />, path: `${tabBasePath}/suppliers` },
-            { id: 'purchases', label: 'Purchases', icon: <ShoppingCartIcon size={16} />, path: `${tabBasePath}/purchases` },
-            { id: 'expenses', label: 'Expenses', icon: <Wallet size={16} />, path: `${tabBasePath}/expenses` },
-          ],
-        },
-        {
-          items: [
-            { id: 'products', label: 'Products', icon: <Package size={16} />, path: `${tabBasePath}/products` },
-            { id: 'users', label: 'Team', icon: <Users size={16} />, path: `${tabBasePath}/users` },
-          ],
-        },
-      ]
-    : [];
-  const isTabItemActive = (path: string) =>
-    location.pathname === path || location.pathname.startsWith(path + '/');
-  const activeTabGroup = tabGroups.find((group) => group.items.some((item) => isTabItemActive(item.path)));
-  const activeTabItem = activeTabGroup?.items.find((item) => isTabItemActive(item.path));
-  const isTabSection = Boolean(activeTabGroup);
+
 
   // Ctrl+K / Cmd+K to open search
   useEffect(() => {
@@ -152,27 +109,8 @@ export const Topbar = () => {
           <Logo size="sm" showText />
         </div>
 
-        {/* Breadcrumbs, or section icon-tabs when on a page within one of the tab groups */}
-        {isTabSection ? (
-          <Tabs value={activeTabItem?.id} className="hidden sm:flex min-w-0">
-            <TabsList className="bg-brand-accent-light p-1 h-8">
-              {activeTabGroup!.items.map((item) => (
-                <TabsTrigger
-                  key={item.id}
-                  value={item.id}
-                  onClick={() => navigate(item.path)}
-                  className={cn(
-                    'flex items-center gap-1.5 px-2.5 py-1 text-brand-muted data-[state=active]:bg-brand-white data-[state=active]:text-brand-accent data-[state=active]:shadow-sm'
-                  )}
-                >
-                  {item.icon}
-                  <span className="hidden md:inline">{item.label}</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        ) : (
-          <nav className="hidden sm:flex items-center gap-1.5 text-sm min-w-0">
+        {/* Breadcrumbs */}
+          <nav className="hidden md:flex items-center gap-1.5 text-sm min-w-0">
             <Link
               to={homePath}
               className="flex items-center justify-center h-6 w-6 rounded-md text-brand-subtle hover:text-brand-accent hover:bg-brand-accent-light transition-colors shrink-0"
@@ -185,19 +123,22 @@ export const Topbar = () => {
                 {crumb.href ? (
                   <Link
                     to={crumb.href}
-                    className="text-[13px] font-medium text-brand-muted hover:text-brand-accent transition-colors truncate max-w-[160px]"
+                    className="flex items-center gap-2 text-[13px] font-medium text-brand-muted hover:text-brand-accent transition-colors"
                   >
-                    {crumb.label}
+                    <span className="truncate max-w-[160px]">{crumb.label}</span>
+                    {crumb.badge}
                   </Link>
                 ) : (
-                  <span className="text-[13px] font-semibold text-brand-primary truncate max-w-[240px]">
-                    {crumb.label}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-semibold text-brand-primary truncate max-w-[240px]">
+                      {crumb.label}
+                    </span>
+                    {crumb.badge}
+                  </div>
                 )}
               </span>
             ))}
           </nav>
-        )}
       </div>
 
       {/* Right: page-injected actions (desktop) + mobile-only utility icons (desktop equivalents live in the sidebar) */}
@@ -208,7 +149,8 @@ export const Topbar = () => {
           </div>
         )}
 
-        <div className="flex md:hidden items-center gap-1">
+        {/* Mobile utility icons */}
+        <div className="flex md:hidden items-center gap-2">
           <button
             onClick={() => setSearchOpen(true)}
             className="p-2 rounded-lg hover:bg-brand-white border border-transparent hover:border-brand-border transition-colors text-brand-muted hover:text-brand-secondary"

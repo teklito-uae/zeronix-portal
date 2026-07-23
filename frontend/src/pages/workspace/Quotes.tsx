@@ -10,12 +10,15 @@ import { toast } from 'sonner';
 import { useState } from 'react';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import { ActionGroup } from '@/components/shared/ActionGroup';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 
 /**
  * Quotations Module
  * Refactored to use the standardized State-Driven architecture.
  */
 export const Quotes = () => {
+  const currency = useCurrencyStore((s) => s.currency);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('all');
@@ -83,7 +86,7 @@ export const Quotes = () => {
       cell: ({ row }) => (
         <div className="text-right">
           <p className="font-mono text-[13px] font-semibold text-brand-primary">
-            {Number(row.original.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-[11px] text-brand-muted">AED</span>
+            <CurrencyAmount amount={row.original.total || 0} currency={currency} />
           </p>
         </div>
       ),

@@ -12,6 +12,7 @@ import {
 import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { useResourceMutation } from '@/hooks/useApi';
 import type { Product } from '@/types';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ interface ProductModalProps {
  * Reusable across Products inventory and Supplier catalogs.
  */
 export const ProductModal = ({ isOpen, onClose, editingProduct, brands, categories }: ProductModalProps) => {
+  const currency = useCurrencyStore((s) => s.currency);
   const [form, setForm] = useState({
     name: '', model_code: '', sku: '', stock_quantity: '', brand_id: '', category_id: '', description: '', price: '',
   });
@@ -133,7 +135,7 @@ export const ProductModal = ({ isOpen, onClose, editingProduct, brands, categori
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Base Price (AED)</Label>
+            <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Base Price ({currency})</Label>
             <Input 
               type="number"
               value={form.price} 

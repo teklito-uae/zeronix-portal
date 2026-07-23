@@ -109,7 +109,7 @@ export const SystemDocs = () => {
   "status": "approved", // pending, approved, suspended
   "is_client_portal_enabled": true,
   "tax_number": "TRN123456789",
-  "currency": "AED",
+  "currency": "USD",
   "license_attachment": "docs/license.pdf",
   "created_at": "2024-01-01T00:00:00Z"
 }`}

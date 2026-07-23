@@ -38,6 +38,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { cn, timeAgo } from '@/lib/utils';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 
 import { StatCard } from '@/components/shared/StatCard';
 
@@ -67,6 +69,7 @@ export const Dashboard = () => {
 };
 
 const AdminDashboard = () => {
+  const currency = useCurrencyStore((s) => s.currency);
   const navigate = useNavigate();
   const admin = useAuthStore(state => state.admin);
   const isStaff = admin?.role !== 'admin';
@@ -112,7 +115,6 @@ const AdminDashboard = () => {
 
   const { stats, daily_activity = [], recent_enquiries, recent_invoices, recent_activities, user_stats } = data;
 
-  const fmt = (val: number) => val > 0 ? `${Number(val).toLocaleString(undefined, { minimumFractionDigits: 0 })} AED` : '0 AED';
   const pct = stats.total_invoiced > 0 ? Math.round((stats.total_paid / stats.total_invoiced) * 100) : 0;
 
   return (
@@ -198,9 +200,9 @@ const AdminDashboard = () => {
       {isStaff && <ModuleShortcuts permissions={admin?.permissions || []} />}
       {/* Row 1 — Financial KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard title="Bank Received" value={fmt(stats.total_bank_received)} icon={<Building2 size={16} />} href={`${getBasePath()}/payment-receipts`} />
-        <StatCard title="Cash Received" value={fmt(stats.total_cash_received)} icon={<Banknote size={16} />} href={`${getBasePath()}/payment-receipts`} />
-        <StatCard title="Total Invoiced" value={fmt(stats.total_invoiced)} subtitle={`${pct}% collected`} icon={<Receipt size={16} />} href={`${getBasePath()}/invoices`} />
+        <StatCard title="Bank Received" value={<CurrencyAmount amount={stats.total_bank_received} currency={currency} />} icon={<Building2 size={16} />} href={`${getBasePath()}/payment-receipts`} />
+        <StatCard title="Cash Received" value={<CurrencyAmount amount={stats.total_cash_received} currency={currency} />} icon={<Banknote size={16} />} href={`${getBasePath()}/payment-receipts`} />
+        <StatCard title="Total Invoiced" value={<CurrencyAmount amount={stats.total_invoiced} currency={currency} />} subtitle={`${pct}% collected`} icon={<Receipt size={16} />} href={`${getBasePath()}/invoices`} />
         <StatCard title="Pending Quotes" value={stats.pending_quotes} subtitle="Awaiting action" icon={<FileText size={16} />} href={`${getBasePath()}/quotes`} />
       </div>
 
@@ -398,18 +400,18 @@ const AdminDashboard = () => {
                 <div className="bg-zeronix-blue h-1.5 rounded-full transition-all duration-700" style={{ width: `${Math.min(pct, 100)}%` }} />
               </div>
               <div className="flex justify-between text-[11px] text-brand-subtle">
-                <span>Paid: {fmt(stats.total_paid)}</span>
-                <span>Total: {fmt(stats.total_invoiced)}</span>
+                <span>Paid: <CurrencyAmount amount={stats.total_paid} currency={currency} /></span>
+                <span>Total: <CurrencyAmount amount={stats.total_invoiced} currency={currency} /></span>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-3 border-t border-brand-border">
               <div className="bg-brand-bg rounded-lg p-3 text-center border border-brand-border/50">
-                <p className="text-[14px] font-semibold text-brand-primary">{fmt(stats.total_bank_received)}</p>
+                <p className="text-[14px] font-semibold text-brand-primary"><CurrencyAmount amount={stats.total_bank_received} currency={currency} /></p>
                 <p className="text-[11px] text-brand-subtle mt-0.5 ">Bank</p>
               </div>
               <div className="bg-brand-bg rounded-lg p-3 text-center border border-brand-border/50">
-                <p className="text-[14px] font-semibold text-brand-primary">{fmt(stats.total_cash_received)}</p>
+                <p className="text-[14px] font-semibold text-brand-primary"><CurrencyAmount amount={stats.total_cash_received} currency={currency} /></p>
                 <p className="text-[11px] text-brand-subtle mt-0.5 ">Cash</p>
               </div>
             </div>
@@ -493,7 +495,7 @@ const AdminDashboard = () => {
                   <p className="text-[11px] text-brand-subtle mt-0.5">{inv.customer?.name || '—'}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[13px] font-semibold text-brand-primary">{Number(inv.total).toLocaleString(undefined, { minimumFractionDigits: 0 })} AED</p>
+                  <p className="text-[13px] font-semibold text-brand-primary"><CurrencyAmount amount={Number(inv.total)} currency={currency} /></p>
                   <div className="mt-1 flex justify-end">
                     <StatusBadge status={inv.status} />
                   </div>

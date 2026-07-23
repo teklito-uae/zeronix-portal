@@ -212,6 +212,7 @@ class MarketingTemplateRenderService
     public static function sampleMergeData(?int $companyId = null): array
     {
         $company = $companyId ? \App\Models\Company::find($companyId) : null;
+        $currency = $company?->settings['currency'] ?? 'USD';
 
         return [
             'recipient.name' => 'John Carter',
@@ -237,12 +238,12 @@ class MarketingTemplateRenderService
             'company.website' => $company->website ?? 'www.yourcompany.com',
             'quote.number' => 'QT-20260701-001',
             'quote.date' => '01 Jul 2026',
-            'quote.total' => 'AED 12,500.00',
+            'quote.total' => "{$currency} 12,500.00",
             'quote.status' => 'Sent',
             'invoice.number' => 'INV-20260615-003',
             'invoice.date' => '15 Jun 2026',
-            'invoice.total' => 'AED 8,900.00',
-            'invoice.balance_due' => 'AED 2,400.00',
+            'invoice.total' => "{$currency} 8,900.00",
+            'invoice.balance_due' => "{$currency} 2,400.00",
             'unsubscribe_url' => '#unsubscribe-preview',
         ];
     }

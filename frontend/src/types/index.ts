@@ -105,11 +105,42 @@ export interface CustomerContact {
   created_at?: string;
   updated_at?: string;
   customer?: Customer;
+  // Computed / relationship data (loaded on GET /admin/contacts/{id} and, for
+  // deals_count/lifetime_value, on the GET /admin/contacts list endpoint)
+  tags?: Tag[];
+  deals_count?: number;
+  deals_value?: number;
+  quotes_count?: number;
+  invoices_count?: number;
+  lifetime_value?: number;
+}
+
+export interface Tag {
+  id: number;
+  company_id?: number;
+  name: string;
+  color?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ContactActivity {
+  id: number;
+  customer_contact_id: number;
+  type: 'call' | 'email' | 'meeting' | 'note' | 'task';
+  notes?: string;
+  due_date?: string | null;
+  completed_at?: string | null;
+  user_id?: number | null;
+  created_at?: string;
+  updated_at?: string;
+  user?: User;
 }
 
 
 export interface Supplier {
   id: number;
+  supplier_code?: string;
   name: string;
   contact_person?: string;
   email: string;
@@ -530,6 +561,13 @@ export interface PurchaseBill {
   subtotal: number;
   vat_amount: number;
   total: number;
+  reference_id?: string;
+  notes?: string | null;
+  terms?: string | null;
+  discount_percent?: number;
+  shipping_amount?: number;
+  tags?: string[] | null;
+  attachments?: QuoteAttachment[] | null;
   created_at?: string;
   updated_at?: string;
   // Computed
@@ -540,6 +578,7 @@ export interface PurchaseBill {
   user?: User;
   items?: PurchaseBillItem[];
   items_count?: number;
+  activities?: ActivityLogEntry[];
 }
 
 export interface PurchaseBillItem {
@@ -551,6 +590,8 @@ export interface PurchaseBillItem {
   quantity: number;
   unit_price: number;
   tax_percent?: number;
+  discount_percent?: number;
+  discount_amount?: number;
   total: number;
   product?: Product;
 }
@@ -597,7 +638,7 @@ export interface PaginatedResponse<T> {
 export interface Template {
   id: number;
   name: string;
-  type: 'quote' | 'invoice' | 'receipt' | 'enquiry';
+  type: 'quote' | 'invoice' | 'sales_order' | 'payment_slip' | 'purchase_bill' | 'delivery_note';
   key: string;
   subject?: string;
   content: string;

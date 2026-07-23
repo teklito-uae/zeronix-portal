@@ -13,8 +13,11 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { TRANSACTION_CONFIGS, type TransactionType } from '@/lib/transactionTypes';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { CURRENCIES } from '@/lib/currency';
 import type { Customer, CustomerContact, User } from '@/types';
-import { MapPin, Mail, Phone, User as UserIcon, MoreHorizontal, UserPlus } from 'lucide-react';
+import { MapPin, Mail, User as UserIcon, MoreHorizontal, UserPlus } from 'lucide-react';
+import { PhoneFlag } from '@/components/shared/PhoneFlag';
 
 interface CustomerPanelProps {
   type: TransactionType;
@@ -32,6 +35,7 @@ const getInitials = (name?: string | null) => {
 export const CustomerPanel = ({ type, docData, onUpdate, disabled }: CustomerPanelProps) => {
   const navigate = useNavigate();
   const config = TRANSACTION_CONFIGS[type];
+  const currency = useCurrencyStore((s) => s.currency);
   const [searching, setSearching] = useState(false);
 
   const partyId = docData[config.party.idField];
@@ -91,8 +95,8 @@ export const CustomerPanel = ({ type, docData, onUpdate, disabled }: CustomerPan
 
   if (!partyId || searching) {
     return (
-      <div className="bg-brand-white border border-brand-border rounded-lg p-4 space-y-3">
-        <p className="text-[13px] font-semibold text-brand-primary">Customer</p>
+      <div className="p-4 md:p-5 space-y-3">
+        <p className="text-[14px] font-semibold text-brand-primary">Customer</p>
         <PartySearch
           kind={config.party.kind}
           endpoint={config.party.endpoint}
@@ -117,7 +121,7 @@ export const CustomerPanel = ({ type, docData, onUpdate, disabled }: CustomerPan
 
   return (
     <div className="space-y-4">
-      <div className="bg-brand-white border border-brand-border rounded-lg p-4 space-y-3">
+      <div className="p-4 md:p-5 space-y-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-start gap-3 min-w-0">
             <div className="h-10 w-10 rounded-full bg-brand-accent-light text-brand-accent flex items-center justify-center font-bold text-[13px] flex-shrink-0">
@@ -170,9 +174,8 @@ export const CustomerPanel = ({ type, docData, onUpdate, disabled }: CustomerPan
             </p>
           )}
           {customer?.phone && (
-            <p className="flex items-center gap-2 text-[12px] text-brand-muted">
-              <Phone size={13} className="flex-shrink-0 text-brand-subtle" />
-              <span>{customer.phone}</span>
+            <p className="flex items-center gap-2.5 text-[12px] text-brand-primary">
+              <PhoneFlag phone={customer.phone} size="sm" showNumber={true} />
             </p>
           )}
         </div>
@@ -221,7 +224,7 @@ export const CustomerPanel = ({ type, docData, onUpdate, disabled }: CustomerPan
         <div className="space-y-1 pt-1">
           <label className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle">Currency</label>
           <div className="h-9 flex items-center px-3 bg-brand-bg border border-brand-border rounded-lg text-[12px] text-brand-muted">
-            AED — UAE Dirham
+            {CURRENCIES[currency].code} — {CURRENCIES[currency].name}
           </div>
         </div>
 

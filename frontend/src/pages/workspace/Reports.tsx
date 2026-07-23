@@ -14,10 +14,13 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { BarChart3, TrendingUp, TrendingDown, DollarSign, Users, Clock } from 'lucide-react';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 
 type Tab = 'sales' | 'staff' | 'pnl' | 'aging';
 
 export const Reports = () => {
+  const currency = useCurrencyStore((s) => s.currency);
   const admin = useAuthStore(s => s.admin);
   const isAdmin = admin?.role === 'admin' || admin?.role === 'super_admin';
 
@@ -57,8 +60,6 @@ export const Reports = () => {
     ...(isAdmin ? [{ id: 'pnl' as Tab, label: 'Profit & Loss' }] : []),
     { id: 'aging', label: 'Receivables Aging' },
   ];
-
-  const fmt = (n: number) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
 
   return (
     <div className="bg-brand-white md:border border-brand-border md:rounded-xl shadow-sm flex flex-col h-full overflow-hidden">
@@ -105,8 +106,8 @@ export const Reports = () => {
           salesLoading ? <PageLoader label="Loading sales..." /> : (
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <StatTile icon={<DollarSign size={16} />} label="Total Invoiced" value={`${fmt(salesData?.totals?.total_invoiced)} AED`} />
-                <StatTile icon={<TrendingUp size={16} />} label="Total Paid" value={`${fmt(salesData?.totals?.total_paid)} AED`} />
+                <StatTile icon={<DollarSign size={16} />} label="Total Invoiced" value={<CurrencyAmount amount={salesData?.totals?.total_invoiced} currency={currency} />} />
+                <StatTile icon={<TrendingUp size={16} />} label="Total Paid" value={<CurrencyAmount amount={salesData?.totals?.total_paid} currency={currency} />} />
                 <StatTile icon={<BarChart3 size={16} />} label="Invoice Count" value={String(salesData?.totals?.count || 0)} />
               </div>
               <Table>
@@ -124,7 +125,7 @@ export const Reports = () => {
                       <TableCell className="font-mono text-[12px]">{inv.invoice_number}</TableCell>
                       <TableCell className="text-[13px]">{inv.customer?.name || '—'}</TableCell>
                       <TableCell className="text-[12px] uppercase">{inv.status}</TableCell>
-                      <TableCell className="text-right font-mono text-[13px]">{fmt(inv.total)}</TableCell>
+                      <TableCell className="text-right font-mono text-[13px]"><CurrencyAmount amount={inv.total} currency={currency} /></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -160,7 +161,7 @@ export const Reports = () => {
                     <TableRow key={row.user_id}>
                       <TableCell className="text-[13px] font-medium">{row.user_name}</TableCell>
                       <TableCell className="text-center text-[13px]">{row.invoice_count}</TableCell>
-                      <TableCell className="text-right font-mono text-[13px]">{fmt(row.total_sales)}</TableCell>
+                      <TableCell className="text-right font-mono text-[13px]"><CurrencyAmount amount={row.total_sales} currency={currency} /></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -172,11 +173,11 @@ export const Reports = () => {
         {activeTab === 'pnl' && isAdmin && (
           pnlLoading ? <PageLoader label="Calculating profit & loss..." /> : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              <StatTile icon={<DollarSign size={16} />} label="Revenue" value={`${fmt(pnlData?.revenue)} AED`} />
-              <StatTile icon={<TrendingDown size={16} />} label="Cost of Goods" value={`${fmt(pnlData?.cost_of_goods)} AED`} />
-              <StatTile icon={<Users size={16} />} label="Expenses" value={`${fmt(pnlData?.expenses)} AED`} />
-              <StatTile icon={<TrendingUp size={16} />} label="Gross Profit" value={`${fmt(pnlData?.gross_profit)} AED`} highlight />
-              <StatTile icon={<TrendingUp size={16} />} label="Net Profit" value={`${fmt(pnlData?.net_profit)} AED`} highlight />
+              <StatTile icon={<DollarSign size={16} />} label="Revenue" value={<CurrencyAmount amount={pnlData?.revenue} currency={currency} />} />
+              <StatTile icon={<TrendingDown size={16} />} label="Cost of Goods" value={<CurrencyAmount amount={pnlData?.cost_of_goods} currency={currency} />} />
+              <StatTile icon={<Users size={16} />} label="Expenses" value={<CurrencyAmount amount={pnlData?.expenses} currency={currency} />} />
+              <StatTile icon={<TrendingUp size={16} />} label="Gross Profit" value={<CurrencyAmount amount={pnlData?.gross_profit} currency={currency} />} highlight />
+              <StatTile icon={<TrendingUp size={16} />} label="Net Profit" value={<CurrencyAmount amount={pnlData?.net_profit} currency={currency} />} highlight />
             </div>
           )
         )}
@@ -184,11 +185,11 @@ export const Reports = () => {
         {activeTab === 'aging' && (
           agingLoading ? <PageLoader label="Loading receivables..." /> : (
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-              <StatTile icon={<Clock size={16} />} label="Current" value={`${fmt(agingData?.current)} AED`} />
-              <StatTile icon={<Clock size={16} />} label="1-30 Days" value={`${fmt(agingData?.['1_30'])} AED`} />
-              <StatTile icon={<Clock size={16} />} label="31-60 Days" value={`${fmt(agingData?.['31_60'])} AED`} />
-              <StatTile icon={<Clock size={16} />} label="61-90 Days" value={`${fmt(agingData?.['61_90'])} AED`} />
-              <StatTile icon={<Clock size={16} />} label="90+ Days" value={`${fmt(agingData?.['90_plus'])} AED`} highlight />
+              <StatTile icon={<Clock size={16} />} label="Current" value={<CurrencyAmount amount={agingData?.current} currency={currency} />} />
+              <StatTile icon={<Clock size={16} />} label="1-30 Days" value={<CurrencyAmount amount={agingData?.['1_30']} currency={currency} />} />
+              <StatTile icon={<Clock size={16} />} label="31-60 Days" value={<CurrencyAmount amount={agingData?.['31_60']} currency={currency} />} />
+              <StatTile icon={<Clock size={16} />} label="61-90 Days" value={<CurrencyAmount amount={agingData?.['61_90']} currency={currency} />} />
+              <StatTile icon={<Clock size={16} />} label="90+ Days" value={<CurrencyAmount amount={agingData?.['90_plus']} currency={currency} />} highlight />
             </div>
           )
         )}
@@ -197,7 +198,7 @@ export const Reports = () => {
   );
 };
 
-const StatTile = ({ icon, label, value, highlight }: { icon: React.ReactNode; label: string; value: string; highlight?: boolean }) => (
+const StatTile = ({ icon, label, value, highlight }: { icon: React.ReactNode; label: string; value: React.ReactNode; highlight?: boolean }) => (
   <div className={cn(
     "border rounded-lg p-4 space-y-1",
     highlight ? "border-brand-accent/30 bg-brand-accent/5" : "border-brand-border bg-brand-surface/50"

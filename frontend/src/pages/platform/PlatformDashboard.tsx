@@ -80,7 +80,7 @@ export const PlatformDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-slate-900 dark:text-white">
-              {new Intl.NumberFormat('en-AE', { style: 'currency', currency: 'AED' }).format(stats?.total_revenue || 0)}
+              {new Intl.NumberFormat('en-AE', { style: 'currency', currency: 'USD' }).format(stats?.total_revenue || 0)}
             </div>
             <p className="text-xs text-slate-500 mt-2 font-medium flex items-center gap-1">
               <span className="text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded text-[10px]">{stats?.growth?.revenue || '+0%'}</span> Network Volume

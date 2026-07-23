@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/useAuthStore';
+import { useCurrencyStore } from './store/useCurrencyStore';
 import { AdminLayout } from './components/layout/AdminLayout';
 import { AdminRoute, CustomerRoute } from './components/auth/ProtectedRoute';
 import api from './lib/axios';
@@ -31,12 +32,12 @@ import { QuotesSplitView } from './pages/workspace/QuotesSplitView';
 import { QuoteDetail } from './pages/workspace/QuoteDetail';
 import { SalesOrders } from './pages/workspace/SalesOrders';
 import { SalesOrderDetail } from './pages/workspace/SalesOrderDetail';
-import { Deliveries } from './pages/workspace/Deliveries';
+import { DeliveriesSplitView } from './pages/workspace/DeliveriesSplitView';
 import { DeliveryDetail } from './pages/workspace/DeliveryDetail';
 import { InvoicesSplitView } from './pages/workspace/InvoicesSplitView';
 import { InvoiceDetail } from './pages/workspace/InvoiceDetail';
-import { PaymentReceipts } from './pages/workspace/PaymentReceipts';
-import { Purchases } from './pages/workspace/Purchases';
+import { PaymentReceiptsSplitView } from './pages/workspace/PaymentReceiptsSplitView';
+import { PurchasesSplitView } from './pages/workspace/PurchasesSplitView';
 import { PurchaseBillDetail } from './pages/workspace/PurchaseBillDetail';
 import { Expenses } from './pages/workspace/Expenses';
 import { Reports } from './pages/workspace/Reports';
@@ -104,12 +105,12 @@ const WorkspaceRoutes = () => (
     <Route path="quotes/:id" element={<QuoteDetail />} />
     <Route path="sales-orders" element={<SalesOrders />} />
     <Route path="sales-orders/:id" element={<SalesOrderDetail />} />
-    <Route path="deliveries" element={<Deliveries />} />
+    <Route path="deliveries" element={<DeliveriesSplitView />} />
     <Route path="deliveries/:id" element={<DeliveryDetail />} />
     <Route path="invoices" element={<InvoicesSplitView />} />
     <Route path="invoices/:id" element={<InvoiceDetail />} />
-    <Route path="payment-receipts" element={<PaymentReceipts />} />
-    <Route path="purchases" element={<Purchases />} />
+    <Route path="payment-receipts" element={<PaymentReceiptsSplitView />} />
+    <Route path="purchases" element={<PurchasesSplitView />} />
     <Route path="purchases/:id" element={<PurchaseBillDetail />} />
     <Route path="expenses" element={<Expenses />} />
     <Route path="reports" element={<Reports />} />
@@ -177,10 +178,30 @@ function App() {
         })());
       }
 
+      if (adminToken) {
+        tasks.push((async () => {
+          try {
+            const res = await api.get('/admin/settings/workspace');
+            useCurrencyStore.getState().setFromSettings(res.data?.settings);
+          } catch {
+            // Non-fatal: fall back to default currency
+          }
+        })());
+      } else if (customerToken) {
+        tasks.push((async () => {
+          try {
+            const res = await api.get('/customer/settings/workspace');
+            useCurrencyStore.getState().setFromSettings(res.data?.settings);
+          } catch {
+            // Non-fatal: fall back to default currency
+          }
+        })());
+      }
+
       if (tasks.length > 0) {
         await Promise.all(tasks);
       }
-      
+
       setIsLoading(false);
     };
 

@@ -9,8 +9,11 @@ import type { SalesOrder, User } from '@/types';
 import { ClipboardList, Building2, Calendar } from 'lucide-react';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import { ActionGroup } from '@/components/shared/ActionGroup';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 
 export const SalesOrders = () => {
+  const currency = useCurrencyStore((s) => s.currency);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
 
@@ -57,7 +60,7 @@ export const SalesOrders = () => {
       header: 'Amount',
       cell: ({ row }) => (
         <p className="font-mono text-[14px] font-semibold text-brand-primary">
-          {Number(row.original.total).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-[11px] text-brand-subtle">AED</span>
+          <CurrencyAmount amount={row.original.total} currency={currency} />
         </p>
       ),
     },

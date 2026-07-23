@@ -31,6 +31,8 @@ import {
   Activity as ActivityIcon, AlertTriangle, Clock, type LucideIcon,
 } from 'lucide-react';
 import { Spinner } from '@/components/shared/Spinner';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 
 const CustomerContactsPanel = ({ customerId }: { customerId: number }) => {
   const queryClient = useQueryClient();
@@ -287,6 +289,7 @@ const ActivityFeedPanel = ({ customerId }: { customerId: number }) => {
 };
 
 export const CompanyProfile = () => {
+  const currency = useCurrencyStore((s) => s.currency);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -385,7 +388,7 @@ export const CompanyProfile = () => {
       header: 'Valuation',
       cell: ({ row }) => (
         <span className="font-mono text-sm font-bold text-admin-text-primary">
-          {(row.original.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-[10px] opacity-40 uppercase">AED</span>
+          <CurrencyAmount amount={row.original.total || 0} currency={currency} />
         </span>
       ),
     },
@@ -414,7 +417,7 @@ export const CompanyProfile = () => {
       header: 'Value',
       cell: ({ row }) => (
         <span className="font-mono text-sm font-bold text-admin-text-primary">
-          {(row.original.value || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-[10px] opacity-40 uppercase">AED</span>
+          <CurrencyAmount amount={row.original.value || 0} currency={currency} />
         </span>
       ),
     },
@@ -459,7 +462,7 @@ export const CompanyProfile = () => {
       header: 'Amount',
       cell: ({ row }) => (
         <span className="font-mono text-sm font-bold text-admin-text-primary">
-          {(row.original.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-[10px] opacity-40 uppercase">AED</span>
+          <CurrencyAmount amount={row.original.total || 0} currency={currency} />
         </span>
       ),
     },
@@ -556,7 +559,7 @@ export const CompanyProfile = () => {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard title="Account Owner" value={customer.assigned_users?.[0]?.name || 'Unassigned'} icon={<UserIcon size={16} className="text-brand-info" />} iconBg="bg-brand-info-bg" />
               <StatCard title="Total Deals" value={customer.deals_count || 0} icon={<Handshake size={16} className="text-brand-accent" />} iconBg="bg-brand-accent-light dark:bg-brand-accent/20" />
-              <StatCard title="Total Revenue" value={`${(customer.total_volume || 0).toLocaleString()} AED`} icon={<Wallet size={16} className="text-brand-success" />} iconBg="bg-brand-success-bg" />
+              <StatCard title="Total Revenue" value={<CurrencyAmount amount={customer.total_volume || 0} currency={currency} />} icon={<Wallet size={16} className="text-brand-success" />} iconBg="bg-brand-success-bg" />
               <StatCard title="Customer Since" value={customer.created_at ? new Date(customer.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—'} icon={<Calendar size={16} className="text-brand-warning" />} iconBg="bg-brand-warning-bg" />
             </div>
           </div>
@@ -644,29 +647,29 @@ export const CompanyProfile = () => {
                       <div className="p-3 rounded-lg bg-brand-surface border border-brand-border/50">
                         <p className="text-[11px] font-medium text-brand-subtle">Open Deals</p>
                         <p className="text-[16px] font-bold text-brand-primary mt-0.5">{customer.open_deals_count ?? 0}</p>
-                        <p className="text-[10px] text-brand-subtle mt-0.5">{(customer.open_deals_value || 0).toLocaleString()} AED</p>
+                        <p className="text-[10px] text-brand-subtle mt-0.5"><CurrencyAmount amount={customer.open_deals_value || 0} currency={currency} /></p>
                       </div>
                       <div className="p-3 rounded-lg bg-brand-surface border border-brand-border/50">
                         <p className="text-[11px] font-medium text-brand-subtle">Open Quotes</p>
                         <p className="text-[16px] font-bold text-brand-primary mt-0.5">{customer.open_quotes_count ?? 0}</p>
-                        <p className="text-[10px] text-brand-subtle mt-0.5">{(customer.open_quotes_value || 0).toLocaleString()} AED</p>
+                        <p className="text-[10px] text-brand-subtle mt-0.5"><CurrencyAmount amount={customer.open_quotes_value || 0} currency={currency} /></p>
                       </div>
                       <div className="p-3 rounded-lg bg-brand-surface border border-brand-border/50">
                         <p className="text-[11px] font-medium text-brand-subtle">Open Invoices</p>
                         <p className="text-[16px] font-bold text-brand-primary mt-0.5">{customer.open_invoices_count ?? 0}</p>
-                        <p className="text-[10px] text-brand-subtle mt-0.5">{(customer.open_invoices_value || 0).toLocaleString()} AED</p>
+                        <p className="text-[10px] text-brand-subtle mt-0.5"><CurrencyAmount amount={customer.open_invoices_value || 0} currency={currency} /></p>
                       </div>
                       <div className="p-3 rounded-lg bg-brand-danger-bg border border-brand-danger/20">
                         <p className="text-[11px] font-medium text-brand-danger flex items-center gap-1"><AlertTriangle size={11} /> Overdue</p>
                         <p className="text-[16px] font-bold text-brand-danger mt-0.5">{customer.overdue_invoices_count ?? 0}</p>
-                        <p className="text-[10px] text-brand-danger/70 mt-0.5">{(customer.overdue_invoices_value || 0).toLocaleString()} AED</p>
+                        <p className="text-[10px] text-brand-danger/70 mt-0.5"><CurrencyAmount amount={customer.overdue_invoices_value || 0} currency={currency} /></p>
                       </div>
                     </div>
                     <div className="px-5 pb-5">
                       <div className="p-4 rounded-lg bg-brand-success-bg border border-brand-success/20 flex items-center justify-between">
                         <div>
                           <p className="text-[11px] font-medium text-brand-success/80">Total Revenue</p>
-                          <p className="text-[18px] font-bold text-brand-success mt-0.5">{(customer.total_volume || 0).toLocaleString()} AED</p>
+                          <p className="text-[18px] font-bold text-brand-success mt-0.5"><CurrencyAmount amount={customer.total_volume || 0} currency={currency} /></p>
                         </div>
                         <Wallet size={24} className="text-brand-success/50" />
                       </div>

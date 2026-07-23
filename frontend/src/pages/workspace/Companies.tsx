@@ -19,6 +19,7 @@ import Avatar from 'boring-avatars';
 import { ActionGroup } from '@/components/shared/ActionGroup';
 import { LabelBadge } from '@/components/shared/LabelBadge';
 import { LabelSelector } from '@/components/shared/LabelSelector';
+import { PhoneInput } from '@/components/shared/PhoneInput';
 
 import type { Customer, User, CustomerLabel } from '@/types';
 import { Switch } from '@/components/ui/switch';
@@ -29,6 +30,8 @@ import { useResourceList, useResourceList as useLabels, useResourceMutation } fr
 import { useAuthStore } from '@/store/useAuthStore';
 import { useTopbarActions } from '@/hooks/useTopbarActions';
 import { toast } from 'sonner';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 
 /**
  * Companies Module
@@ -36,6 +39,7 @@ import { toast } from 'sonner';
  * Includes: Label support, Import (admin only), CSV Export (admin only)
  */
 export const Companies = () => {
+  const currency = useCurrencyStore((s) => s.currency);
   const { theme } = useThemeStore();
   const avatarColors = theme === 'dark'
     ? ['#ff4d6d', '#ff758f', '#ffbe0b', '#fdfcdc', '#48cae4']
@@ -282,7 +286,7 @@ export const Companies = () => {
         if (revenue <= 0) return <span className="text-[11px] text-brand-subtle italic">—</span>;
         return (
           <p className="font-mono text-[13px] font-semibold text-admin-text-primary">
-            {revenue.toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-[10px] text-admin-text-muted">AED</span>
+            <CurrencyAmount amount={revenue} currency={currency} />
           </p>
         );
       },
@@ -297,7 +301,7 @@ export const Companies = () => {
         return (
           <div className="space-y-1">
             <p className="font-mono text-[13px] font-semibold text-admin-text-primary">
-              {balance.toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-[10px] text-admin-text-muted">AED</span>
+              <CurrencyAmount amount={balance} currency={currency} />
             </p>
             {overdueCount > 0 && (
               <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider bg-brand-danger-bg text-brand-danger px-1.5 py-0.5 rounded">
@@ -467,11 +471,10 @@ export const Companies = () => {
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Phone Number</Label>
-              <Input
+              <PhoneInput
                 value={form.phone}
-                onChange={e => setForm({ ...form, phone: e.target.value })}
-                className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl"
-                placeholder="+971 -- --- ----"
+                onChange={val => setForm({ ...form, phone: val || '' })}
+                placeholder="+971 50 123 4567"
               />
             </div>
             <div className="space-y-2">

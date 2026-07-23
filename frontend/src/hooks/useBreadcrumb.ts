@@ -1,9 +1,12 @@
 import { useEffect } from 'react';
 import { useBreadcrumbStore } from '@/store/useBreadcrumbStore';
 
+import type { ReactNode } from 'react';
+
 interface Segment {
   label: string;
   href?: string;
+  badge?: ReactNode;
 }
 
 /**
@@ -28,5 +31,5 @@ export const useBreadcrumb = (segments: Segment[]) => {
       clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(segments)]);
+  }, [JSON.stringify(segments.map(s => ({ label: s.label, href: s.href })))]);
 };

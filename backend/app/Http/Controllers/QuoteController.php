@@ -10,9 +10,11 @@ use App\Models\SalesOrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
+use App\Traits\GeneratesPdf;
 
 class QuoteController extends Controller
 {
+    use GeneratesPdf;
     public function index(Request $request)
     {
         $query = Quote::with(['customer', 'user'])
@@ -32,12 +34,19 @@ class QuoteController extends Controller
             });
         }
 
-        if ($request->filled('status') && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-
         if ($request->filled('user_id') && $request->user_id !== 'all') {
             $query->where('user_id', $request->user_id);
+        }
+
+        // Calculate status counts before applying the status filter
+        $countsQuery = clone $query;
+        $statusCounts = $countsQuery->select('status', DB::raw('count(*) as count'))
+            ->groupBy('status')
+            ->pluck('count', 'status');
+        $allCount = $statusCounts->sum();
+
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
         }
 
         $quotes = $query->latest()->paginate($request->get('per_page', config('zeronix.default_per_page', 15)));
@@ -48,6 +57,8 @@ class QuoteController extends Controller
             'current_page' => $quotes->currentPage(),
             'last_page' => $quotes->lastPage(),
             'per_page' => $quotes->perPage(),
+            'status_counts' => $statusCounts,
+            'all_count' => $allCount,
         ]);
     }
 
@@ -182,6 +193,20 @@ class QuoteController extends Controller
             'activities.user',
             'activities.customer',
         ]));
+    }
+
+    public function viewPdf(Quote $quote)
+    {
+        $this->authorize('view', $quote);
+        $quote->load(['customer', 'items', 'company']);
+        return $this->generatePdfResponse($quote, 'quote', 'view');
+    }
+
+    public function downloadPdf(Quote $quote)
+    {
+        $this->authorize('view', $quote);
+        $quote->load(['customer', 'items', 'company']);
+        return $this->generatePdfResponse($quote, 'quote', 'download');
     }
 
     public function update(Request $request, Quote $quote)
@@ -424,11 +449,13 @@ class QuoteController extends Controller
     public function sendEmail(Request $request, Quote $quote)
     {
         $this->authorize('view', $quote);
-        $quote->load(['customer', 'items']);
+        $quote->load(['customer', 'items', 'company']);
 
         if (!$quote->customer->email) {
             return response()->json(['message' => 'Customer does not have an email address.'], 422);
         }
+
+        $currency = $quote->company->settings['currency'] ?? 'USD';
 
         // Get default template for quote
         $template = \App\Models\Template::where('type', 'quote')->where('is_default', true)->first() 
@@ -447,7 +474,7 @@ class QuoteController extends Controller
                 '{quote_number}' => $quote->quote_number,
                 '{customer_name}' => $quote->customer->name,
                 '{customer_company}' => $quote->customer->company ?? '',
-                '{total_amount}' => number_format($quote->total, 2) . ' AED',
+                '{total_amount}' => number_format($quote->total, 2) . ' ' . $currency,
                 '{date}' => \Carbon\Carbon::parse($quote->date)->format('d M Y'),
                 '{valid_until}' => $quote->valid_until ? \Carbon\Carbon::parse($quote->valid_until)->format('d M Y') : '',
             ];
@@ -488,13 +515,13 @@ class QuoteController extends Controller
                 <tbody>
                     <tr>
                         <td style='padding: 10px; border-bottom: 1px solid #eee;'>Standard Rate (5%)</td>
-                        <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>" . number_format($quote->subtotal, 2) . " AED</td>
-                        <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>" . number_format($quote->vat_amount, 2) . " AED</td>
+                        <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>" . number_format($quote->subtotal, 2) . " {$currency}</td>
+                        <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>" . number_format($quote->vat_amount, 2) . " {$currency}</td>
                     </tr>
                     <tr style='font-weight: bold;'>
                         <td style='padding: 10px;'>Total</td>
-                        <td style='padding: 10px; text-align: right;'>" . number_format($quote->subtotal, 2) . " AED</td>
-                        <td style='padding: 10px; text-align: right;'>" . number_format($quote->vat_amount, 2) . " AED</td>
+                        <td style='padding: 10px; text-align: right;'>" . number_format($quote->subtotal, 2) . " {$currency}</td>
+                        <td style='padding: 10px; text-align: right;'>" . number_format($quote->vat_amount, 2) . " {$currency}</td>
                     </tr>
                 </tbody>
             </table>";
@@ -513,8 +540,8 @@ class QuoteController extends Controller
                 '{logo_url}' => $logoBase64,
                 '{view_url}' => $viewUrl,
                 '{items}' => $itemsHtml, 
-                '{subtotal}' => number_format($quote->subtotal, 2) . ' AED', 
-                '{vat_amount}' => number_format($quote->vat_amount, 2) . ' AED',
+                '{subtotal}' => number_format($quote->subtotal, 2) . ' ' . $currency,
+                '{vat_amount}' => number_format($quote->vat_amount, 2) . ' ' . $currency,
                 '{tax_summary}' => $taxSummaryHtml,
                 '{total_in_words}' => \App\Helpers\NumberHelper::toWords($quote->total),
                 '{customer_address}' => nl2br(e($quote->customer->address ?? '')),
@@ -607,7 +634,8 @@ class QuoteController extends Controller
      */
     private function nextQuoteNumber(): string
     {
-        $prefix = 'QT-' . Carbon::now()->format('Y') . '-';
+        $settings = auth()->user()->company->settings ?? [];
+        $prefix = ($settings['quote_prefix'] ?? 'QT-') . Carbon::now()->format('Y') . '-';
 
         $maxSeq = Quote::where('quote_number', 'like', "{$prefix}%")
             ->get(['quote_number'])

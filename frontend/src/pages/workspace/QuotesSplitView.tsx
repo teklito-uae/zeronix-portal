@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getBasePath } from '@/hooks/useBasePath';
 import { useResourceList } from '@/hooks/useApi';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { DaysLeftBadge } from '@/components/shared/DaysLeftBadge';
 import { Avatar } from '@/components/shared/Avatar';
 import { QuoteDetailView } from '@/components/shared/QuoteDetailView';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 const quoteTabs = [
-  { id: 'all', label: 'All Quotes' },
+  { id: 'all', label: 'All' },
   { id: 'draft', label: 'Drafts' },
   { id: 'sent', label: 'Sent' },
   { id: 'accepted', label: 'Accepted' },
@@ -60,6 +61,7 @@ export const QuotesSplitView = () => {
   const quotes: Quote[] = resourceData?.data || [];
   const total = resourceData?.total || 0;
   const lastPage = resourceData?.last_page || 1;
+  const statusCounts = resourceData?.status_counts || {};
 
   // Auto-select the first quote once data loads, if nothing is selected yet.
   useEffect(() => {
@@ -120,18 +122,25 @@ export const QuotesSplitView = () => {
           <div className="px-4 border-b border-brand-border flex items-center gap-5 flex-shrink-0 overflow-x-auto no-scrollbar">
             {quoteTabs.map((tab) => {
               const isActive = activeTab === tab.id;
+              const count = tab.id === 'all' ? (resourceData?.all_count || 0) : (statusCounts[tab.id] || 0);
               return (
                 <button
                   key={tab.id}
                   onClick={() => { setActiveTab(tab.id); setPage(1); }}
                   className={cn(
-                    'py-3 text-[13px] whitespace-nowrap transition-colors border-b-2',
+                    'py-3 text-[13px] whitespace-nowrap transition-colors border-b-2 flex items-center gap-1.5',
                     isActive
                       ? 'font-semibold text-brand-primary border-brand-accent'
                       : 'font-medium text-brand-subtle hover:text-brand-primary border-transparent'
                   )}
                 >
                   {tab.label}
+                  <span className={cn(
+                    'text-[10px] px-1.5 py-0.5 rounded-full font-bold',
+                    isActive ? 'bg-brand-accent text-white' : 'bg-brand-bg text-brand-subtle'
+                  )}>
+                    {count}
+                  </span>
                 </button>
               );
             })}
@@ -173,10 +182,9 @@ export const QuotesSplitView = () => {
                                   <Building2 size={11} /> {q.customer.company}
                                 </p>
                               )}
-                              <p className="text-[11px] text-brand-subtle mt-1">
+                              <p className="text-[11px] text-brand-subtle mt-1.5 flex items-center gap-2">
                                 <span className="font-mono text-brand-accent">{q.quote_number}</span>
-                                {' · '}
-                                {q.created_at ? new Date(q.created_at).toLocaleDateString() : '—'}
+                                <DaysLeftBadge date={q.valid_until || q.due_date} />
                               </p>
                             </div>
                           </div>

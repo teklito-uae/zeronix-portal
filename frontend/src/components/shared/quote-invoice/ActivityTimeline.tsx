@@ -27,7 +27,7 @@ export const ActivityTimeline = ({ activities }: ActivityTimelineProps) => {
   const list = activities ?? [];
 
   return (
-    <div className="bg-brand-white border border-brand-border rounded-lg p-4">
+    <div className="p-4">
       <p className="text-[13px] font-semibold text-brand-primary mb-3">Activity</p>
       {list.length === 0 ? (
         <p className="text-[12px] text-brand-subtle italic">No activity recorded yet.</p>

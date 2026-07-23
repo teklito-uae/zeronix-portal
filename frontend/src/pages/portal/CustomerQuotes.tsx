@@ -13,6 +13,8 @@ import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SEO } from '@/components/shared/SEO';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 
 const QUOTE_STATUSES = [
   { label: 'Draft', value: 'draft' },
@@ -24,6 +26,7 @@ const QUOTE_STATUSES = [
 ];
 
 export const CustomerQuotes = () => {
+  const currency = useCurrencyStore((s) => s.currency);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { company } = useParams();
@@ -76,7 +79,7 @@ export const CustomerQuotes = () => {
       header: 'Total Amount',
       cell: ({ row }) => (
         <span className="font-mono text-sm font-medium text-admin-text-primary">
-          {Number(row.original.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} AED
+          <CurrencyAmount amount={row.original.total} currency={currency} />
         </span>
       ),
     },

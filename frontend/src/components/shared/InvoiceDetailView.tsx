@@ -21,6 +21,8 @@ import { computeDocTotals, normalizeLineItems } from '@/lib/lineItemMath';
 import api from '@/lib/axios';
 import type { Invoice, QuoteAttachment, ActivityLogEntry } from '@/types';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 import {
   Loader2,
   Send,
@@ -81,6 +83,7 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const admin = useAuthStore((s) => s.admin);
+  const currency = useCurrencyStore((s) => s.currency);
 
   const [activeTab, setActiveTab] = useState('items');
   const [tagInput, setTagInput] = useState('');
@@ -213,8 +216,8 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
   if (isLoading) {
     return (
       <div className="h-96 flex flex-col items-center justify-center gap-3">
-        <Loader2 className="animate-spin text-zeronix-blue" size={32} />
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted">Loading…</p>
+        <Loader2 className="animate-spin text-brand-accent" size={32} />
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle">Loading…</p>
       </div>
     );
   }
@@ -222,7 +225,7 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
   if (!data) {
     return (
       <div className="h-96 flex items-center justify-center">
-        <p className="text-sm text-admin-text-muted">Invoice not found.</p>
+        <p className="text-sm text-brand-subtle">Invoice not found.</p>
       </div>
     );
   }
@@ -237,7 +240,7 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <h1 className="text-xl font-bold text-admin-text-primary tracking-tight">
+            <h1 className="text-xl font-bold text-brand-primary tracking-tight">
               INVOICE {data.invoice_number || `#${id}`}
             </h1>
             <StatusBadge status={data.status} />
@@ -267,7 +270,7 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
                     Convert <ChevronDown size={14} className="ml-1.5" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52 bg-admin-surface border-admin-border rounded-xl shadow-xl p-1">
+                <DropdownMenuContent align="end" className="w-52 bg-brand-white border-brand-border rounded-xl shadow-xl p-1">
                   {eligibleConversions.map((conversion) => (
                     <DropdownMenuItem
                       key={conversion.label}
@@ -286,7 +289,7 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
                 disabled={isSendPending}
                 size="sm"
                 variant="outline"
-                className="rounded-xl h-9 px-4 font-medium text-sm border-admin-border"
+                className="rounded-xl h-9 px-4 font-medium text-sm border-brand-border"
               >
                 {isSendPending ? <Loader2 className="animate-spin mr-2" size={15} /> : <Send size={15} className="mr-2" />}
                 Send
@@ -296,17 +299,17 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
               variant="outline"
               size="sm"
               onClick={() => navigate(`${getBasePath()}/invoices/${id}`)}
-              className="rounded-xl h-9 px-4 font-medium text-sm border-admin-border"
+              className="rounded-xl h-9 px-4 font-medium text-sm border-brand-border"
             >
               <Pencil size={15} className="mr-2" /> Edit
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-9 w-9 p-0 text-admin-text-muted hover:text-admin-text-primary rounded-xl">
+                <Button variant="ghost" className="h-9 w-9 p-0 text-brand-subtle hover:text-brand-primary rounded-xl">
                   <MoreHorizontal size={16} />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-36 bg-admin-surface border-admin-border rounded-xl shadow-xl p-1">
+              <DropdownMenuContent align="end" className="w-36 bg-brand-white border-brand-border rounded-xl shadow-xl p-1">
                 <DropdownMenuItem onClick={handleDelete} className="text-danger focus:text-danger rounded-lg cursor-pointer">
                   <Trash2 size={14} className="mr-2" /> Delete
                 </DropdownMenuItem>
@@ -316,7 +319,7 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-admin-border flex items-center gap-6 overflow-x-auto no-scrollbar">
+        <div className="border-b border-brand-border flex items-center gap-6 overflow-x-auto no-scrollbar">
           {detailTabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -326,8 +329,8 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
                 className={cn(
                   'py-2.5 text-[13px] whitespace-nowrap transition-colors border-b-2',
                   isActive
-                    ? 'font-semibold text-admin-text-primary border-zeronix-blue'
-                    : 'font-medium text-admin-text-muted hover:text-admin-text-primary border-transparent'
+                    ? 'font-semibold text-brand-primary border-brand-accent'
+                    : 'font-medium text-brand-subtle hover:text-brand-primary border-transparent'
                 )}
               >
                 {tab.label}
@@ -339,22 +342,22 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
         {activeTab === 'items' && (
           <div className="space-y-5">
             {/* Items table */}
-            <div className="bg-admin-bg border border-admin-border rounded-lg overflow-hidden">
+            <div className="bg-brand-bg border border-brand-border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-admin-border hover:bg-transparent">
-                    <TableHead className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted w-10">#</TableHead>
-                    <TableHead className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted">Item</TableHead>
-                    <TableHead className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted text-right">Qty</TableHead>
-                    <TableHead className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted text-right">Price</TableHead>
-                    <TableHead className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted text-right">Tax</TableHead>
-                    <TableHead className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted text-right">Amount</TableHead>
+                  <TableRow className="border-brand-border hover:bg-transparent">
+                    <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle w-10">#</TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle">Item</TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle text-right">Qty</TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle text-right">Price</TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle text-right">Tax</TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle text-right">Amount</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {normalizedItems.length === 0 && (
-                    <TableRow className="border-admin-border">
-                      <TableCell colSpan={6} className="text-center text-[12px] text-admin-text-muted py-6">
+                    <TableRow className="border-brand-border">
+                      <TableCell colSpan={6} className="text-center text-[12px] text-brand-subtle py-6">
                         No line items.
                       </TableCell>
                     </TableRow>
@@ -362,37 +365,37 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
                   {normalizedItems.map((item: any, idx: number) => {
                     const showSubtitle = item.product_name && item.product_name !== item.description;
                     return (
-                      <TableRow key={item.id ?? idx} className="border-admin-border">
-                        <TableCell className="text-[12px] text-admin-text-muted">{idx + 1}</TableCell>
-                        <TableCell className="text-[12px] text-admin-text-primary font-medium">
+                      <TableRow key={item.id ?? idx} className="border-brand-border">
+                        <TableCell className="text-[12px] text-brand-subtle">{idx + 1}</TableCell>
+                        <TableCell className="text-[12px] text-brand-primary font-medium">
                           <div className="flex items-center gap-3">
                             {item.product?.image ? (
                               <img
                                 src={item.product.image}
                                 alt=""
-                                className="w-10 h-10 rounded-md object-cover flex-shrink-0 border border-admin-border"
+                                className="w-10 h-10 rounded-md object-cover flex-shrink-0 border border-brand-border"
                               />
                             ) : (
-                              <div className="w-10 h-10 rounded-md bg-admin-surface-hover flex items-center justify-center flex-shrink-0">
-                                <Package size={16} className="text-admin-text-muted" />
+                              <div className="w-10 h-10 rounded-md bg-brand-white-hover flex items-center justify-center flex-shrink-0">
+                                <Package size={16} className="text-brand-subtle" />
                               </div>
                             )}
                             <div className="min-w-0">
                               <p className="truncate">{item.description || item.product_name || '—'}</p>
                               {showSubtitle && (
-                                <p className="text-[11px] text-admin-text-muted truncate">{item.product_name}</p>
+                                <p className="text-[11px] text-brand-subtle truncate">{item.product_name}</p>
                               )}
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="text-[12px] text-admin-text-secondary text-right">{item.quantity}</TableCell>
-                        <TableCell className="text-[12px] text-admin-text-secondary text-right">
+                        <TableCell className="text-[12px] text-brand-secondary text-right">{item.quantity}</TableCell>
+                        <TableCell className="text-[12px] text-brand-secondary text-right">
                           {Number(item.unit_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </TableCell>
-                        <TableCell className="text-[12px] text-admin-text-secondary text-right">
+                        <TableCell className="text-[12px] text-brand-secondary text-right">
                           {Number(item.tax_percent ?? 0)}%
                         </TableCell>
-                        <TableCell className="text-[12px] text-admin-text-primary font-medium text-right">
+                        <TableCell className="text-[12px] text-brand-primary font-medium text-right">
                           {(Number(item.quantity) * Number(item.unit_price)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </TableCell>
                       </TableRow>
@@ -404,63 +407,62 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
 
             {/* Message to customer + totals */}
             <div className="flex flex-col md:flex-row gap-5">
-              <div className="flex-1 bg-admin-bg border border-admin-border rounded-lg p-5">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted mb-2">
+              <div className="flex-1 bg-brand-bg border border-brand-border rounded-lg p-5">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-2">
                   Message to Customer
                 </p>
                 {data.notes ? (
-                  <p className="text-[12px] text-admin-text-secondary whitespace-pre-line">{data.notes}</p>
+                  <p className="text-[12px] text-brand-secondary whitespace-pre-line">{data.notes}</p>
                 ) : (
-                  <p className="text-[12px] text-admin-text-muted italic">No message added for this invoice.</p>
+                  <p className="text-[12px] text-brand-subtle italic">No message added for this invoice.</p>
                 )}
               </div>
-              <div className="w-full md:w-72 flex-shrink-0 bg-admin-bg border border-admin-border rounded-lg p-5 space-y-2">
+              <div className="w-full md:w-72 flex-shrink-0 bg-brand-bg border border-brand-border rounded-lg p-5 space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] uppercase tracking-wider text-admin-text-muted">Subtotal</p>
-                  <p className="text-[13px] font-medium text-admin-text-primary">
+                  <p className="text-[11px] uppercase tracking-wider text-brand-subtle">Subtotal</p>
+                  <p className="text-[13px] font-medium text-brand-primary">
                     {totals.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </p>
                 </div>
                 {totals.discountAmount > 0 && (
                   <div className="flex items-center justify-between">
-                    <p className="text-[11px] uppercase tracking-wider text-admin-text-muted">Discount</p>
-                    <p className="text-[13px] font-medium text-admin-text-primary">
+                    <p className="text-[11px] uppercase tracking-wider text-brand-subtle">Discount</p>
+                    <p className="text-[13px] font-medium text-brand-primary">
                       -{totals.discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </p>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] uppercase tracking-wider text-admin-text-muted">VAT</p>
-                  <p className="text-[13px] font-medium text-admin-text-primary">
+                  <p className="text-[11px] uppercase tracking-wider text-brand-subtle">VAT</p>
+                  <p className="text-[13px] font-medium text-brand-primary">
                     {totals.vat.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </p>
                 </div>
                 {totals.shippingAmount > 0 && (
                   <div className="flex items-center justify-between">
-                    <p className="text-[11px] uppercase tracking-wider text-admin-text-muted">Shipping</p>
-                    <p className="text-[13px] font-medium text-admin-text-primary">
+                    <p className="text-[11px] uppercase tracking-wider text-brand-subtle">Shipping</p>
+                    <p className="text-[13px] font-medium text-brand-primary">
                       {totals.shippingAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </p>
                   </div>
                 )}
-                <div className="flex items-center justify-between pt-2 border-t border-admin-border">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-admin-text-muted">Total</p>
-                  <p className="text-lg font-bold text-zeronix-blue font-mono">
-                    {totals.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}{' '}
-                    <span className="text-xs font-semibold text-admin-text-muted">AED</span>
+                <div className="flex items-center justify-between pt-2 border-t border-brand-border">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-brand-subtle">Total</p>
+                  <p className="text-lg font-bold text-brand-accent font-mono">
+                    <CurrencyAmount amount={totals.total} currency={currency} />
                   </p>
                 </div>
                 {data.amount_paid > 0 && (
                   <>
-                    <div className="flex items-center justify-between pt-2 border-t border-admin-border">
-                      <p className="text-[11px] uppercase tracking-wider text-admin-text-muted">Paid</p>
+                    <div className="flex items-center justify-between pt-2 border-t border-brand-border">
+                      <p className="text-[11px] uppercase tracking-wider text-brand-subtle">Paid</p>
                       <p className="text-[13px] font-medium text-emerald-600">
                         {data.amount_paid.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </p>
                     </div>
                     <div className="flex items-center justify-between">
-                      <p className="text-[11px] uppercase tracking-wider text-admin-text-muted">Balance Due</p>
-                      <p className="text-[13px] font-bold text-admin-text-primary">
+                      <p className="text-[11px] uppercase tracking-wider text-brand-subtle">Balance Due</p>
+                      <p className="text-[13px] font-bold text-brand-primary">
                         {data.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </p>
                     </div>
@@ -470,14 +472,14 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
             </div>
 
             {/* Attachments */}
-            <div className="bg-admin-bg border border-admin-border rounded-lg p-5">
+            <div className="bg-brand-bg border border-brand-border rounded-lg p-5">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted">Attachments</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle">Attachments</p>
                 <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileSelected} />
                 <Button
                   size="sm"
                   variant="outline"
-                  className="rounded-lg h-8 px-3 text-xs font-medium border-admin-border"
+                  className="rounded-lg h-8 px-3 text-xs font-medium border-brand-border"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadAttachment.isPending}
                 >
@@ -490,19 +492,19 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
                 </Button>
               </div>
               {attachments.length === 0 ? (
-                <p className="text-[12px] text-admin-text-muted italic">No attachments yet.</p>
+                <p className="text-[12px] text-brand-subtle italic">No attachments yet.</p>
               ) : (
                 <ul className="space-y-2">
                   {attachments.map((att: QuoteAttachment, idx: number) => (
                     <li
                       key={`${att.path}-${idx}`}
-                      className="flex items-center justify-between gap-2 bg-admin-surface-hover rounded-lg px-3 py-2"
+                      className="flex items-center justify-between gap-2 bg-brand-white-hover rounded-lg px-3 py-2"
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <Paperclip size={13} className="text-admin-text-muted flex-shrink-0" />
-                        <span className="text-[12px] text-admin-text-primary truncate">{att.name}</span>
+                        <Paperclip size={13} className="text-brand-subtle flex-shrink-0" />
+                        <span className="text-[12px] text-brand-primary truncate">{att.name}</span>
                         {att.size !== undefined && (
-                          <span className="text-[11px] text-admin-text-muted flex-shrink-0">{formatFileSize(att.size)}</span>
+                          <span className="text-[11px] text-brand-subtle flex-shrink-0">{formatFileSize(att.size)}</span>
                         )}
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
@@ -510,14 +512,14 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
                           href={`${storageBaseUrl}/storage/${att.path}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-admin-text-muted hover:text-admin-text-primary p-1"
+                          className="text-brand-subtle hover:text-brand-primary p-1"
                         >
                           <Download size={13} />
                         </a>
                         <button
                           type="button"
                           onClick={() => deleteAttachment.mutate(idx)}
-                          className="text-admin-text-muted hover:text-danger p-1"
+                          className="text-brand-subtle hover:text-danger p-1"
                         >
                           <X size={13} />
                         </button>
@@ -531,31 +533,31 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
         )}
 
         {activeTab === 'details' && (
-          <div className="bg-admin-bg border border-admin-border rounded-lg p-5 grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="bg-brand-bg border border-brand-border rounded-lg p-5 grid grid-cols-2 md:grid-cols-3 gap-4">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted mb-1">Invoice Number</p>
-              <p className="text-[13px] font-medium text-admin-text-primary">{data.invoice_number || `#${id}`}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1">Invoice Number</p>
+              <p className="text-[13px] font-medium text-brand-primary">{data.invoice_number || `#${id}`}</p>
             </div>
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted mb-1 flex items-center gap-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1 flex items-center gap-1.5">
                 <Calendar size={11} /> Date
               </p>
-              <p className="text-[13px] font-medium text-admin-text-primary">{formatDate(data.date)}</p>
+              <p className="text-[13px] font-medium text-brand-primary">{formatDate(data.date)}</p>
             </div>
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted mb-1">Status</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1">Status</p>
               <StatusBadge status={data.status} />
             </div>
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted mb-1 flex items-center gap-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1 flex items-center gap-1.5">
                 <Calendar size={11} /> Due Date
               </p>
-              <p className="text-[13px] font-medium text-admin-text-primary">{formatDate(data.due_date)}</p>
+              <p className="text-[13px] font-medium text-brand-primary">{formatDate(data.due_date)}</p>
             </div>
             {data.amount_paid > 0 && (
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted mb-1">Amount Paid</p>
-                <p className="text-[13px] font-medium text-admin-text-primary">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1">Amount Paid</p>
+                <p className="text-[13px] font-medium text-brand-primary">
                   {data.amount_paid.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -564,55 +566,55 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
         )}
 
         {activeTab === 'terms' && (
-          <div className="bg-admin-bg border border-admin-border rounded-lg p-5 grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="bg-brand-bg border border-brand-border rounded-lg p-5 grid grid-cols-2 md:grid-cols-3 gap-4">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted mb-1">Payment Terms</p>
-              <p className="text-[13px] font-medium text-admin-text-primary">{data.payment_terms || '—'}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1">Payment Terms</p>
+              <p className="text-[13px] font-medium text-brand-primary">{data.payment_terms || '—'}</p>
             </div>
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted mb-1">Due Date</p>
-              <p className="text-[13px] font-medium text-admin-text-primary">{formatDate(data.due_date)}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1">Due Date</p>
+              <p className="text-[13px] font-medium text-brand-primary">{formatDate(data.due_date)}</p>
             </div>
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted mb-1">Reference</p>
-              <p className="text-[13px] font-medium text-admin-text-primary">{data.reference_id || '—'}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1">Reference</p>
+              <p className="text-[13px] font-medium text-brand-primary">{data.reference_id || '—'}</p>
             </div>
             {data.terms && (
-              <p className="col-span-full text-[12px] text-admin-text-secondary whitespace-pre-line">{data.terms}</p>
+              <p className="col-span-full text-[12px] text-brand-secondary whitespace-pre-line">{data.terms}</p>
             )}
             {!data.reference_id && !data.payment_terms && !data.terms && (
-              <p className="col-span-full text-[12px] text-admin-text-muted italic">No additional terms recorded for this invoice.</p>
+              <p className="col-span-full text-[12px] text-brand-subtle italic">No additional terms recorded for this invoice.</p>
             )}
           </div>
         )}
 
         {activeTab === 'notes' && (
-          <div className="bg-admin-bg border border-admin-border rounded-lg p-5">
+          <div className="bg-brand-bg border border-brand-border rounded-lg p-5">
             {data.notes ? (
-              <p className="text-[12px] text-admin-text-secondary whitespace-pre-line">{data.notes}</p>
+              <p className="text-[12px] text-brand-secondary whitespace-pre-line">{data.notes}</p>
             ) : (
-              <p className="text-[12px] text-admin-text-muted italic">No notes added.</p>
+              <p className="text-[12px] text-brand-subtle italic">No notes added.</p>
             )}
           </div>
         )}
 
         {activeTab === 'history' && (
-          <div className="bg-admin-bg border border-admin-border rounded-lg p-5">
+          <div className="bg-brand-bg border border-brand-border rounded-lg p-5">
             {!data.activities || data.activities.length === 0 ? (
-              <p className="text-[12px] text-admin-text-muted italic">No activity recorded yet.</p>
+              <p className="text-[12px] text-brand-subtle italic">No activity recorded yet.</p>
             ) : (
               <ul className="space-y-0">
                 {data.activities.map((activity: ActivityLogEntry, idx: number) => (
                   <li key={activity.id} className="flex gap-3 pb-4 last:pb-0">
                     <div className="flex flex-col items-center flex-shrink-0">
-                      <div className="w-2 h-2 rounded-full bg-zeronix-blue mt-1.5" />
+                      <div className="w-2 h-2 rounded-full bg-brand-accent mt-1.5" />
                       {idx < (data.activities?.length || 0) - 1 && (
                         <div className="w-px flex-1 bg-admin-border mt-1" />
                       )}
                     </div>
                     <div className="min-w-0 pb-1">
-                      <p className="text-[12px] text-admin-text-primary">{activity.description}</p>
-                      <p className="text-[11px] text-admin-text-muted flex items-center gap-1 mt-0.5">
+                      <p className="text-[12px] text-brand-primary">{activity.description}</p>
+                      <p className="text-[11px] text-brand-subtle flex items-center gap-1 mt-0.5">
                         <Clock size={10} /> {activity.created_at ? new Date(activity.created_at).toLocaleString() : '—'}
                       </p>
                     </div>
@@ -625,52 +627,52 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
       </div>
 
       {/* Right rail */}
-      <div className="w-[300px] flex-shrink-0 border-l border-admin-border p-4 space-y-5 overflow-y-auto">
-        <h2 className="text-[14px] font-bold text-admin-text-primary tracking-tight px-1">Details</h2>
+      <div className="w-[300px] flex-shrink-0 border-l border-brand-border p-4 space-y-5 overflow-y-auto">
+        <h2 className="text-[14px] font-bold text-brand-primary tracking-tight px-1">Details</h2>
 
         {/* Customer card */}
         {data.customer && (
-          <div className="bg-admin-bg border border-admin-border rounded-lg p-5 space-y-1">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted mb-2">Customer</p>
+          <div className="bg-brand-bg border border-brand-border rounded-lg p-5 space-y-1">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-2">Customer</p>
             <div className="flex items-start gap-3 mb-1">
               <Avatar name={data.customer.company || data.customer.name} className="w-10 h-10 text-[12px]" />
               <div className="min-w-0 pt-0.5">
-                <p className="text-[13px] font-bold text-admin-text-primary truncate">{data.customer.name}</p>
+                <p className="text-[13px] font-bold text-brand-primary truncate">{data.customer.name}</p>
                 {data.customer.company && (
-                  <p className="text-[12px] text-admin-text-secondary truncate">{data.customer.company}</p>
+                  <p className="text-[12px] text-brand-secondary truncate">{data.customer.company}</p>
                 )}
               </div>
             </div>
             {data.customer.email && (
-              <a href={`mailto:${data.customer.email}`} className="text-[12px] text-zeronix-blue hover:underline block">
+              <a href={`mailto:${data.customer.email}`} className="text-[12px] text-brand-accent hover:underline block">
                 {data.customer.email}
               </a>
             )}
-            {data.customer.phone && <p className="text-[12px] text-admin-text-muted">{data.customer.phone}</p>}
+            {data.customer.phone && <p className="text-[12px] text-brand-subtle">{data.customer.phone}</p>}
             {data.customer.address && (
-              <p className="text-[12px] text-admin-text-muted whitespace-pre-line">{data.customer.address}</p>
+              <p className="text-[12px] text-brand-subtle whitespace-pre-line">{data.customer.address}</p>
             )}
           </div>
         )}
 
         {/* Invoice info: owner, status, tags */}
-        <div className="bg-admin-bg border border-admin-border rounded-lg p-5 space-y-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted">Invoice Info</p>
+        <div className="bg-brand-bg border border-brand-border rounded-lg p-5 space-y-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle">Invoice Info</p>
 
           {/* Owner */}
           <div className="flex items-center justify-between">
-            <p className="text-[11px] text-admin-text-muted">Sales Person</p>
+            <p className="text-[11px] text-brand-subtle">Sales Person</p>
             <div className="flex items-center gap-2">
               <Avatar name={data.user?.name} className="w-6 h-6 text-[10px]" />
-              <p className="text-[12px] font-medium text-admin-text-primary">{data.user?.name || '—'}</p>
+              <p className="text-[12px] font-medium text-brand-primary">{data.user?.name || '—'}</p>
             </div>
           </div>
 
           {/* Status */}
           <div>
-            <p className="text-[11px] text-admin-text-muted mb-1.5">Status</p>
+            <p className="text-[11px] text-brand-subtle mb-1.5">Status</p>
             <Select value={data.status} onValueChange={(value) => quickUpdate.mutate({ status: value as Invoice['status'] })}>
-              <SelectTrigger className="h-9 text-[12px] bg-admin-bg border-admin-border">
+              <SelectTrigger className="h-9 text-[12px] bg-brand-bg border-brand-border">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -685,12 +687,12 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
 
           {/* Tags */}
           <div>
-            <p className="text-[11px] text-admin-text-muted mb-1.5">Tags</p>
+            <p className="text-[11px] text-brand-subtle mb-1.5">Tags</p>
             <div className="flex flex-wrap items-center gap-1.5">
               {tags.map((tag: string) => (
                 <span
                   key={tag}
-                  className="inline-flex items-center gap-1 rounded-full bg-admin-surface-hover px-2.5 py-1 text-[11px] text-admin-text-secondary"
+                  className="inline-flex items-center gap-1 rounded-full bg-brand-white-hover px-2.5 py-1 text-[11px] text-brand-secondary"
                 >
                   {tag}
                   <button type="button" onClick={() => handleRemoveTag(tag)} className="hover:text-danger">
@@ -709,13 +711,13 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
                     if (!tagInput.trim()) setIsAddingTag(false);
                   }}
                   placeholder="Tag name…"
-                  className="h-6 w-24 text-[11px] px-2 bg-admin-bg border-admin-border rounded-full"
+                  className="h-6 w-24 text-[11px] px-2 bg-brand-bg border-brand-border rounded-full"
                 />
               ) : (
                 <button
                   type="button"
                   onClick={() => setIsAddingTag(true)}
-                  className="inline-flex items-center justify-center w-6 h-6 rounded-full border border-dashed border-admin-border text-admin-text-muted hover:text-zeronix-blue hover:border-zeronix-blue transition-colors"
+                  className="inline-flex items-center justify-center w-6 h-6 rounded-full border border-dashed border-brand-border text-brand-subtle hover:text-brand-accent hover:border-brand-accent transition-colors"
                   title="Add tag"
                 >
                   <Plus size={12} />
@@ -726,14 +728,14 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
         </div>
 
         {/* Invoice properties */}
-        <div className="bg-admin-bg border border-admin-border rounded-lg p-5 space-y-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted mb-1">Invoice Properties</p>
+        <div className="bg-brand-bg border border-brand-border rounded-lg p-5 space-y-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1">Invoice Properties</p>
           <div>
-            <p className="text-[11px] text-admin-text-muted mb-0.5">Currency</p>
-            <p className="text-[12px] font-medium text-admin-text-primary">AED</p>
+            <p className="text-[11px] text-brand-subtle mb-0.5">Currency</p>
+            <p className="text-[12px] font-medium text-brand-primary">{currency}</p>
           </div>
           <div>
-            <p className="text-[11px] text-admin-text-muted mb-0.5">Payment Terms</p>
+            <p className="text-[11px] text-brand-subtle mb-0.5">Payment Terms</p>
             <Input
               defaultValue={data.payment_terms || ''}
               placeholder="e.g. Net 30"
@@ -742,38 +744,38 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
                   quickUpdate.mutate({ payment_terms: e.target.value });
                 }
               }}
-              className="h-8 text-[12px] bg-admin-bg border-admin-border"
+              className="h-8 text-[12px] bg-brand-bg border-brand-border"
             />
           </div>
           <div>
-            <p className="text-[11px] text-admin-text-muted mb-0.5">Due Date</p>
+            <p className="text-[11px] text-brand-subtle mb-0.5">Due Date</p>
             <input
               type="date"
               defaultValue={data.due_date ? data.due_date.slice(0, 10) : ''}
               onChange={(e) => quickUpdate.mutate({ due_date: e.target.value })}
-              className="w-full h-8 rounded-md border border-admin-border bg-admin-bg px-2 text-[12px] text-admin-text-primary"
+              className="w-full h-8 rounded-md border border-brand-border bg-brand-bg px-2 text-[12px] text-brand-primary"
             />
           </div>
         </div>
 
         {/* Related */}
-        <div className="bg-admin-bg border border-admin-border rounded-lg p-5 space-y-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted mb-1">Related</p>
+        <div className="bg-brand-bg border border-brand-border rounded-lg p-5 space-y-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1">Related</p>
           {data.customerContact && (
             <div>
-              <p className="text-[11px] text-admin-text-muted mb-0.5">Contact</p>
-              <p className="text-[12px] font-medium text-admin-text-primary">{data.customerContact.full_name}</p>
+              <p className="text-[11px] text-brand-subtle mb-0.5">Contact</p>
+              <p className="text-[12px] font-medium text-brand-primary">{data.customerContact.full_name}</p>
             </div>
           )}
           <div>
-            <p className="text-[11px] text-admin-text-muted mb-0.5">Deal</p>
+            <p className="text-[11px] text-brand-subtle mb-0.5">Deal</p>
             {data.deal ? (
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[12px] font-medium text-admin-text-primary truncate">{data.deal.title}</p>
+                <p className="text-[12px] font-medium text-brand-primary truncate">{data.deal.title}</p>
                 <button
                   type="button"
                   onClick={() => quickUpdate.mutate({ deal_id: null })}
-                  className="text-admin-text-muted hover:text-danger flex-shrink-0"
+                  className="text-brand-subtle hover:text-danger flex-shrink-0"
                   title="Unlink deal"
                 >
                   <X size={12} />
@@ -783,7 +785,7 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
               <select
                 defaultValue=""
                 onChange={(e) => e.target.value && quickUpdate.mutate({ deal_id: Number(e.target.value) })}
-                className="w-full h-8 rounded-md border border-admin-border bg-admin-bg px-2 text-[12px] text-admin-text-primary"
+                className="w-full h-8 rounded-md border border-brand-border bg-brand-bg px-2 text-[12px] text-brand-primary"
               >
                 <option value="" disabled>
                   Link a deal…
@@ -795,30 +797,30 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
                 ))}
               </select>
             ) : (
-              <p className="text-[12px] text-admin-text-muted">—</p>
+              <p className="text-[12px] text-brand-subtle">—</p>
             )}
           </div>
           {data.quote && (
             <div>
-              <p className="text-[11px] text-admin-text-muted mb-0.5">Quote</p>
-              <p className="text-[12px] font-medium text-admin-text-primary">{data.quote.quote_number}</p>
+              <p className="text-[11px] text-brand-subtle mb-0.5">Quote</p>
+              <p className="text-[12px] font-medium text-brand-primary">{data.quote.quote_number}</p>
             </div>
           )}
           {data.customer?.company && (
             <div>
-              <p className="text-[11px] text-admin-text-muted mb-0.5">Company</p>
-              <p className="text-[12px] font-medium text-admin-text-primary">{data.customer.company}</p>
+              <p className="text-[11px] text-brand-subtle mb-0.5">Company</p>
+              <p className="text-[12px] font-medium text-brand-primary">{data.customer.company}</p>
             </div>
           )}
         </div>
 
         {/* Actions */}
-        <div className="bg-admin-bg border border-admin-border rounded-lg p-5 space-y-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted mb-1">Actions</p>
+        <div className="bg-brand-bg border border-brand-border rounded-lg p-5 space-y-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1">Actions</p>
           <Button
             variant="outline"
             size="sm"
-            className="w-full justify-start rounded-lg h-9 px-3 text-[12px] font-medium border-admin-border"
+            className="w-full justify-start rounded-lg h-9 px-3 text-[12px] font-medium border-brand-border"
             onClick={() => duplicateMutation.mutate()}
             disabled={duplicateMutation.isPending}
           >
@@ -832,7 +834,7 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
           <Button
             variant="outline"
             size="sm"
-            className="w-full justify-start rounded-lg h-9 px-3 text-[12px] font-medium border-admin-border text-danger hover:text-danger"
+            className="w-full justify-start rounded-lg h-9 px-3 text-[12px] font-medium border-brand-border text-danger hover:text-danger"
             onClick={handleDelete}
           >
             <Trash2 size={14} className="mr-2" /> Delete Invoice

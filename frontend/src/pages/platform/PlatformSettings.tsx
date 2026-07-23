@@ -195,9 +195,9 @@ export const PlatformSettings = () => {
       '{date}': '26 Apr 2024',
       '{valid_until}': '10 May 2024',
       '{due_date}': '03 May 2024',
-      '{subtotal}': '1,000.00 AED',
-      '{vat_amount}': '50.00 AED',
-      '{total_amount}': '1,050.00 AED',
+      '{subtotal}': '1,000.00 USD',
+      '{vat_amount}': '50.00 USD',
+      '{total_amount}': '1,050.00 USD',
       '{total_in_words}': 'ONE THOUSAND AND FIFTY ONLY',
       '{items}': `
         <tr>

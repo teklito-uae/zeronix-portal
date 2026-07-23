@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react';
 import { Receipt, PackageCheck, FileCheck2 } from 'lucide-react';
 
-export type TransactionType = 'quote' | 'invoice' | 'sales-order' | 'purchase-bill';
+export type TransactionType = 'quote' | 'invoice' | 'sales-order' | 'purchase-bill' | 'delivery' | 'payment-receipt';
 
 export interface TransactionDateField {
   key: string;
@@ -214,7 +214,51 @@ export const TRANSACTION_CONFIGS: Record<TransactionType, TransactionTypeConfig>
     statusOptions: ['unpaid', 'partial', 'paid', 'cancelled'],
     defaultStatus: 'unpaid',
     dateFields: [{ key: 'due_date', label: 'Due Date' }],
-    pdf: false,
+    pdf: true,
     invalidateQueries: [['purchase-bills'], ['products']],
+  },
+  delivery: {
+    type: 'delivery',
+    label: 'Delivery',
+    pluralLabel: 'Deliveries',
+    newTitle: 'New Delivery',
+    listRoute: 'deliveries',
+    apiBase: 'deliveries',
+    numberField: 'delivery_number',
+    party: {
+      kind: 'customer',
+      label: 'Customer',
+      idField: 'customer_id',
+      endpoint: '/admin/companies',
+      searchMode: 'client',
+      hasContacts: false,
+    },
+    statusOptions: ['pending', 'processing', 'delivered', 'cancelled'],
+    defaultStatus: 'pending',
+    dateFields: [{ key: 'delivery_date', label: 'Delivery Date' }],
+    pdf: true,
+    invalidateQueries: [['deliveries'], ['products']],
+  },
+  'payment-receipt': {
+    type: 'payment-receipt',
+    label: 'Payment Receipt',
+    pluralLabel: 'Payment Receipts',
+    newTitle: 'New Payment Receipt',
+    listRoute: 'payment-receipts',
+    apiBase: 'payment-receipts',
+    numberField: 'receipt_number',
+    party: {
+      kind: 'customer',
+      label: 'Customer',
+      idField: 'customer_id',
+      endpoint: '/admin/companies',
+      searchMode: 'client',
+      hasContacts: false,
+    },
+    statusOptions: [],
+    defaultStatus: '',
+    dateFields: [{ key: 'payment_date', label: 'Payment Date' }],
+    pdf: true,
+    invalidateQueries: [['payment-receipts']],
   },
 };

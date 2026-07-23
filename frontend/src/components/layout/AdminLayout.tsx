@@ -46,7 +46,7 @@ export const AdminLayout = () => {
           </div>
           <div
             id="main-content"
-            className="flex-1 overflow-y-auto touch-scroll"
+            className="flex-1 overflow-y-auto touch-scroll pb-24 md:pb-0"
           >
             <div className="animate-in fade-in duration-200 h-full">
               <Outlet />
@@ -60,4 +60,5 @@ export const AdminLayout = () => {
     </>
   );
 };
+
 

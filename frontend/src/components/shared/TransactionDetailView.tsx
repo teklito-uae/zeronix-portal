@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { getBasePath } from '@/hooks/useBasePath';
@@ -15,6 +15,8 @@ import {
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { TRANSACTION_CONFIGS, type TransactionType, type TransactionConversionConfig } from '@/lib/transactionTypes';
 import { computeDocTotals, normalizeLineItems } from '@/lib/lineItemMath';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 import api from '@/lib/axios';
 import { Loader2, Send, Pencil, MoreHorizontal, Trash2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
@@ -38,6 +40,7 @@ export const TransactionDetailView = ({ type, id, onSend, isSendPending, onDelet
   const config = TRANSACTION_CONFIGS[type];
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const currency = useCurrencyStore((s) => s.currency);
 
   const { data, isLoading } = useResourceDetail<any>(config.apiBase, id);
   const { remove } = useResourceMutation(config.apiBase);
@@ -68,8 +71,8 @@ export const TransactionDetailView = ({ type, id, onSend, isSendPending, onDelet
   if (isLoading) {
     return (
       <div className="h-96 flex flex-col items-center justify-center gap-3">
-        <Loader2 className="animate-spin text-zeronix-blue" size={32} />
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted">Loading…</p>
+        <Loader2 className="animate-spin text-brand-accent" size={32} />
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle">Loading…</p>
       </div>
     );
   }
@@ -77,7 +80,7 @@ export const TransactionDetailView = ({ type, id, onSend, isSendPending, onDelet
   if (!data) {
     return (
       <div className="h-96 flex items-center justify-center">
-        <p className="text-sm text-admin-text-muted">{config.label} not found.</p>
+        <p className="text-sm text-brand-subtle">{config.label} not found.</p>
       </div>
     );
   }
@@ -87,7 +90,7 @@ export const TransactionDetailView = ({ type, id, onSend, isSendPending, onDelet
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="flex items-center gap-2.5">
-          <h1 className="text-xl font-bold text-admin-text-primary tracking-tight">
+          <h1 className="text-xl font-bold text-brand-primary tracking-tight">
             {config.label.toUpperCase()} {data[config.numberField] || `#${id}`}
           </h1>
           <StatusBadge status={data.status} />
@@ -112,7 +115,7 @@ export const TransactionDetailView = ({ type, id, onSend, isSendPending, onDelet
               disabled={isSendPending}
               size="sm"
               variant="outline"
-              className="rounded-xl h-9 px-4 font-medium text-sm border-admin-border"
+              className="rounded-xl h-9 px-4 font-medium text-sm border-brand-border"
             >
               {isSendPending ? <Loader2 className="animate-spin mr-2" size={15} /> : <Send size={15} className="mr-2" />}
               Send
@@ -122,17 +125,17 @@ export const TransactionDetailView = ({ type, id, onSend, isSendPending, onDelet
             variant="outline"
             size="sm"
             onClick={() => navigate(`${getBasePath()}/${config.listRoute}/${id}`)}
-            className="rounded-xl h-9 px-4 font-medium text-sm border-admin-border"
+            className="rounded-xl h-9 px-4 font-medium text-sm border-brand-border"
           >
             <Pencil size={15} className="mr-2" /> Edit
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-9 w-9 p-0 text-admin-text-muted hover:text-admin-text-primary rounded-xl">
+              <Button variant="ghost" className="h-9 w-9 p-0 text-brand-subtle hover:text-brand-primary rounded-xl">
                 <MoreHorizontal size={16} />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-36 bg-admin-surface border-admin-border rounded-xl shadow-xl p-1">
+            <DropdownMenuContent align="end" className="w-36 bg-brand-white border-brand-border rounded-xl shadow-xl p-1">
               <DropdownMenuItem onClick={handleDelete} className="text-danger focus:text-danger rounded-lg cursor-pointer">
                 <Trash2 size={14} className="mr-2" /> Delete
               </DropdownMenuItem>
@@ -142,31 +145,31 @@ export const TransactionDetailView = ({ type, id, onSend, isSendPending, onDelet
       </div>
 
       {/* Details card */}
-      <div className="bg-admin-bg border border-admin-border rounded-lg p-5 grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="bg-brand-bg border border-brand-border rounded-lg p-5 grid grid-cols-2 md:grid-cols-3 gap-4">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted mb-1">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1">
             {config.label} Number
           </p>
-          <p className="text-[13px] font-medium text-admin-text-primary">{data[config.numberField] || `#${id}`}</p>
+          <p className="text-[13px] font-medium text-brand-primary">{data[config.numberField] || `#${id}`}</p>
         </div>
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted mb-1 flex items-center gap-1.5">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1 flex items-center gap-1.5">
             <Calendar size={11} /> Date
           </p>
-          <p className="text-[13px] font-medium text-admin-text-primary">
+          <p className="text-[13px] font-medium text-brand-primary">
             {data.date ? new Date(data.date).toLocaleDateString() : '—'}
           </p>
         </div>
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted mb-1">Status</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1">Status</p>
           <StatusBadge status={data.status} />
         </div>
         {config.dateFields.map((f) => (
           <div key={f.key}>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted mb-1 flex items-center gap-1.5">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1 flex items-center gap-1.5">
               <Calendar size={11} /> {f.label}
             </p>
-            <p className="text-[13px] font-medium text-admin-text-primary">
+            <p className="text-[13px] font-medium text-brand-primary">
               {data[f.key] ? new Date(data[f.key]).toLocaleDateString() : '—'}
             </p>
           </div>
@@ -175,57 +178,58 @@ export const TransactionDetailView = ({ type, id, onSend, isSendPending, onDelet
 
       {/* Party card */}
       {partyRelation && (
-        <div className="bg-admin-bg border border-admin-border rounded-lg p-5 space-y-1">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted mb-2">
+        <div className="bg-brand-bg border border-brand-border rounded-lg p-5 space-y-1">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-2">
             {config.party.label}
           </p>
-          <p className="text-[13px] font-bold text-admin-text-primary">{partyRelation.name}</p>
+          <p className="text-[13px] font-bold text-brand-primary">{partyRelation.name}</p>
           {partyRelation.company && (
-            <p className="text-[12px] text-admin-text-secondary">{partyRelation.company}</p>
+            <p className="text-[12px] text-brand-secondary">{partyRelation.company}</p>
           )}
           {partyRelation.email && (
-            <p className="text-[12px] text-admin-text-muted">{partyRelation.email}</p>
+            <p className="text-[12px] text-brand-subtle">{partyRelation.email}</p>
           )}
           {partyRelation.phone && (
-            <p className="text-[12px] text-admin-text-muted">{partyRelation.phone}</p>
+            <p className="text-[12px] text-brand-subtle">{partyRelation.phone}</p>
           )}
           {partyRelation.address && (
-            <p className="text-[12px] text-admin-text-muted whitespace-pre-line">{partyRelation.address}</p>
+            <p className="text-[12px] text-brand-subtle whitespace-pre-line">{partyRelation.address}</p>
           )}
         </div>
       )}
 
+      {type !== 'payment-receipt' && (<Fragment>
       {/* Items table */}
-      <div className="bg-admin-bg border border-admin-border rounded-lg overflow-hidden">
+      <div className="bg-brand-bg border border-brand-border rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="border-admin-border hover:bg-transparent">
-              <TableHead className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted w-10">#</TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted">Item</TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted text-right">Qty</TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted text-right">Price</TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted text-right">Amount</TableHead>
+            <TableRow className="border-brand-border hover:bg-transparent">
+              <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle w-10">#</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle">Item</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle text-right">Qty</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle text-right">Price</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle text-right">Amount</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {normalizedItems.length === 0 && (
-              <TableRow className="border-admin-border">
-                <TableCell colSpan={5} className="text-center text-[12px] text-admin-text-muted py-6">
+              <TableRow className="border-brand-border">
+                <TableCell colSpan={5} className="text-center text-[12px] text-brand-subtle py-6">
                   No line items.
                 </TableCell>
               </TableRow>
             )}
             {normalizedItems.map((item: any, idx: number) => (
-              <TableRow key={item.id ?? idx} className="border-admin-border">
-                <TableCell className="text-[12px] text-admin-text-muted">{idx + 1}</TableCell>
-                <TableCell className="text-[12px] text-admin-text-primary font-medium">
+              <TableRow key={item.id ?? idx} className="border-brand-border">
+                <TableCell className="text-[12px] text-brand-subtle">{idx + 1}</TableCell>
+                <TableCell className="text-[12px] text-brand-primary font-medium">
                   {item.description || item.product_name || '—'}
                 </TableCell>
-                <TableCell className="text-[12px] text-admin-text-secondary text-right">{item.quantity}</TableCell>
-                <TableCell className="text-[12px] text-admin-text-secondary text-right">
+                <TableCell className="text-[12px] text-brand-secondary text-right">{item.quantity}</TableCell>
+                <TableCell className="text-[12px] text-brand-secondary text-right">
                   {Number(item.unit_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </TableCell>
-                <TableCell className="text-[12px] text-admin-text-primary font-medium text-right">
+                <TableCell className="text-[12px] text-brand-primary font-medium text-right">
                   {(Number(item.quantity) * Number(item.unit_price)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </TableCell>
               </TableRow>
@@ -236,24 +240,23 @@ export const TransactionDetailView = ({ type, id, onSend, isSendPending, onDelet
 
       {/* Totals summary */}
       <div className="flex justify-end">
-        <div className="w-full max-w-xs bg-admin-bg border border-admin-border rounded-lg p-5 space-y-2">
+        <div className="w-full max-w-xs bg-brand-bg border border-brand-border rounded-lg p-5 space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-[11px] uppercase tracking-wider text-admin-text-muted">Subtotal</p>
-            <p className="text-[13px] font-medium text-admin-text-primary">
+            <p className="text-[11px] uppercase tracking-wider text-brand-subtle">Subtotal</p>
+            <p className="text-[13px] font-medium text-brand-primary">
               {totals.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </p>
           </div>
           <div className="flex items-center justify-between">
-            <p className="text-[11px] uppercase tracking-wider text-admin-text-muted">VAT</p>
-            <p className="text-[13px] font-medium text-admin-text-primary">
+            <p className="text-[11px] uppercase tracking-wider text-brand-subtle">VAT</p>
+            <p className="text-[13px] font-medium text-brand-primary">
               {totals.vat.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </p>
           </div>
-          <div className="flex items-center justify-between pt-2 border-t border-admin-border">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-admin-text-muted">Total</p>
-            <p className="text-lg font-bold text-zeronix-blue font-mono">
-              {totals.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}{' '}
-              <span className="text-xs font-semibold text-admin-text-muted">AED</span>
+          <div className="flex items-center justify-between pt-2 border-t border-brand-border">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-brand-subtle">Total</p>
+            <p className="text-lg font-bold text-brand-accent font-mono">
+              <CurrencyAmount amount={totals.total} currency={currency} />
             </p>
           </div>
         </div>
@@ -261,9 +264,23 @@ export const TransactionDetailView = ({ type, id, onSend, isSendPending, onDelet
 
       {/* Notes */}
       {data.notes && (
-        <div className="bg-admin-bg border border-admin-border rounded-lg p-5">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted mb-2">Notes</p>
-          <p className="text-[12px] text-admin-text-secondary whitespace-pre-line">{data.notes}</p>
+        <div className="bg-brand-bg border border-brand-border rounded-lg p-5">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-2">Notes</p>
+          <p className="text-[12px] text-brand-secondary whitespace-pre-line">{data.notes}</p>
+        </div>
+      )}
+      </Fragment>)}
+      
+      {type === 'payment-receipt' && (
+        <div className="flex justify-end">
+          <div className="w-full max-w-xs bg-brand-bg border border-brand-border rounded-lg p-5 space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] uppercase tracking-wider text-brand-subtle">Amount Received</p>
+              <p className="text-[18px] font-bold text-brand-accent">
+                {Number(data.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </div>

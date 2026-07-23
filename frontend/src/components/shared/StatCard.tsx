@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 interface StatCardProps {
   title: string;
-  value: string | number;
+  value: React.ReactNode;
   subtitle?: string;
   icon: React.ReactNode;
   iconBg?: string;

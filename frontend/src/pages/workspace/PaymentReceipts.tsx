@@ -8,12 +8,15 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import { ActionGroup } from '@/components/shared/ActionGroup';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 
 /**
  * Payment Receipts Module
  * Refactored to use the standardized State-Driven architecture.
  */
 export const PaymentReceipts = () => {
+  const currency = useCurrencyStore((s) => s.currency);
   const queryClient = useQueryClient();
   const [sendingId, setSendingId] = useState<number | null>(null);
 
@@ -75,7 +78,7 @@ export const PaymentReceipts = () => {
       cell: ({ row }) => (
         <div className="text-right pr-4">
           <p className="font-mono text-sm font-black text-admin-text-primary">
-            {Number(row.original.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-[10px] text-admin-text-muted">AED</span>
+            <CurrencyAmount amount={row.original.amount} currency={currency} />
           </p>
           <p className={cn("text-[9px] font-black uppercase tracking-widest flex items-center justify-end gap-1 mt-0.5", row.original.payment_method === 'cash' ? "text-emerald-500" : "text-indigo-500")}>
             {row.original.payment_method === 'cash' ? <Banknote size={10} /> : <Building2 size={10} />}

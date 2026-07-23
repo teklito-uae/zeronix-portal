@@ -22,6 +22,8 @@ import { LineItemsEditor, type EditableLineItem } from './LineItemsEditor';
 import api from '@/lib/axios';
 import { TRANSACTION_CONFIGS, type TransactionType, type TransactionConversionConfig } from '@/lib/transactionTypes';
 import { computeDocTotals, normalizeLineItems } from '@/lib/lineItemMath';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 import type { CustomerContact, Product } from '@/types';
 import { ArrowLeft, Save, Loader2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
@@ -42,6 +44,7 @@ export const TransactionEditor = ({ type, id, isNew }: TransactionEditorProps) =
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const admin = useAuthStore((s) => s.admin);
+  const currency = useCurrencyStore((s) => s.currency);
   const [loading, setLoading] = useState(false);
 
   const buildDefaultDoc = () => {
@@ -154,8 +157,8 @@ export const TransactionEditor = ({ type, id, isNew }: TransactionEditorProps) =
   if (loading && !isNew && !docData.id) {
     return (
       <div className="h-96 flex flex-col items-center justify-center gap-3">
-        <Loader2 className="animate-spin text-zeronix-blue" size={32} />
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-admin-text-muted">Loading…</p>
+        <Loader2 className="animate-spin text-brand-accent" size={32} />
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle">Loading…</p>
       </div>
     );
   }
@@ -172,12 +175,12 @@ export const TransactionEditor = ({ type, id, isNew }: TransactionEditorProps) =
             variant="outline"
             size="icon"
             onClick={() => navigate(`${getBasePath()}/${config.listRoute}`)}
-            className="rounded-xl border-admin-border h-10 w-10 hover:bg-admin-surface-hover shadow-sm transition-all active:scale-95"
+            className="rounded-xl border-brand-border h-10 w-10 hover:bg-brand-white-hover shadow-sm transition-all active:scale-95"
           >
             <ArrowLeft size={18} />
           </Button>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-xl font-bold text-admin-text-primary tracking-tight">
+            <h1 className="text-xl font-bold text-brand-primary tracking-tight">
               {isNew ? config.newTitle : `${config.label.toUpperCase()} ${docData[config.numberField] || '#' + id}`}
             </h1>
             {!isNew && <StatusBadge status={docData.status} />}
@@ -202,7 +205,7 @@ export const TransactionEditor = ({ type, id, isNew }: TransactionEditorProps) =
             onClick={handleSaveDoc}
             disabled={loading || isLocked}
             size="sm"
-            className="bg-zeronix-blue hover:bg-zeronix-blue-hover text-white rounded-md h-9 px-4 font-medium text-sm transition-all active:scale-95"
+            className="bg-brand-accent hover:bg-brand-accent-hover text-white rounded-md h-9 px-4 font-medium text-sm transition-all active:scale-95"
           >
             {loading ? <Loader2 className="animate-spin mr-2" size={16} /> : <Save size={16} className="mr-2" />}
             Save {config.label}
@@ -215,7 +218,7 @@ export const TransactionEditor = ({ type, id, isNew }: TransactionEditorProps) =
         <div className="xl:col-span-8 space-y-4">
           <div className={`grid grid-cols-1 ${config.party.hasContacts ? 'md:grid-cols-2' : ''} gap-4`}>
             <div className="space-y-1.5">
-              <Label className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted ml-1">
+              <Label className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle ml-1">
                 {config.party.label} *
               </Label>
               <PartySearch
@@ -240,7 +243,7 @@ export const TransactionEditor = ({ type, id, isNew }: TransactionEditorProps) =
 
             {config.party.hasContacts && config.party.contactIdField && (
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted ml-1">
+                <Label className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle ml-1">
                   Attention (Contact)
                 </Label>
                 <Select
@@ -248,14 +251,14 @@ export const TransactionEditor = ({ type, id, isNew }: TransactionEditorProps) =
                   onValueChange={(v) => setDocData({ ...docData, [config.party.contactIdField!]: Number(v) })}
                   disabled={!partyId || contactsList.length === 0}
                 >
-                  <SelectTrigger className="h-11 bg-admin-bg border-admin-border rounded-xl text-sm shadow-sm">
+                  <SelectTrigger className="h-11 bg-brand-bg border-brand-border rounded-xl text-sm shadow-sm">
                     <SelectValue placeholder="Select contact…" />
                   </SelectTrigger>
-                  <SelectContent className="bg-admin-surface border-admin-border rounded-xl shadow-2xl">
+                  <SelectContent className="bg-brand-white border-brand-border rounded-xl shadow-2xl">
                     {contactsList.map((c) => (
                       <SelectItem key={c.id} value={String(c.id)} className="rounded-lg m-1">
-                        <span className="font-medium text-admin-text-primary">{c.full_name}</span>
-                        {c.designation && <span className="text-[10px] text-admin-text-muted ml-2 opacity-60">[{c.designation}]</span>}
+                        <span className="font-medium text-brand-primary">{c.full_name}</span>
+                        {c.designation && <span className="text-[10px] text-brand-subtle ml-2 opacity-60">[{c.designation}]</span>}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -272,11 +275,11 @@ export const TransactionEditor = ({ type, id, isNew }: TransactionEditorProps) =
           />
 
           <div className="space-y-1.5">
-            <Label className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted ml-1">Notes & Terms</Label>
+            <Label className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle ml-1">Notes & Terms</Label>
             <Textarea
               value={docData.notes || ''}
               onChange={(e) => setDocData({ ...docData, notes: e.target.value })}
-              className="bg-admin-surface border-admin-border text-sm rounded-lg resize-none min-h-[100px] p-4"
+              className="bg-brand-white border-brand-border text-sm rounded-lg resize-none min-h-[100px] p-4"
               placeholder="Payment terms, delivery timelines, internal notes…"
             />
           </div>
@@ -284,21 +287,21 @@ export const TransactionEditor = ({ type, id, isNew }: TransactionEditorProps) =
 
         {/* Right rail */}
         <div className="xl:col-span-4">
-          <div className="bg-admin-bg border border-admin-border rounded-lg p-5 sticky top-24 space-y-5">
+          <div className="bg-brand-bg border border-brand-border rounded-lg p-5 sticky top-24 space-y-5">
             <div>
-              <p className="text-[10px] font-semibold text-admin-text-muted uppercase tracking-wider mb-1">Total</p>
-              <p className="text-2xl font-bold text-zeronix-blue font-mono">
-                {totals.total.toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-xs font-semibold text-admin-text-muted">AED</span>
+              <p className="text-[10px] font-semibold text-brand-subtle uppercase tracking-wider mb-1">Total</p>
+              <p className="text-2xl font-bold text-brand-accent font-mono">
+                <CurrencyAmount amount={totals.total} currency={currency} />
               </p>
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted ml-1">Status</Label>
+              <Label className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle ml-1">Status</Label>
               <Select value={String(docData.status || '')} onValueChange={(v) => setDocData({ ...docData, status: v })}>
-                <SelectTrigger className="h-10 bg-admin-surface border-admin-border rounded-xl text-sm shadow-sm">
+                <SelectTrigger className="h-10 bg-brand-white border-brand-border rounded-xl text-sm shadow-sm">
                   <SelectValue placeholder="Select status…" />
                 </SelectTrigger>
-                <SelectContent className="bg-admin-surface border-admin-border rounded-xl shadow-2xl">
+                <SelectContent className="bg-brand-white border-brand-border rounded-xl shadow-2xl">
                   {config.statusOptions.map((s) => (
                     <SelectItem key={s} value={s} className="rounded-lg m-1">{s.replace('_', ' ').toUpperCase()}</SelectItem>
                   ))}
@@ -307,41 +310,41 @@ export const TransactionEditor = ({ type, id, isNew }: TransactionEditorProps) =
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted ml-1 flex items-center gap-1.5">
+              <Label className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle ml-1 flex items-center gap-1.5">
                 <Calendar size={12} /> Date
               </Label>
               <Input
                 type="date"
                 value={docData.date ? docData.date.split('T')[0] : ''}
                 onChange={(e) => setDocData({ ...docData, date: e.target.value })}
-                className="h-10 bg-admin-surface border-admin-border rounded-xl text-sm shadow-sm"
+                className="h-10 bg-brand-white border-brand-border rounded-xl text-sm shadow-sm"
               />
             </div>
 
             {config.dateFields.map((f) => (
               <div key={f.key} className="space-y-1.5">
-                <Label className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted ml-1 flex items-center gap-1.5">
+                <Label className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle ml-1 flex items-center gap-1.5">
                   <Calendar size={12} /> {f.label}
                 </Label>
                 <Input
                   type="date"
                   value={docData[f.key] ? docData[f.key].split('T')[0] : ''}
                   onChange={(e) => setDocData({ ...docData, [f.key]: e.target.value })}
-                  className="h-10 bg-admin-surface border-admin-border rounded-xl text-sm shadow-sm"
+                  className="h-10 bg-brand-white border-brand-border rounded-xl text-sm shadow-sm"
                 />
               </div>
             ))}
 
             {config.hasClosingRatio && (
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted ml-1">Closing Ratio (%)</Label>
+                <Label className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle ml-1">Closing Ratio (%)</Label>
                 <Input
                   type="number"
                   min="0"
                   max="100"
                   value={docData.closing_ratio !== undefined ? docData.closing_ratio : ''}
                   onChange={(e) => setDocData({ ...docData, closing_ratio: e.target.value ? Number(e.target.value) : '' })}
-                  className="h-10 bg-admin-surface border-admin-border rounded-xl text-sm shadow-sm"
+                  className="h-10 bg-brand-white border-brand-border rounded-xl text-sm shadow-sm"
                   placeholder="e.g. 80"
                 />
               </div>

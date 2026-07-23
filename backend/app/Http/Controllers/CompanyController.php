@@ -56,9 +56,11 @@ class CompanyController extends Controller
             'tax_number' => 'nullable|string',
             'website' => 'nullable|string',
             'description' => 'nullable|string',
+            'industry' => 'nullable|string',
+            'address' => 'nullable|string',
             'first_name' => 'required|string',
             'last_name' => 'nullable|string',
-            'email' => 'required|email|unique:companies,email',
+            'email' => 'required|email|unique:companies,email|unique:users,email',
             'phone' => 'nullable|string',
             'salutation' => 'nullable|string',
             'job_title' => 'nullable|string',
@@ -67,9 +69,13 @@ class CompanyController extends Controller
             'linkedin' => 'nullable|string',
             'twitter' => 'nullable|string',
             'currency' => 'nullable|string',
+            'password' => 'required|string|min:8|confirmed',
             'license_attachment' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             'vat_attachment' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
+
+        $password = $validated['password'];
+        unset($validated['password'], $validated['password_confirmation']);
 
         if ($request->hasFile('license_attachment')) {
             $validated['license_attachment'] = $request->file('license_attachment')->store('company_documents', 'public');
@@ -82,10 +88,27 @@ class CompanyController extends Controller
         // Set default values for public registration
         $validated['is_client_portal_enabled'] = true;
 
-        $company = Company::create($validated);
+        $company = \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $password) {
+            $company = Company::create($validated);
+
+            $user = \App\Models\User::create([
+                'name' => trim($validated['first_name'] . ' ' . ($validated['last_name'] ?? '')),
+                'email' => $validated['email'],
+                'phone' => $validated['phone'] ?? null,
+                'password' => $password,
+                'role' => 'admin',
+                'company_id' => $company->id,
+                // Locked out until an admin approves the company.
+                'is_active' => false,
+            ]);
+
+            $company->update(['owner_user_id' => $user->id]);
+
+            return $company;
+        });
 
         return response()->json([
-            'message' => 'Company registration successful',
+            'message' => 'Company registration successful. Your account will be activated once an administrator approves your registration.',
             'company' => $company
         ], 201);
     }
@@ -117,18 +140,24 @@ class CompanyController extends Controller
         $company = Company::findOrFail($id);
         $company->update(['status' => 'approved', 'is_client_portal_enabled' => true]);
 
-        // Create the company admin in users table if it doesn't exist
+        // Activate the company admin's account, creating it if it doesn't exist yet
+        // (covers companies that registered before accounts were created at signup time).
         if ($company->email) {
-            \App\Models\User::firstOrCreate(
-                ['email' => $company->email],
-                [
+            $user = \App\Models\User::where('email', $company->email)->first();
+
+            if ($user) {
+                $user->update(['is_active' => true]);
+            } else {
+                \App\Models\User::create([
+                    'email' => $company->email,
                     'company_id' => $company->id,
                     'role' => 'admin',
                     'name' => trim($company->first_name . ' ' . $company->last_name),
                     'phone' => $company->phone,
                     'password' => bcrypt('password123'), // Default temporary password
-                ]
-            );
+                    'is_active' => true,
+                ]);
+            }
         }
 
         return response()->json(['message' => 'Company approved successfully', 'company' => $company]);
@@ -142,10 +171,14 @@ class CompanyController extends Controller
 
         $company = Company::findOrFail($id);
         $company->update([
-            'status' => 'rejected', 
+            'status' => 'rejected',
             'rejection_reason' => $request->reason,
             'is_client_portal_enabled' => false
         ]);
+
+        if ($company->email) {
+            \App\Models\User::where('email', $company->email)->update(['is_active' => false]);
+        }
 
         return response()->json(['message' => 'Company rejected', 'company' => $company]);
     }
@@ -158,6 +191,10 @@ class CompanyController extends Controller
 
         $company = Company::findOrFail($id);
         $company->update(['status' => 'suspended', 'is_client_portal_enabled' => false]);
+
+        if ($company->email) {
+            \App\Models\User::where('email', $company->email)->update(['is_active' => false]);
+        }
 
         return response()->json(['message' => 'Company suspended', 'company' => $company]);
     }

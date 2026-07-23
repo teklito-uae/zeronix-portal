@@ -14,43 +14,100 @@ import {
   ArrowDownLeft, 
   User, 
   FileText, 
-  ChevronRight,
-  Info,
-  Eye,
-  Layout,
   CheckCircle2,
-  Receipt
+  Palette,
+  Upload,
+  Layout,
+  Settings as SettingsIcon,
+  Tag,
+  Trash2,
+  Plus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import type { Template } from '@/types';
-
-const PLACEHOLDERS = [
-  { key: '{quote_number}', label: 'Quote Number', type: 'quote' },
-  { key: '{invoice_number}', label: 'Invoice Number', type: 'invoice' },
-  { key: '{customer_name}', label: 'Customer Name', type: 'both' },
-  { key: '{customer_company}', label: 'Customer Company', type: 'both' },
-  { key: '{customer_email}', label: 'Customer Email', type: 'both' },
-  { key: '{customer_address}', label: 'Customer Address', type: 'both' },
-  { key: '{date}', label: 'Date', type: 'both' },
-  { key: '{valid_until}', label: 'Valid Until', type: 'quote' },
-  { key: '{due_date}', label: 'Due Date', type: 'invoice' },
-  { key: '{subtotal}', label: 'Subtotal', type: 'both' },
-  { key: '{vat_amount}', label: 'VAT Amount', type: 'both' },
-  { key: '{total_amount}', label: 'Total Amount', type: 'both' },
-  { key: '{total_in_words}', label: 'Total in Words', type: 'both' },
-  { key: '{items}', label: 'Items Table (HTML)', type: 'both' },
-];
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DocumentDesigner } from './settings/DocumentDesigner';
+import { CURRENCY_LIST, type CurrencyCode } from '@/lib/currency';
+import { CurrencyIcon } from '@/components/shared/CurrencyIcon';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
 
 export const Settings = () => {
-  const [activeTab, setActiveTab] = useState('email');
+  const [activeTab, setActiveTab] = useState('brand');
+  const [newTerm, setNewTerm] = useState('');
   const adminUser = useAuthStore((state) => state.admin);
   const setAdmin = useAuthStore((state) => state.setAdmin);
   const queryClient = useQueryClient();
+
+  // --- BRAND SETTINGS STATE ---
+  const [brandForm, setBrandForm] = useState({
+    company_name: '',
+    company_email: '',
+    company_phone: '',
+    company_address: '',
+    tax_number: '',
+    tax_number_label: 'TRN',
+    primary_color: '#0F52BA',
+    logo: null as File | null,
+    logo_path: '',
+    quote_prefix: 'QT-',
+    invoice_prefix: 'INV-',
+    sales_order_prefix: 'SO-',
+    currency: 'USD' as CurrencyCode,
+    base_currency: 'USD' as CurrencyCode,
+    payment_terms: ['Due on Receipt', 'Net 7', 'Net 15', 'Net 30', 'Net 45', 'Net 60'] as string[],
+    bank_details: '',
+    terms_conditions: '',
+  });
+
+  const { data: brandSettingsData } = useQuery({
+    queryKey: ['brand_settings'],
+    queryFn: async () => {
+      const res = await api.get('/admin/settings/workspace');
+      return res.data?.settings || {};
+    },
+    enabled: true // Always fetch workspace settings to populate state
+  });
+
+  useEffect(() => {
+    if (brandSettingsData && Object.keys(brandSettingsData).length > 0) {
+      setBrandForm(prev => ({ ...prev, ...brandSettingsData }));
+    }
+  }, [brandSettingsData]);
+
+  const saveBrandMutation = useMutation({
+    mutationFn: async (data: FormData) => {
+      return api.post('/admin/settings/workspace', data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+    },
+    onSuccess: (res) => {
+      toast.success('Brand settings saved successfully');
+      setBrandForm(prev => ({ ...prev, logo_path: res.data.settings.logo_path || prev.logo_path }));
+      useCurrencyStore.getState().setFromSettings(res.data.settings);
+      queryClient.invalidateQueries({ queryKey: ['brand_settings'] });
+    },
+    onError: () => toast.error('Failed to save brand settings'),
+  });
+
+  const handleBrandSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData();
+    const settingsPayload: any = { ...brandForm };
+    delete settingsPayload.logo;
+
+    // Append JSON as a blob or array syntax
+    Object.keys(settingsPayload).forEach(key => {
+      formData.append(`settings[${key}]`, settingsPayload[key]);
+    });
+
+    if (brandForm.logo) {
+      formData.append('logo', brandForm.logo);
+    }
+    saveBrandMutation.mutate(formData);
+  };
 
   // --- EMAIL SETTINGS STATE ---
   const [emailForm, setEmailForm] = useState({
@@ -140,128 +197,207 @@ export const Settings = () => {
     toast.info('Hostinger defaults loaded');
   };
 
-  // --- TEMPLATE SETTINGS STATE ---
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
-  const [templateForm, setTemplateForm] = useState<Partial<Template>>({});
-
-  const { data: templates } = useQuery<Template[]>({
-    queryKey: ['templates'],
-    queryFn: async () => {
-      const res = await api.get('/admin/templates');
-      return res.data;
-    },
-    enabled: activeTab === 'templates'
-  });
-
-  useEffect(() => {
-    if (templates && !selectedTemplate) {
-      const defaultQuote = templates.find(t => t.type === 'quote' && t.is_default) || templates.find(t => t.type === 'quote');
-      if (defaultQuote) handleSelectTemplate(defaultQuote);
-    }
-  }, [templates]);
-
-  const handleSelectTemplate = (template: Template) => {
-    setSelectedTemplate(template);
-    setTemplateForm(template);
-  };
-
-  const updateTemplateMutation = useMutation({
-    mutationFn: async (data: Partial<Template>) => {
-      const res = await api.put(`/admin/templates/${selectedTemplate?.id}`, data);
-      return res.data;
-    },
-    onSuccess: () => {
-      toast.success('Template updated successfully');
-      queryClient.invalidateQueries({ queryKey: ['templates'] });
-    },
-    onError: () => {
-      toast.error('Failed to update template');
-    }
-  });
-
-  const handleTemplateSave = () => {
-    if (templateForm) updateTemplateMutation.mutate(templateForm);
-  };
-
-  const renderPreview = (content: string) => {
-    let preview = content;
-    const mockData: Record<string, string> = {
-      '{quote_number}': 'QT-2024-001',
-      '{invoice_number}': 'INV-2024-001',
-      '{customer_name}': 'John Doe',
-      '{customer_company}': 'Doe Enterprises',
-      '{customer_email}': 'john@example.com',
-      '{customer_address}': '123 Business Way, Downtown Dubai, UAE',
-      '{date}': '26 Apr 2024',
-      '{valid_until}': '10 May 2024',
-      '{due_date}': '03 May 2024',
-      '{subtotal}': '1,000.00 AED',
-      '{vat_amount}': '50.00 AED',
-      '{total_amount}': '1,050.00 AED',
-      '{total_in_words}': 'ONE THOUSAND AND FIFTY ONLY',
-      '{items}': `
-        <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #eee;">1</td>
-          <td style="padding: 10px; border-bottom: 1px solid #eee;"><strong>Premium Service</strong><br><span style="font-size: 11px; color: #666;">Standard monthly maintenance</span></td>
-          <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">1.00</td>
-          <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">1,000.00</td>
-          <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">1,000.00</td>
-        </tr>
-      `
-    };
-    Object.entries(mockData).forEach(([key, val]) => {
-      preview = preview.replace(new RegExp(key, 'g'), val);
-    });
-    return preview;
-  };
 
   // --- SUB-COMPONENTS ---
-  const SidebarItem = ({ id, label, icon: Icon }: any) => (
-    <button
-      onClick={() => setActiveTab(id)}
-      className={cn(
-        "w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group",
-        activeTab === id 
-          ? "bg-zeronix-blue text-white shadow-lg shadow-zeronix-blue/20 font-medium" 
-          : "text-admin-text-secondary hover:bg-admin-surface-hover hover:text-admin-text-primary"
-      )}
-    >
-      <div className="flex items-center gap-3">
-        <Icon size={18} className={cn(activeTab === id ? "text-white" : "text-admin-text-muted group-hover:text-zeronix-blue")} />
-        <span className="text-sm">{label}</span>
-      </div>
-      <ChevronRight size={14} className={cn("transition-transform", activeTab === id ? "rotate-90 opacity-100" : "opacity-0")} />
-    </button>
-  );
+  const MENU_GROUPS = [
+    {
+      title: 'General',
+      items: [
+        { id: 'brand', label: 'Brand & PDFs', icon: Palette },
+        { id: 'templates', label: 'Document Designer', icon: Layout },
+      ]
+    },
+    {
+      title: 'Modules & Workflows',
+      items: [
+        { id: 'preferences', label: 'Currency & Prefixes', icon: SettingsIcon },
+        { id: 'payment_terms', label: 'Payment Terms', icon: FileText },
+        { id: 'statuses', label: 'Statuses & Colors', icon: CheckCircle2 },
+        { id: 'tags', label: 'Global Tags', icon: Tag },
+      ]
+    },
+    {
+      title: 'Integrations',
+      items: [
+        { id: 'email', label: 'Email Config', icon: Mail },
+      ]
+    },
+    {
+      title: 'Account',
+      items: [
+        { id: 'profile', label: 'My Profile', icon: User },
+      ]
+    }
+  ];
 
   return (
-    <div className="flex flex-col lg:flex-row gap-8 min-h-[calc(100vh-10rem)]">
-      {/* Settings Internal Sidebar */}
-      <div className="w-full lg:w-64 flex-shrink-0 space-y-2">
-        <div className="px-4 mb-4">
-          <h2 className="text-xl font-bold text-admin-text-primary">Settings</h2>
-          <p className="text-xs text-admin-text-muted">Manage your workspace</p>
-        </div>
-        <div className="space-y-1">
-          <SidebarItem id="email" label="Email Integration" icon={Mail} />
-          <SidebarItem id="templates" label="Document Templates" icon={FileText} />
-          <SidebarItem id="profile" label="My Profile" icon={User} />
-        </div>
-      </div>
+    <div className="relative min-h-[calc(100vh-10rem)] w-full max-w-7xl mx-auto space-y-6">
+      {/* Ambient background glow */}
+      <div className="absolute -inset-4 bg-gradient-to-br from-zeronix-blue/5 via-transparent to-purple-500/5 blur-3xl pointer-events-none -z-10" />
 
-      {/* Main Settings Content */}
-      <div className="flex-1 min-w-0">
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* HORIZONTAL TABS -> VERTICAL SUB-SIDEBAR */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} orientation="vertical" className="flex flex-col lg:flex-row gap-8 w-full relative z-10 pt-2">
+        
+        {/* Sub-Sidebar */}
+        <aside className="w-full lg:w-64 shrink-0 space-y-8">
+          <div>
+            <h2 className="text-xl font-bold text-admin-text-primary tracking-tight">Settings</h2>
+            <p className="text-[10px] text-admin-text-muted mt-1 uppercase tracking-widest font-bold">Manage workspace preferences</p>
+          </div>
+          <TabsList className="flex flex-col h-auto bg-transparent border-none p-0 space-y-6 items-stretch">
+            {MENU_GROUPS.map((group, idx) => (
+              <div key={idx} className="space-y-2">
+                <h4 className="text-[9px] font-bold text-admin-text-muted uppercase tracking-[0.2em] px-2">{group.title}</h4>
+                <nav className="flex flex-col space-y-1">
+                  {group.items.map(t => (
+                    <TabsTrigger 
+                      key={t.id} 
+                      value={t.id}
+                      className="w-full justify-start rounded-lg px-3 py-2.5 data-[state=active]:bg-zeronix-blue data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-zeronix-blue/30 text-admin-text-secondary hover:text-admin-text-primary hover:bg-admin-surface/50 transition-all duration-300"
+                    >
+                      <div className="flex items-center gap-3">
+                        <t.icon size={16} />
+                        <span className="font-bold tracking-wide text-xs">{t.label}</span>
+                      </div>
+                    </TabsTrigger>
+                  ))}
+                </nav>
+              </div>
+            ))}
+          </TabsList>
+        </aside>
+
+        {/* Content Area */}
+        <div className="flex-1 min-w-0 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
           
-          {/* EMAIL TAB */}
-          {activeTab === 'email' && (
+          {/* BRAND TAB */}
+          <TabsContent value="brand" className="mt-0">
             <div className="space-y-6">
-              <div className="flex justify-between items-center bg-admin-surface border border-admin-border p-6 rounded-2xl">
+              <div className="flex justify-between items-center bg-admin-surface/90 backdrop-blur-xl border border-white/5 p-6 rounded-2xl shadow-xl">
+                <div>
+                  <h3 className="text-lg font-bold text-admin-text-primary">Brand & PDF Settings</h3>
+                  <p className="text-sm text-admin-text-muted">Configure your company identity for the portal and generated PDFs.</p>
+                </div>
+                <Button 
+                  onClick={handleBrandSubmit} 
+                  disabled={saveBrandMutation.isPending}
+                  className="bg-gradient-to-r from-zeronix-blue to-blue-600 hover:from-blue-600 hover:to-zeronix-blue text-white rounded-xl shadow-lg shadow-zeronix-blue/30 gap-2 h-10 px-6 transition-all duration-300"
+                >
+                  {saveBrandMutation.isPending ? <Spinner size="sm" /> : <Save size={16} />}
+                  Save Brand
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_300px] gap-6">
+                <Card className="bg-admin-surface/80 backdrop-blur-xl border-white/5 rounded-2xl overflow-hidden shadow-xl">
+                  <CardContent className="p-8 space-y-6">
+                    <div className="grid grid-cols-2 gap-5">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] tracking-widest font-bold text-admin-text-muted uppercase">Company Name</Label>
+                        <Input value={brandForm.company_name} onChange={e => setBrandForm({...brandForm, company_name: e.target.value})} className="bg-admin-bg/50 border-admin-border/50 h-10 focus-visible:ring-zeronix-blue/30 focus-visible:bg-admin-bg transition-colors" placeholder="Zeronix LLC" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] tracking-widest font-bold text-admin-text-muted uppercase">Brand Color</Label>
+                        <div className="flex items-center gap-3">
+                          <input 
+                            type="color" 
+                            value={brandForm.primary_color} 
+                            onChange={e => setBrandForm({...brandForm, primary_color: e.target.value})} 
+                            className="w-10 h-10 rounded-lg cursor-pointer border-0 bg-transparent p-0 shadow-sm" 
+                          />
+                          <Input value={brandForm.primary_color} onChange={e => setBrandForm({...brandForm, primary_color: e.target.value})} className="bg-admin-bg/50 border-admin-border/50 h-10 flex-1 font-mono uppercase focus-visible:ring-zeronix-blue/30" />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-5">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] tracking-widest font-bold text-admin-text-muted uppercase">Email Address</Label>
+                        <Input type="email" value={brandForm.company_email} onChange={e => setBrandForm({...brandForm, company_email: e.target.value})} className="bg-admin-bg/50 border-admin-border/50 h-10 focus-visible:ring-zeronix-blue/30" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] tracking-widest font-bold text-admin-text-muted uppercase">Phone Number</Label>
+                        <Input value={brandForm.company_phone} onChange={e => setBrandForm({...brandForm, company_phone: e.target.value})} className="bg-admin-bg/50 border-admin-border/50 h-10 focus-visible:ring-zeronix-blue/30" />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-[10px] tracking-widest font-bold text-admin-text-muted uppercase">Physical Address</Label>
+                      <Textarea value={brandForm.company_address} onChange={e => setBrandForm({...brandForm, company_address: e.target.value})} className="bg-admin-bg/50 border-admin-border/50 resize-none focus-visible:ring-zeronix-blue/30" rows={3} />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-5 border-t border-white/5 pt-6 mt-2">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] tracking-widest font-bold text-admin-text-muted uppercase">Tax Label (e.g., TRN, VAT, GST)</Label>
+                        <Input value={brandForm.tax_number_label} onChange={e => setBrandForm({...brandForm, tax_number_label: e.target.value})} className="bg-admin-bg/50 border-admin-border/50 h-10 focus-visible:ring-zeronix-blue/30" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] tracking-widest font-bold text-admin-text-muted uppercase">Tax Number</Label>
+                        <Input value={brandForm.tax_number} onChange={e => setBrandForm({...brandForm, tax_number: e.target.value})} className="bg-admin-bg/50 border-admin-border/50 h-10 focus-visible:ring-zeronix-blue/30" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-5 border-t border-white/5 pt-6 mt-2">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] tracking-widest font-bold text-admin-text-muted uppercase">Bank Details (For Invoices)</Label>
+                        <Textarea value={brandForm.bank_details} onChange={e => setBrandForm({...brandForm, bank_details: e.target.value})} className="bg-admin-bg/50 border-admin-border/50 resize-none focus-visible:ring-zeronix-blue/30" rows={3} placeholder="Bank Name: ...&#10;Account Number: ...&#10;IBAN: ..." />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] tracking-widest font-bold text-admin-text-muted uppercase">Terms & Conditions</Label>
+                        <Textarea value={brandForm.terms_conditions} onChange={e => setBrandForm({...brandForm, terms_conditions: e.target.value})} className="bg-admin-bg/50 border-admin-border/50 resize-none focus-visible:ring-zeronix-blue/30" rows={4} placeholder="1. Goods once sold will not be returned...&#10;2. Warranty void if seal broken..." />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-admin-surface/80 backdrop-blur-xl border-white/5 rounded-2xl overflow-hidden shadow-xl self-start">
+                  <CardHeader className="bg-admin-bg/30 border-b border-white/5 pb-4">
+                    <CardTitle className="text-xs font-bold uppercase tracking-widest text-admin-text-muted flex items-center gap-2"><Upload size={14} /> Brand Logo</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 space-y-4">
+                    {brandForm.logo_path && !brandForm.logo ? (
+                      <div className="w-full h-32 rounded-xl bg-white border border-admin-border flex items-center justify-center overflow-hidden p-2">
+                        <img src={import.meta.env.VITE_API_URL?.replace('/api', '') + brandForm.logo_path} alt="Logo" className="max-h-full max-w-full object-contain" />
+                      </div>
+                    ) : brandForm.logo ? (
+                      <div className="w-full h-32 rounded-xl bg-white border border-admin-border flex items-center justify-center p-2 text-[12px] font-medium text-admin-text-primary text-center">
+                        {brandForm.logo.name} <br /> (Pending Save)
+                      </div>
+                    ) : (
+                      <div className="w-full h-32 rounded-xl bg-admin-bg border border-admin-border border-dashed flex items-center justify-center flex-col gap-2 text-admin-text-muted">
+                        <Upload size={24} />
+                        <span className="text-[12px]">No logo uploaded</span>
+                      </div>
+                    )}
+                    
+                    <div className="pt-2">
+                      <Input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setBrandForm({ ...brandForm, logo: e.target.files[0] });
+                          }
+                        }}
+                        className="text-xs file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-zeronix-blue/10 file:text-zeronix-blue hover:file:bg-zeronix-blue/20"
+                      />
+                    </div>
+                    <p className="text-[11px] text-admin-text-muted mt-2">Upload a PNG or JPG (max 2MB). Used in PDF generation.</p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* EMAIL TAB */}
+          <TabsContent value="email" className="mt-0">
+            <div className="space-y-6">
+              <div className="flex justify-between items-center bg-admin-surface/90 backdrop-blur-xl border border-white/5 p-6 rounded-2xl shadow-xl">
                 <div>
                   <h3 className="text-lg font-bold text-admin-text-primary">Email & Communication</h3>
                   <p className="text-sm text-admin-text-muted">Configure SMTP for outgoing and IMAP for incoming mail.</p>
                 </div>
-                <Button variant="outline" onClick={loadHostingerDefaults} className="border-zeronix-blue text-zeronix-blue hover:bg-zeronix-blue/10 rounded-xl">
+                <Button variant="outline" onClick={loadHostingerDefaults} className="border-zeronix-blue text-zeronix-blue hover:bg-zeronix-blue/10 rounded-xl h-10 px-4">
                   Hostinger Defaults
                 </Button>
               </div>
@@ -269,72 +405,72 @@ export const Settings = () => {
               <form onSubmit={handleEmailSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* SMTP */}
-                  <Card className="bg-admin-surface border-admin-border rounded-2xl overflow-hidden">
-                    <CardHeader className="bg-admin-bg/50 border-b border-admin-border pb-4">
+                  <Card className="bg-admin-surface/80 backdrop-blur-xl border-white/5 rounded-2xl overflow-hidden shadow-xl">
+                    <CardHeader className="bg-admin-bg/30 border-b border-white/5 pb-4">
                       <div className="flex items-center gap-2">
-                        <ArrowUpRight className="text-green-500" size={18} />
-                        <CardTitle className="text-base">Outgoing (SMTP)</CardTitle>
+                        <ArrowUpRight className="text-green-500" size={16} />
+                        <CardTitle className="text-xs font-bold uppercase tracking-widest text-admin-text-muted">Outgoing (SMTP)</CardTitle>
                       </div>
                     </CardHeader>
-                    <CardContent className="p-6 space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
+                    <CardContent className="p-8 space-y-5">
+                      <div className="grid grid-cols-2 gap-5">
                         <div className="space-y-2">
-                          <Label className="text-xs text-admin-text-muted uppercase">Host</Label>
-                          <Input value={emailForm.smtp_host} onChange={e => setEmailForm({...emailForm, smtp_host: e.target.value})} className="bg-admin-bg border-admin-border h-10" />
+                          <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-widest">Host</Label>
+                          <Input value={emailForm.smtp_host} onChange={e => setEmailForm({...emailForm, smtp_host: e.target.value})} className="bg-admin-bg/50 border-admin-border/50 h-10 focus-visible:ring-zeronix-blue/30" />
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-xs text-admin-text-muted uppercase">Port</Label>
-                          <Input value={emailForm.smtp_port} onChange={e => setEmailForm({...emailForm, smtp_port: e.target.value})} className="bg-admin-bg border-admin-border h-10" />
+                          <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-widest">Port</Label>
+                          <Input value={emailForm.smtp_port} onChange={e => setEmailForm({...emailForm, smtp_port: e.target.value})} className="bg-admin-bg/50 border-admin-border/50 h-10 focus-visible:ring-zeronix-blue/30" />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-xs text-admin-text-muted uppercase">Username</Label>
-                        <Input value={emailForm.smtp_username} onChange={e => setEmailForm({...emailForm, smtp_username: e.target.value})} className="bg-admin-bg border-admin-border h-10" />
+                        <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-widest">Username</Label>
+                        <Input value={emailForm.smtp_username} onChange={e => setEmailForm({...emailForm, smtp_username: e.target.value})} className="bg-admin-bg/50 border-admin-border/50 h-10 focus-visible:ring-zeronix-blue/30" />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-xs text-admin-text-muted uppercase">Password</Label>
-                        <Input type="password" placeholder="••••••••" value={emailForm.smtp_password} onChange={e => setEmailForm({...emailForm, smtp_password: e.target.value})} className="bg-admin-bg border-admin-border h-10" />
+                        <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-widest">Password</Label>
+                        <Input type="password" placeholder="••••••••" value={emailForm.smtp_password} onChange={e => setEmailForm({...emailForm, smtp_password: e.target.value})} className="bg-admin-bg/50 border-admin-border/50 h-10 focus-visible:ring-zeronix-blue/30" />
                       </div>
                     </CardContent>
                   </Card>
 
                   {/* IMAP */}
-                  <Card className="bg-admin-surface border-admin-border rounded-2xl overflow-hidden">
-                    <CardHeader className="bg-admin-bg/50 border-b border-admin-border pb-4 flex flex-row items-center justify-between">
+                  <Card className="bg-admin-surface/80 backdrop-blur-xl border-white/5 rounded-2xl overflow-hidden shadow-xl">
+                    <CardHeader className="bg-admin-bg/30 border-b border-white/5 pb-4 flex flex-row items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <ArrowDownLeft className="text-blue-500" size={18} />
-                        <CardTitle className="text-base">Incoming (IMAP)</CardTitle>
+                        <ArrowDownLeft className="text-blue-500" size={16} />
+                        <CardTitle className="text-xs font-bold uppercase tracking-widest text-admin-text-muted">Incoming (IMAP)</CardTitle>
                       </div>
-                      <Button type="button" variant="ghost" size="sm" onClick={copySmtpToImap} className="text-[10px] h-6 text-zeronix-blue hover:bg-zeronix-blue/10">Copy Credentials</Button>
+                      <Button type="button" variant="ghost" size="sm" onClick={copySmtpToImap} className="text-[10px] h-6 text-zeronix-blue hover:bg-zeronix-blue/10 px-2 rounded">Copy Credentials</Button>
                     </CardHeader>
-                    <CardContent className="p-6 space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
+                    <CardContent className="p-8 space-y-5">
+                      <div className="grid grid-cols-2 gap-5">
                         <div className="space-y-2">
-                          <Label className="text-xs text-admin-text-muted uppercase">Host</Label>
-                          <Input value={emailForm.imap_host} onChange={e => setEmailForm({...emailForm, imap_host: e.target.value})} className="bg-admin-bg border-admin-border h-10" />
+                          <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-widest">Host</Label>
+                          <Input value={emailForm.imap_host} onChange={e => setEmailForm({...emailForm, imap_host: e.target.value})} className="bg-admin-bg/50 border-admin-border/50 h-10 focus-visible:ring-zeronix-blue/30" />
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-xs text-admin-text-muted uppercase">Port</Label>
-                          <Input value={emailForm.imap_port} onChange={e => setEmailForm({...emailForm, imap_port: e.target.value})} className="bg-admin-bg border-admin-border h-10" />
+                          <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-widest">Port</Label>
+                          <Input value={emailForm.imap_port} onChange={e => setEmailForm({...emailForm, imap_port: e.target.value})} className="bg-admin-bg/50 border-admin-border/50 h-10 focus-visible:ring-zeronix-blue/30" />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-xs text-admin-text-muted uppercase">Username</Label>
-                        <Input value={emailForm.imap_username} onChange={e => setEmailForm({...emailForm, imap_username: e.target.value})} className="bg-admin-bg border-admin-border h-10" />
+                        <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-widest">Username</Label>
+                        <Input value={emailForm.imap_username} onChange={e => setEmailForm({...emailForm, imap_username: e.target.value})} className="bg-admin-bg/50 border-admin-border/50 h-10 focus-visible:ring-zeronix-blue/30" />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-xs text-admin-text-muted uppercase">Password</Label>
-                        <Input type="password" placeholder="••••••••" value={emailForm.imap_password} onChange={e => setEmailForm({...emailForm, imap_password: e.target.value})} className="bg-admin-bg border-admin-border h-10" />
+                        <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-widest">Password</Label>
+                        <Input type="password" placeholder="••••••••" value={emailForm.imap_password} onChange={e => setEmailForm({...emailForm, imap_password: e.target.value})} className="bg-admin-bg/50 border-admin-border/50 h-10 focus-visible:ring-zeronix-blue/30" />
                       </div>
                     </CardContent>
                   </Card>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-admin-surface border border-admin-border rounded-2xl">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-admin-surface/80 backdrop-blur-xl border border-white/5 rounded-2xl shadow-xl">
                   <div className="flex items-center gap-4 flex-1 w-full">
                     <div className="flex-1 space-y-1">
-                      <Label className="text-[10px] text-admin-text-muted uppercase font-bold">Test Delivery</Label>
-                      <Input placeholder="Recipient email..." id="test-email-input" className="h-9 bg-admin-bg border-admin-border text-sm" />
+                      <Label className="text-[10px] text-admin-text-muted uppercase font-bold tracking-widest">Test Delivery</Label>
+                      <Input placeholder="Recipient email..." id="test-email-input" className="h-10 bg-admin-bg/50 border-admin-border/50 text-sm focus-visible:ring-zeronix-blue/30" />
                     </div>
                     <Button type="button" variant="outline" onClick={() => {
                         const input = document.getElementById('test-email-input') as HTMLInputElement;
@@ -351,214 +487,16 @@ export const Settings = () => {
                 </div>
               </form>
             </div>
-          )}
+          </TabsContent>
 
-          {/* TEMPLATES TAB */}
-          {activeTab === 'templates' && (
-            <div className="space-y-8">
-              <div className="bg-admin-surface border border-admin-border p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                  <h3 className="text-lg font-bold text-admin-text-primary">Document Brand Designer</h3>
-                  <p className="text-sm text-admin-text-muted">Choose a base format and customize the layout, colors, and content.</p>
-                </div>
-                <div className="flex gap-2 w-full md:w-auto">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" className="flex-1 md:flex-none border-admin-border text-xs gap-2 h-10">
-                        <Eye size={14} /> Live Preview
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-4xl h-[90vh] p-0 overflow-hidden border-admin-border bg-admin-surface">
-                       <div className="flex items-center justify-between p-4 border-b border-admin-border bg-admin-bg/50">
-                          <h4 className="font-bold text-sm">PDF View: {templateForm.name}</h4>
-                          <span className="text-[10px] bg-zeronix-blue/10 text-zeronix-blue px-2 py-0.5 rounded font-bold">A4 PORTRAIT</span>
-                       </div>
-                       <iframe srcDoc={renderPreview(templateForm.content || '')} className="w-full h-full border-none bg-slate-100" />
-                    </DialogContent>
-                  </Dialog>
-                  <Button onClick={handleTemplateSave} disabled={updateTemplateMutation.isPending} className="flex-1 md:flex-none bg-zeronix-blue text-white hover:bg-zeronix-blue-hover h-10 px-8 rounded-xl shadow-lg shadow-zeronix-blue/20">
-                    {updateTemplateMutation.isPending ? <Spinner size={16} className="mr-2" /> : <Save size={16} className="mr-2" />}
-                    Save Template
-                  </Button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-                {/* Left: Selection & Info */}
-                <div className="xl:col-span-3 space-y-6">
-                  <Card className="bg-admin-surface border-admin-border rounded-2xl overflow-hidden shadow-sm">
-                    <CardHeader className="bg-admin-bg/50 border-b border-admin-border p-4">
-                      <div className="flex items-center gap-2 text-zeronix-blue">
-                        <Layout size={16} />
-                        <CardTitle className="text-[11px] uppercase tracking-widest font-bold">Select Document</CardTitle>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-2">
-                      <Tabs defaultValue="quote" className="w-full">
-                        <TabsList className="w-full grid grid-cols-2 bg-admin-bg/50 rounded-lg p-1 mb-2">
-                          <TabsTrigger value="quote" className="text-[11px] h-8 rounded-md data-[state=active]:bg-admin-surface data-[state=active]:shadow-sm">Quotes</TabsTrigger>
-                          <TabsTrigger value="invoice" className="text-[11px] h-8 rounded-md data-[state=active]:bg-admin-surface data-[state=active]:shadow-sm">Invoices</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="quote" className="space-y-1">
-                          {templates?.filter(t => t.type === 'quote').map(t => (
-                            <button 
-                              key={t.id} 
-                              onClick={() => handleSelectTemplate(t)} 
-                              className={cn(
-                                "w-full text-left px-4 py-3 rounded-xl text-xs transition-all flex justify-between items-center group",
-                                selectedTemplate?.id === t.id 
-                                  ? "bg-zeronix-blue/10 text-zeronix-blue border border-zeronix-blue/20 font-bold" 
-                                  : "hover:bg-admin-bg text-admin-text-secondary border border-transparent"
-                              )}
-                            >
-                              <div className="flex items-center gap-2">
-                                <FileText size={14} className={selectedTemplate?.id === t.id ? "text-zeronix-blue" : "text-admin-text-muted"} />
-                                {t.name}
-                              </div>
-                              {t.is_default && <span className="text-[8px] bg-zeronix-blue text-white px-1.5 py-0.5 rounded-full font-bold">DEF</span>}
-                            </button>
-                          ))}
-                        </TabsContent>
-                        <TabsContent value="invoice" className="space-y-1">
-                          {templates?.filter(t => t.type === 'invoice').map(t => (
-                            <button 
-                              key={t.id} 
-                              onClick={() => handleSelectTemplate(t)} 
-                              className={cn(
-                                "w-full text-left px-4 py-3 rounded-xl text-xs transition-all flex justify-between items-center group",
-                                selectedTemplate?.id === t.id 
-                                  ? "bg-zeronix-blue/10 text-zeronix-blue border border-zeronix-blue/20 font-bold" 
-                                  : "hover:bg-admin-bg text-admin-text-secondary border border-transparent"
-                              )}
-                            >
-                              <div className="flex items-center gap-2">
-                                <Receipt size={14} className={selectedTemplate?.id === t.id ? "text-zeronix-blue" : "text-admin-text-muted"} />
-                                {t.name}
-                              </div>
-                              {t.is_default && <span className="text-[8px] bg-zeronix-blue text-white px-1.5 py-0.5 rounded-full font-bold">DEF</span>}
-                            </button>
-                          ))}
-                        </TabsContent>
-                      </Tabs>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-admin-surface border-admin-border rounded-2xl overflow-hidden shadow-sm">
-                    <CardHeader className="bg-admin-bg/50 border-b border-admin-border p-4">
-                      <div className="flex items-center gap-2 text-zeronix-blue">
-                        <Info size={16} />
-                        <CardTitle className="text-[11px] uppercase tracking-widest font-bold">Variables</CardTitle>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-4">
-                      <div className="grid grid-cols-1 gap-2">
-                        {PLACEHOLDERS.filter(p => p.type === 'both' || p.type === selectedTemplate?.type).map(p => (
-                          <div key={p.key} className="flex items-center justify-between group p-2 rounded-lg hover:bg-admin-bg transition-colors cursor-help">
-                            <span className="text-[10px] text-admin-text-muted font-medium">{p.label}</span>
-                            <code className="text-[10px] text-zeronix-blue font-mono bg-zeronix-blue/5 px-1.5 py-0.5 rounded border border-zeronix-blue/10">{p.key}</code>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Right: Detailed Editor */}
-                <div className="xl:col-span-9 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Basic Info */}
-                    <Card className="md:col-span-1 bg-admin-surface border-admin-border rounded-2xl p-6 shadow-sm flex flex-col gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-wider">Format Name</Label>
-                        <Input 
-                          value={templateForm.name || ''} 
-                          onChange={e => setTemplateForm({...templateForm, name: e.target.value})} 
-                          className="bg-admin-bg border-admin-border h-10 font-medium" 
-                        />
-                      </div>
-                      <div className="flex items-center justify-between p-4 bg-admin-bg/50 rounded-xl border border-admin-border mt-2">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="def-toggle" className="text-xs font-bold cursor-pointer">Default Template</Label>
-                          <p className="text-[10px] text-admin-text-muted">Use this as the primary design</p>
-                        </div>
-                        <input 
-                          type="checkbox" 
-                          id="def-toggle"
-                          className="w-4 h-4 rounded border-admin-border text-zeronix-blue focus:ring-zeronix-blue"
-                          checked={templateForm.is_default || false} 
-                          onChange={e => setTemplateForm({...templateForm, is_default: e.target.checked})} 
-                        />
-                      </div>
-                    </Card>
-
-                    {/* Email Config */}
-                    <Card className="md:col-span-2 bg-admin-surface border-admin-border rounded-2xl p-6 shadow-sm space-y-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Mail size={16} className="text-zeronix-blue" />
-                        <h4 className="text-sm font-bold">Email Notification Settings</h4>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-wider">Email Subject Line</Label>
-                          <Input 
-                            value={templateForm.subject || ''} 
-                            onChange={e => setTemplateForm({...templateForm, subject: e.target.value})} 
-                            className="bg-admin-bg border-admin-border h-10 text-xs" 
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-wider">Greeting & Message</Label>
-                          <Textarea 
-                            value={templateForm.email_body || ''} 
-                            onChange={e => setTemplateForm({...templateForm, email_body: e.target.value})} 
-                            className="bg-admin-bg border-admin-border min-h-[80px] text-xs resize-none" 
-                          />
-                        </div>
-                      </div>
-                    </Card>
-                  </div>
-
-                  {/* HTML Editor */}
-                  <Card className="bg-[#0d1117] border border-admin-border rounded-2xl overflow-hidden shadow-2xl">
-                    <div className="bg-[#161b22] border-b border-[#30363d] px-6 py-4 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex gap-1.5">
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]"></div>
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]"></div>
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]"></div>
-                        </div>
-                        <span className="text-[10px] font-mono text-[#8b949e] ml-2">layout.blade.php</span>
-                      </div>
-                      <div className="flex items-center gap-4">
-                         <span className="text-[10px] text-emerald-500 font-mono flex items-center gap-1">
-                           <CheckCircle2 size={12} /> Valid HTML5
-                         </span>
-                      </div>
-                    </div>
-                    <div className="relative">
-                      <div className="absolute left-0 top-0 bottom-0 w-12 bg-[#0d1117] border-r border-[#30363d] flex flex-col items-center py-6 text-[10px] text-[#484f58] font-mono select-none">
-                        {Array.from({length: 25}).map((_, i) => <div key={i} className="h-[22px] leading-[22px]">{i+1}</div>)}
-                      </div>
-                      <textarea 
-                        value={templateForm.content || ''} 
-                        onChange={e => setTemplateForm({...templateForm, content: e.target.value})}
-                        className="w-full h-[600px] bg-transparent text-[#e6edf3] p-6 pl-16 font-mono text-xs leading-[22px] resize-none focus:outline-none scrollbar-thin scrollbar-thumb-[#30363d]"
-                        spellCheck={false}
-                      />
-                    </div>
-                    <div className="bg-[#161b22] border-t border-[#30363d] px-6 py-2 flex justify-between items-center">
-                       <p className="text-[9px] text-[#8b949e]">UTF-8 • HTML • Pre-render enabled</p>
-                       <p className="text-[9px] text-[#8b949e]">Line {templateForm.content?.split('\n').length || 0}</p>
-                    </div>
-                  </Card>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* TEMPLATES / DOCUMENT DESIGNER TAB */}
+          <TabsContent value="templates" className="mt-0">
+            <DocumentDesigner />
+          </TabsContent>
 
           {/* PROFILE TAB */}
-          {activeTab === 'profile' && (
-            <Card className="bg-admin-surface border-admin-border rounded-2xl p-8 text-center">
+          <TabsContent value="profile" className="mt-0">
+            <Card className="bg-admin-surface/80 backdrop-blur-xl border-white/5 rounded-2xl p-12 text-center max-w-2xl mx-auto shadow-xl">
               <div className="mx-auto w-24 h-24 rounded-full bg-zeronix-blue/10 flex items-center justify-center mb-6">
                 <User size={48} className="text-zeronix-blue" />
               </div>
@@ -577,10 +515,205 @@ export const Settings = () => {
               <Separator className="my-8 bg-admin-border" />
               <p className="text-xs text-admin-text-muted italic">Profile editing is currently managed by System Administrators.</p>
             </Card>
-          )}
+          </TabsContent>
+          <TabsContent value="tags" className="mt-0">
+            <Card className="bg-admin-surface/80 backdrop-blur-xl border-white/5 rounded-2xl p-12 text-center max-w-2xl mx-auto shadow-xl">
+               <Tag size={48} className="mx-auto text-zeronix-blue opacity-50 mb-4" />
+               <h3 className="text-xl font-bold text-admin-text-primary mb-2">Global Tags Manager</h3>
+               <p className="text-admin-text-muted">Coming soon...</p>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="preferences" className="mt-0">
+            <div className="space-y-6">
+              <div className="flex justify-between items-center bg-admin-surface/90 backdrop-blur-xl border border-white/5 p-6 rounded-2xl shadow-xl">
+                <div>
+                  <h3 className="text-lg font-bold text-admin-text-primary tracking-tight">Currency &amp; Document Prefixes</h3>
+                  <p className="text-xs text-admin-text-muted mt-1">Set your workspace currency and the auto-generated numbering format for transactions.</p>
+                </div>
+                <Button 
+                  onClick={handleBrandSubmit} 
+                  disabled={saveBrandMutation.isPending}
+                  className="bg-gradient-to-r from-zeronix-blue to-purple-500 hover:opacity-90 text-white rounded-xl h-10 px-6 font-bold shadow-lg shadow-zeronix-blue/20 transition-all active:scale-95"
+                >
+                  {saveBrandMutation.isPending ? <Spinner size={16} /> : <Save size={16} className="mr-2" />}
+                  Save Changes
+                </Button>
+              </div>
+
+              <Card className="bg-admin-surface/80 backdrop-blur-xl border-white/5 rounded-2xl p-6 shadow-xl">
+                <div className="space-y-2 max-w-2xl mb-2">
+                  <h4 className="text-sm font-bold text-admin-text-primary">Currency</h4>
+                  <p className="text-xs text-admin-text-muted">Choose the currency used across quotes, invoices, and reports.</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mb-6">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-widest">Currency</Label>
+                    <Select
+                      value={brandForm.currency}
+                      onValueChange={(value: CurrencyCode) => setBrandForm({ ...brandForm, currency: value })}
+                    >
+                      <SelectTrigger className="bg-admin-bg/50 border-admin-border/50 h-10">
+                        <SelectValue placeholder="Select currency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CURRENCY_LIST.map(c => (
+                          <SelectItem key={c.code} value={c.code}>
+                            <div className="flex items-center gap-2">
+                              <CurrencyIcon currency={c.code} size={14} />
+                              <span>{c.name} ({c.code})</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-admin-text-muted">Example: <strong>{brandForm.currency === 'USD' ? '$1,250.00' : '1,250.00 AED'}</strong></p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-widest">Base Currency</Label>
+                    <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-admin-border/50 bg-admin-bg/30 text-sm font-medium text-admin-text-secondary">
+                      <CurrencyIcon currency={brandForm.base_currency} size={14} />
+                      <span>{brandForm.base_currency} (fixed)</span>
+                    </div>
+                    <p className="text-[10px] text-admin-text-muted">All amounts are recorded in this base currency; no conversion is applied yet.</p>
+                  </div>
+                </div>
+                <Separator className="bg-admin-border/50 mb-6" />
+                <form className="space-y-6 max-w-2xl">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-widest">Quote Prefix</Label>
+                      <Input 
+                        value={brandForm.quote_prefix || ''} 
+                        onChange={e => setBrandForm({...brandForm, quote_prefix: e.target.value})}
+                        placeholder="e.g. QT-"
+                        className="bg-admin-bg/50 border-admin-border/50 h-10 font-medium focus-visible:ring-zeronix-blue/30" 
+                      />
+                      <p className="text-[10px] text-admin-text-muted">Example: <strong>{brandForm.quote_prefix || 'QT-'}2024-001</strong></p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-widest">Invoice Prefix</Label>
+                      <Input 
+                        value={brandForm.invoice_prefix || ''} 
+                        onChange={e => setBrandForm({...brandForm, invoice_prefix: e.target.value})}
+                        placeholder="e.g. INV-"
+                        className="bg-admin-bg/50 border-admin-border/50 h-10 font-medium focus-visible:ring-zeronix-blue/30" 
+                      />
+                      <p className="text-[10px] text-admin-text-muted">Example: <strong>{brandForm.invoice_prefix || 'INV-'}2024-001</strong></p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-widest">Sales Order Prefix</Label>
+                      <Input 
+                        value={brandForm.sales_order_prefix || ''} 
+                        onChange={e => setBrandForm({...brandForm, sales_order_prefix: e.target.value})}
+                        placeholder="e.g. SO-"
+                        className="bg-admin-bg/50 border-admin-border/50 h-10 font-medium focus-visible:ring-zeronix-blue/30" 
+                      />
+                      <p className="text-[10px] text-admin-text-muted">Example: <strong>{brandForm.sales_order_prefix || 'SO-'}2024-001</strong></p>
+                    </div>
+                  </div>
+                </form>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="payment_terms" className="mt-0">
+            <div className="space-y-6">
+              <div className="flex justify-between items-center bg-admin-surface/90 backdrop-blur-xl border border-white/5 p-6 rounded-2xl shadow-xl">
+                <div>
+                  <h3 className="text-lg font-bold text-admin-text-primary tracking-tight">Payment Terms</h3>
+                  <p className="text-xs text-admin-text-muted mt-1">Manage the standard payment terms available when creating quotes and invoices.</p>
+                </div>
+                <Button 
+                  onClick={handleBrandSubmit} 
+                  disabled={saveBrandMutation.isPending}
+                  className="bg-gradient-to-r from-zeronix-blue to-purple-500 hover:opacity-90 text-white rounded-xl h-10 px-6 font-bold shadow-lg shadow-zeronix-blue/20 transition-all active:scale-95"
+                >
+                  {saveBrandMutation.isPending ? <Spinner size={16} /> : <Save size={16} className="mr-2" />}
+                  Save Changes
+                </Button>
+              </div>
+
+              <Card className="bg-admin-surface/80 backdrop-blur-xl border-white/5 rounded-2xl p-6 shadow-xl max-w-2xl">
+                <div className="space-y-6">
+                  {/* Add New Term */}
+                  <div className="flex gap-4 items-end">
+                    <div className="flex-1 space-y-2">
+                      <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-widest">Add New Term</Label>
+                      <Input 
+                        value={newTerm}
+                        onChange={(e) => setNewTerm(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && newTerm.trim()) {
+                            e.preventDefault();
+                            setBrandForm(prev => ({...prev, payment_terms: [...(Array.isArray(prev.payment_terms) ? prev.payment_terms : []), newTerm.trim()]}));
+                            setNewTerm('');
+                          }
+                        }}
+                        placeholder="e.g. Net 90, 50% Upfront, Cash on Delivery"
+                        className="bg-admin-bg/50 border-admin-border/50 h-10 focus-visible:ring-zeronix-blue/30"
+                      />
+                    </div>
+                    <Button 
+                      type="button"
+                      onClick={() => {
+                        if (newTerm.trim()) {
+                          setBrandForm(prev => ({...prev, payment_terms: [...(Array.isArray(prev.payment_terms) ? prev.payment_terms : []), newTerm.trim()]}));
+                          setNewTerm('');
+                        }
+                      }}
+                      className="bg-admin-bg border border-admin-border hover:bg-admin-surface-hover text-admin-text-primary h-10 px-4 rounded-xl"
+                    >
+                      <Plus size={16} className="mr-2 text-zeronix-blue" />
+                      Add Term
+                    </Button>
+                  </div>
+
+                  <Separator className="bg-white/5" />
+
+                  {/* List of Terms */}
+                  <div className="space-y-3">
+                    <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-widest">Available Options</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {(Array.isArray(brandForm.payment_terms) ? brandForm.payment_terms : []).map((term, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-admin-bg/30 border border-white/5 rounded-xl group hover:bg-admin-surface-hover transition-colors">
+                          <span className="text-sm font-medium text-admin-text-primary">{term}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = [...(Array.isArray(brandForm.payment_terms) ? brandForm.payment_terms : [])];
+                              updated.splice(index, 1);
+                              setBrandForm(prev => ({ ...prev, payment_terms: updated }));
+                            }}
+                            className="text-admin-text-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all p-1"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                      {(!Array.isArray(brandForm.payment_terms) || brandForm.payment_terms.length === 0) && (
+                        <p className="text-sm text-admin-text-muted italic col-span-full">No payment terms defined.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="statuses" className="mt-0">
+            <Card className="bg-admin-surface/80 backdrop-blur-xl border-white/5 rounded-2xl p-12 text-center max-w-2xl mx-auto shadow-xl">
+               <CheckCircle2 size={48} className="mx-auto text-zeronix-blue opacity-50 mb-4" />
+               <h3 className="text-xl font-bold text-admin-text-primary mb-2">Statuses & Colors</h3>
+               <p className="text-admin-text-muted">Coming soon...</p>
+            </Card>
+          </TabsContent>
 
         </div>
-      </div>
+      </Tabs>
     </div>
   );
 };

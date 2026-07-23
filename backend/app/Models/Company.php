@@ -20,6 +20,8 @@ class Company extends Model
         'salutation',
         'job_title',
         'description',
+        'industry',
+        'address',
         'tax_number',
         'website',
         'owner_user_id',
@@ -37,12 +39,14 @@ class Company extends Model
         'vat_attachment',
         'status',
         'rejection_reason',
+        'settings',
     ];
 
     protected $casts = [
         'opening_balance' => 'decimal:2',
         'show_job_amount_to_worker' => 'boolean',
         'is_client_portal_enabled' => 'boolean',
+        'settings' => 'array',
     ];
 
     public function owner()

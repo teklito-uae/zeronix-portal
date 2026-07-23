@@ -11,6 +11,9 @@ import { ProductSearch } from './ProductSearch';
 import { computeLineTotal, computeDocTotals } from '@/lib/lineItemMath';
 import { Plus, Trash2 } from 'lucide-react';
 import type { Product } from '@/types';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { isCurrencyCode } from '@/lib/currency';
+import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 
 export interface EditableLineItem {
   id?: number;
@@ -45,7 +48,9 @@ const FIELD_ORDER = ['desc', 'qty', 'price', 'tax'] as const;
  * Spreadsheet-style line items table — every cell is editable in place,
  * no dialog. The last row is a standing "add line" affordance.
  */
-export const LineItemsEditor = ({ items, onChange, products, disabled, currency = 'AED' }: LineItemsEditorProps) => {
+export const LineItemsEditor = ({ items, onChange, products, disabled, currency }: LineItemsEditorProps) => {
+  const workspaceCurrency = useCurrencyStore((s) => s.currency);
+  const effectiveCurrency = isCurrencyCode(currency) ? currency : workspaceCurrency;
   const totals = computeDocTotals(items);
   const refs = useRef<Record<string, HTMLInputElement | HTMLButtonElement | null>>({});
   const [focusTarget, setFocusTarget] = useState<string | null>(null);
@@ -229,8 +234,7 @@ export const LineItemsEditor = ({ items, onChange, products, disabled, currency 
           <div className="flex justify-between items-baseline pt-2 border-t border-admin-border">
             <span className="text-xs font-semibold uppercase tracking-wide text-admin-text-primary">Total</span>
             <span className="text-lg font-bold font-mono text-zeronix-blue">
-              {totals.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}{' '}
-              <span className="text-[11px] font-semibold text-admin-text-muted">{currency}</span>
+              <CurrencyAmount amount={totals.total} currency={effectiveCurrency} />
             </span>
           </div>
         </div>

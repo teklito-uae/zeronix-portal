@@ -16,6 +16,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import type { Product } from "@/types"
+import { useCurrencyStore } from "@/store/useCurrencyStore"
+import { CurrencyAmount } from "@/components/shared/CurrencyAmount"
 
 interface ProductSearchProps {
   products: Product[];
@@ -28,6 +30,7 @@ interface ProductSearchProps {
 }
 
 export const ProductSearch = ({ products, selectedProductId, onSelect, className, size = 'default', disabled, placeholder }: ProductSearchProps) => {
+  const currency = useCurrencyStore((s) => s.currency);
   const [open, setOpen] = React.useState(false);
   const selectedProduct = products.find((p) => p.id === selectedProductId);
 
@@ -73,7 +76,7 @@ export const ProductSearch = ({ products, selectedProductId, onSelect, className
                   <div className="flex flex-col flex-1 min-w-0">
                     <span className="font-medium text-admin-text-primary whitespace-normal break-words leading-snug">{product.name}</span>
                     {product.price != null && (
-                      <span className="text-[11px] text-admin-text-muted font-mono mt-0.5">{Number(product.price).toLocaleString()} AED</span>
+                      <span className="text-[11px] text-admin-text-muted font-mono mt-0.5"><CurrencyAmount amount={product.price} currency={currency} /></span>
                     )}
                   </div>
                   <Check className={cn("h-3.5 w-3.5 shrink-0", selectedProductId === product.id ? "opacity-100" : "opacity-0")} />

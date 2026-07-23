@@ -64,10 +64,10 @@ export const AttachmentsPanel = ({ type, docId, isNew, attachments, apiBase }: A
     if (file) upload.mutate(file);
   };
 
-  const label = type === 'quote' ? 'quote' : 'invoice';
+  const label = type === 'quote' ? 'quote' : type === 'invoice' ? 'invoice' : 'purchase bill';
 
   return (
-    <div className="bg-brand-white border border-brand-border rounded-lg p-4">
+    <div className="flex flex-col flex-1 p-4">
       <p className="text-[13px] font-semibold text-brand-primary mb-3">Attachments</p>
 
       {isNew && !docId ? (

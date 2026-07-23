@@ -10,11 +10,14 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { UserCircle2, TrendingUp, MessageSquareText, Building2 } from 'lucide-react';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 
 // Lead-funnel / enquiry-pipeline view, formerly the standalone CRM Dashboard
 // page — now a tab within the main Dashboard since it drew from the same
 // audience and overlapped with the KPIs already shown there.
 export const PipelinePanel = () => {
+  const currency = useCurrencyStore((s) => s.currency);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const params = { date_from: dateFrom || undefined, date_to: dateTo || undefined };
@@ -90,7 +93,7 @@ export const PipelinePanel = () => {
               {(data?.top_customers || []).map((c: any) => (
                 <div key={c.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-brand-surface">
                   <span className="text-[13px] font-medium text-brand-primary">{c.name}{c.company ? ` — ${c.company}` : ''}</span>
-                  <span className="text-[13px] font-mono font-semibold text-brand-secondary">{Number(c.total_invoiced || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} AED</span>
+                  <span className="text-[13px] font-mono font-semibold text-brand-secondary"><CurrencyAmount amount={c.total_invoiced || 0} currency={currency} /></span>
                 </div>
               ))}
               {(!data?.top_customers || data.top_customers.length === 0) && (

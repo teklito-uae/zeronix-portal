@@ -274,13 +274,13 @@ export const MobileBottomNav = ({ isVisible = true }: { isVisible?: boolean }) =
 
           {/* Grouped Navigation (Scrollable) */}
           <div className="flex-1 overflow-y-auto touch-scroll overscroll-contain scrollbar-green">
-            <div className="flex flex-col gap-6 p-4 pb-16">
+            <div className="flex flex-col gap-5 p-4 pb-16">
               {filteredGroups.map((group) => (
                 <div key={group.label}>
-                  <p className="px-2 mb-2 text-[11px] font-semibold uppercase tracking-wider text-brand-subtle">
+                  <p className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-brand-subtle">
                     {group.label}
                   </p>
-                  <div className="flex flex-col gap-0.5">
+                  <div className="flex flex-col gap-1">
                     {group.items.map((item) => {
                       const active = isActive(item.path);
                       const Icon = item.icon;
@@ -292,7 +292,7 @@ export const MobileBottomNav = ({ isVisible = true }: { isVisible?: boolean }) =
                             setDrawerOpen(false);
                           }}
                           className={cn(
-                            'w-full flex items-center gap-3 h-12 px-3 rounded-xl transition-all duration-150',
+                            'w-full flex items-center gap-3 h-11 px-3 rounded-xl transition-all duration-150',
                             active
                               ? 'bg-brand-accent text-white shadow-sm'
                               : 'text-brand-secondary hover:bg-brand-surface'

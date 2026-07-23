@@ -13,12 +13,15 @@ import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/useAuthStore';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import { ActionGroup } from '@/components/shared/ActionGroup';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 
 /**
  * Invoices Module
  * Refactored to use the standardized State-Driven architecture.
  */
 export const Invoices = () => {
+  const currency = useCurrencyStore((s) => s.currency);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const admin = useAuthStore(s => s.admin);
@@ -86,7 +89,7 @@ export const Invoices = () => {
       cell: ({ row }) => (
         <div className="text-right">
           <p className="font-mono text-[14px] font-semibold text-brand-primary">
-            {Number(row.original.total).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-[11px] text-brand-subtle">AED</span>
+            <CurrencyAmount amount={row.original.total} currency={currency} />
           </p>
           {row.original.amount_paid > 0 && (
             <p className="text-[11px] font-medium text-brand-success bg-brand-success-bg px-1.5 py-0.5 rounded inline-block mt-1">

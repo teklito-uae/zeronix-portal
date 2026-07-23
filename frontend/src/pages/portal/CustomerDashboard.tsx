@@ -16,8 +16,11 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 
 export const CustomerDashboard = () => {
+  const currency = useCurrencyStore((s) => s.currency);
   const navigate = useNavigate();
   const { company } = useParams();
   
@@ -97,7 +100,7 @@ export const CustomerDashboard = () => {
         />
         <StatCard
           title="Total Paid"
-          value={`AED ${Number(stats.total_spent).toLocaleString()}`}
+          value={<CurrencyAmount amount={stats.total_spent} currency={currency} size={18} />}
           icon={<TrendingUp className="text-emerald-600" size={20} />}
           className="bg-admin-surface border-admin-border"
         />
@@ -250,7 +253,7 @@ export const CustomerDashboard = () => {
                          </div>
                          <div>
                             <p className="text-xs font-bold text-admin-text-primary">{inv.invoice_number}</p>
-                            <p className="text-[10px] text-admin-text-muted font-bold uppercase tracking-tighter">AED {Number(inv.total).toLocaleString()}</p>
+                            <p className="text-[10px] text-admin-text-muted font-bold uppercase tracking-tighter"><CurrencyAmount amount={inv.total} currency={currency} /></p>
                          </div>
                       </div>
                       <StatusBadge status={inv.status} />
