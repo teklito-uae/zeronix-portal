@@ -61,9 +61,10 @@ class PaymentReceiptController extends Controller
         // Notify Customer
         if ($receipt->customer) {
             $slug = \Illuminate\Support\Str::slug($receipt->customer->company ?? 'company');
+            $currency = $receipt->company->settings['currency'] ?? 'USD';
             $receipt->customer->notify(new \App\Notifications\SystemNotification([
                 'title' => 'Payment Received',
-                'message' => "We have received your payment of " . number_format($receipt->amount, 2) . " AED.",
+                'message' => "We have received your payment of " . number_format($receipt->amount, 2) . " {$currency}.",
                 'type' => 'success',
                 'action_url' => "/portal/{$slug}/invoices"
             ]));
@@ -109,9 +110,10 @@ class PaymentReceiptController extends Controller
     public function sendEmail($id)
     {
         try {
-            $receipt = PaymentReceipt::with(['customer', 'invoice'])->findOrFail($id);
+            $receipt = PaymentReceipt::with(['customer', 'invoice', 'company'])->findOrFail($id);
             \App\Services\MailConfigService::applyUserSmtp(request()->user());
-            
+            $currency = $receipt->company->settings['currency'] ?? 'USD';
+
             $logoPath = public_path('images/logo.png');
             $logoBase64 = '';
             if (file_exists($logoPath)) {
@@ -180,7 +182,7 @@ class PaymentReceiptController extends Controller
 
                     <div class='amount-box'>
                         <div class='amount-label'>Total Amount Received</div>
-                        <div class='amount-value'>" . number_format($receipt->amount, 2) . " AED</div>
+                        <div class='amount-value'>" . number_format($receipt->amount, 2) . " {$currency}</div>
                     </div>
                 </div>
 

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 use App\Traits\LogsActivity;
@@ -24,6 +25,18 @@ class PurchaseBill extends Model
         'vat_amount',
         'total',
         'status',
+        'reference_id',
+        'notes',
+        'terms',
+        'discount_percent',
+        'shipping_amount',
+        'tags',
+        'attachments',
+    ];
+
+    protected $casts = [
+        'tags' => 'array',
+        'attachments' => 'array',
     ];
 
     protected $appends = ['amount_paid', 'balance'];
@@ -56,5 +69,10 @@ class PurchaseBill extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function activities(): MorphMany
+    {
+        return $this->morphMany(ActivityLog::class, 'subject')->latest();
     }
 }

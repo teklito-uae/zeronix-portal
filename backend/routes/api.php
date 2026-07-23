@@ -16,6 +16,7 @@ use App\Http\Controllers\LeadController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\QuoteController;
+use App\Http\Controllers\WorkspaceSettingsController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\TemplateController;
 use App\Http\Controllers\PaymentReceiptController;
@@ -91,6 +92,9 @@ Route::prefix('customer')->group(function () {
         Route::get('/notifications/unread', [CustomerNotificationController::class, 'unread']);
         Route::post('/notifications/mark-read', [CustomerNotificationController::class, 'markAsRead']);
         Route::post('/notifications/{id}/mark-read', [CustomerNotificationController::class, 'markOneAsRead']);
+
+        // Workspace settings (read-only, for currency/brand display in the portal)
+        Route::get('/settings/workspace', [WorkspaceSettingsController::class, 'show']);
     });
 });
 
@@ -168,6 +172,11 @@ foreach (['admin', 'staff'] as $prefix) {
         Route::delete('/customers/{customer}/contacts/{contact}', [CustomerContactController::class, 'destroy']);
         Route::post('/customers/{customer}/contacts/{contact}/set-primary', [CustomerContactController::class, 'setPrimary']);
         Route::get('/contacts', [CustomerContactController::class, 'indexAll']);
+        Route::get('/contacts/departments', [CustomerContactController::class, 'departments']);
+        Route::get('/contacts/{contact}', [CustomerContactController::class, 'show']);
+        Route::post('/contacts/{contact}/activities', [CustomerContactController::class, 'addActivity']);
+        Route::post('/contacts/{contact}/tags', [CustomerContactController::class, 'attachTag']);
+        Route::delete('/contacts/{contact}/tags/{tag}', [CustomerContactController::class, 'detachTag']);
 
         // Companies
         Route::apiResource('companies', CompanyController::class);
@@ -184,6 +193,8 @@ foreach (['admin', 'staff'] as $prefix) {
         Route::post('/quotes', [QuoteController::class, 'store']);
         Route::get('/quotes/next-number', [QuoteController::class, 'previewNextNumber']);
         Route::get('/quotes/{quote}', [QuoteController::class, 'show']);
+        Route::get('/quotes/{quote}/view', [QuoteController::class, 'viewPdf']);
+        Route::get('/quotes/{quote}/download', [QuoteController::class, 'downloadPdf']);
         Route::put('/quotes/{quote}', [QuoteController::class, 'update']);
         Route::delete('/quotes/{quote}', [QuoteController::class, 'destroy']);
         Route::post('/quotes/{quote}/send-email', [QuoteController::class, 'sendEmail']);
@@ -196,25 +207,39 @@ foreach (['admin', 'staff'] as $prefix) {
         // Sales Orders
         Route::get('/sales-orders', [SalesOrderController::class, 'index']);
         Route::post('/sales-orders', [SalesOrderController::class, 'store']);
-        Route::get('/sales-orders/{salesOrder}', [SalesOrderController::class, 'show']);
-        Route::put('/sales-orders/{salesOrder}', [SalesOrderController::class, 'update']);
+        Route::get('/sales-orders/next-number', [SalesOrderController::class, 'previewNextNumber']);
+        Route::get('/sales-orders/{sales_order}', [SalesOrderController::class, 'show']);
+        Route::get('/sales-orders/{sales_order}/view', [DocumentController::class, 'previewSalesOrder']);
+        Route::get('/sales-orders/{sales_order}/download', [DocumentController::class, 'downloadSalesOrder']);
         Route::delete('/sales-orders/{salesOrder}', [SalesOrderController::class, 'destroy']);
         Route::post('/sales-orders/{salesOrder}/convert-to-delivery', [SalesOrderController::class, 'convertToDelivery']);
 
         // Deliveries
         Route::get('/deliveries', [DeliveryController::class, 'index']);
         Route::post('/deliveries', [DeliveryController::class, 'store']);
+        Route::get('/deliveries/next-number', [DeliveryController::class, 'previewNextNumber']);
         Route::get('/deliveries/{delivery}', [DeliveryController::class, 'show']);
-        Route::put('/deliveries/{delivery}', [DeliveryController::class, 'update']);
+        Route::get('/deliveries/{delivery}/view', [DocumentController::class, 'previewDeliveryNote']);
+        Route::get('/deliveries/{delivery}/download', [DocumentController::class, 'downloadDeliveryNote']);
         Route::delete('/deliveries/{delivery}', [DeliveryController::class, 'destroy']);
         Route::post('/deliveries/{delivery}/mark-delivered', [DeliveryController::class, 'markDelivered']);
         Route::post('/deliveries/{delivery}/convert-to-invoice', [DeliveryController::class, 'convertToInvoice']);
+
+        // Payment Receipts
+        Route::get('/payment-receipts', [PaymentReceiptController::class, 'index']);
+        Route::post('/payment-receipts', [PaymentReceiptController::class, 'store']);
+        Route::get('/payment-receipts/next-number', [PaymentReceiptController::class, 'previewNextNumber']);
+        Route::get('/payment-receipts/{receipt}', [PaymentReceiptController::class, 'show']);
+        Route::get('/payment-receipts/{receipt}/view', [DocumentController::class, 'previewReceipt']);
+        Route::get('/payment-receipts/{receipt}/download', [DocumentController::class, 'downloadReceipt']);
 
         // Invoices
         Route::get('/invoices', [InvoiceController::class, 'index']);
         Route::post('/invoices', [InvoiceController::class, 'store']);
         Route::get('/invoices/next-number', [InvoiceController::class, 'previewNextNumber']);
         Route::get('/invoices/{invoice}', [InvoiceController::class, 'show']);
+        Route::get('/invoices/{invoice}/view', [InvoiceController::class, 'viewPdf']);
+        Route::get('/invoices/{invoice}/download', [InvoiceController::class, 'downloadPdf']);
         Route::put('/invoices/{invoice}', [InvoiceController::class, 'update']);
         Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy']);
         Route::post('/invoices/{invoice}/send-email', [InvoiceController::class, 'sendEmail']);
@@ -242,9 +267,16 @@ foreach (['admin', 'staff'] as $prefix) {
         // Purchase Bills
         Route::get('/purchase-bills', [PurchaseBillController::class, 'index']);
         Route::post('/purchase-bills', [PurchaseBillController::class, 'store']);
+        Route::get('/purchase-bills/next-number', [PurchaseBillController::class, 'previewNextNumber']);
         Route::get('/purchase-bills/{purchaseBill}', [PurchaseBillController::class, 'show']);
+        Route::get('/purchase-bills/{bill}/view', [DocumentController::class, 'previewPurchaseBill']);
+        Route::get('/purchase-bills/{bill}/download', [DocumentController::class, 'downloadPurchaseBill']);
         Route::put('/purchase-bills/{purchaseBill}', [PurchaseBillController::class, 'update']);
         Route::delete('/purchase-bills/{purchaseBill}', [PurchaseBillController::class, 'destroy']);
+        Route::patch('/purchase-bills/{purchaseBill}/quick-update', [PurchaseBillController::class, 'quickUpdate']);
+        Route::post('/purchase-bills/{purchaseBill}/duplicate', [PurchaseBillController::class, 'duplicate']);
+        Route::post('/purchase-bills/{purchaseBill}/attachments', [PurchaseBillController::class, 'uploadAttachment']);
+        Route::delete('/purchase-bills/{purchaseBill}/attachments/{index}', [PurchaseBillController::class, 'removeAttachment']);
 
         // Expenses
         Route::get('/expenses', [ExpenseController::class, 'index']);
@@ -277,6 +309,7 @@ foreach (['admin', 'staff'] as $prefix) {
         // Productivity
         Route::apiResource('tasks', TaskController::class);
         Route::apiResource('sticky-notes', StickyNoteController::class);
+        Route::apiResource('tags', App\Http\Controllers\TagController::class)->only(['index', 'store']);
 
         // Marketing
         Route::get('/marketing/dashboard', [MarketingDashboardController::class, 'index']);
@@ -386,10 +419,16 @@ Route::prefix('admin')->group(function () {
         Route::get('/reports/profit-loss', [ReportController::class, 'profitLoss']);
 
         // Templates
+        Route::get('/templates/types', [TemplateController::class, 'availableTypes']);
         Route::get('/templates', [TemplateController::class, 'index']);
+        Route::post('/templates', [TemplateController::class, 'store']);
         Route::get('/templates/{id}', [TemplateController::class, 'show']);
         Route::put('/templates/{id}', [TemplateController::class, 'update']);
         Route::get('/templates/type/{type}', [TemplateController::class, 'getByType']);
+
+        // Workspace Settings (Brand, Modules, Colors, etc)
+        Route::get('/settings/workspace', [WorkspaceSettingsController::class, 'show']);
+        Route::post('/settings/workspace', [WorkspaceSettingsController::class, 'update']);
 
         // Notifications
         // Moved to shared loop

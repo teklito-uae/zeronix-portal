@@ -68,7 +68,9 @@ class SalesOrderController extends Controller
         try {
             $date = Carbon::now()->format('Ymd');
             $count = SalesOrder::whereDate('created_at', Carbon::today())->count() + 1;
-            $orderNumber = 'SO-' . $date . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+            $settings = auth()->user()->company->settings ?? [];
+            $prefix = $settings['sales_order_prefix'] ?? 'SO-';
+            $orderNumber = $prefix . $date . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
 
             [$subtotal, $vatAmount] = $this->totals($validated['items']);
 

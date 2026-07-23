@@ -13,9 +13,11 @@ use App\Models\SalesOrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
+use App\Traits\GeneratesPdf;
 
 class InvoiceController extends Controller
 {
+    use GeneratesPdf;
     public function index(Request $request)
     {
         $query = Invoice::with(['customer', 'user', 'delivery', 'deliveries'])
@@ -204,6 +206,20 @@ class InvoiceController extends Controller
             'activities.user',
             'activities.customer',
         ]));
+    }
+
+    public function viewPdf(Invoice $invoice)
+    {
+        $this->authorize('view', $invoice);
+        $invoice->load(['customer', 'items', 'company']);
+        return $this->generatePdfResponse($invoice, 'invoice', 'view');
+    }
+
+    public function downloadPdf(Invoice $invoice)
+    {
+        $this->authorize('view', $invoice);
+        $invoice->load(['customer', 'items', 'company']);
+        return $this->generatePdfResponse($invoice, 'invoice', 'download');
     }
 
     public function update(Request $request, Invoice $invoice)
@@ -546,11 +562,13 @@ class InvoiceController extends Controller
     public function sendEmail(Request $request, Invoice $invoice)
     {
         $this->authorize('view', $invoice);
-        $invoice->load(['customer', 'items']);
+        $invoice->load(['customer', 'items', 'company']);
 
         if (!$invoice->customer->email) {
             return response()->json(['message' => 'Customer does not have an email address.'], 422);
         }
+
+        $currency = $invoice->company->settings['currency'] ?? 'USD';
 
         // Get default template for invoice
         $template = \App\Models\Template::where('type', 'invoice')->where('is_default', true)->first()
@@ -569,7 +587,7 @@ class InvoiceController extends Controller
                 '{invoice_number}' => $invoice->invoice_number,
                 '{customer_name}' => $invoice->customer->name,
                 '{customer_company}' => $invoice->customer->company ?? '',
-                '{total_amount}' => number_format($invoice->total, 2) . ' AED',
+                '{total_amount}' => number_format($invoice->total, 2) . ' ' . $currency,
                 '{date}' => \Carbon\Carbon::parse($invoice->date)->format('d M Y'),
                 '{due_date}' => $invoice->due_date ? \Carbon\Carbon::parse($invoice->due_date)->format('d M Y') : '',
             ];
@@ -607,13 +625,13 @@ class InvoiceController extends Controller
                 <tbody>
                     <tr>
                         <td style='padding: 10px; border-bottom: 1px solid #eee;'>Standard Rate (5%)</td>
-                        <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>" . number_format($invoice->subtotal, 2) . " AED</td>
-                        <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>" . number_format($invoice->vat_amount, 2) . " AED</td>
+                        <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>" . number_format($invoice->subtotal, 2) . " {$currency}</td>
+                        <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>" . number_format($invoice->vat_amount, 2) . " {$currency}</td>
                     </tr>
                     <tr style='font-weight: bold;'>
                         <td style='padding: 10px;'>Total</td>
-                        <td style='padding: 10px; text-align: right;'>" . number_format($invoice->subtotal, 2) . " AED</td>
-                        <td style='padding: 10px; text-align: right;'>" . number_format($invoice->vat_amount, 2) . " AED</td>
+                        <td style='padding: 10px; text-align: right;'>" . number_format($invoice->subtotal, 2) . " {$currency}</td>
+                        <td style='padding: 10px; text-align: right;'>" . number_format($invoice->vat_amount, 2) . " {$currency}</td>
                     </tr>
                 </tbody>
             </table>";
@@ -632,8 +650,8 @@ class InvoiceController extends Controller
                 '{logo_url}' => $logoBase64,
                 '{view_url}' => $viewUrl,
                 '{items}' => $itemsHtml,
-                '{subtotal}' => number_format($invoice->subtotal, 2) . ' AED',
-                '{vat_amount}' => number_format($invoice->vat_amount, 2) . ' AED',
+                '{subtotal}' => number_format($invoice->subtotal, 2) . ' ' . $currency,
+                '{vat_amount}' => number_format($invoice->vat_amount, 2) . ' ' . $currency,
                 '{tax_summary}' => $taxSummaryHtml,
                 '{total_in_words}' => \App\Helpers\NumberHelper::toWords($invoice->total),
                 '{customer_address}' => nl2br(e($invoice->customer->address ?? '')),
@@ -712,7 +730,8 @@ class InvoiceController extends Controller
      */
     private function nextInvoiceNumber(): string
     {
-        $prefix = 'INV-' . Carbon::now()->format('Y') . '-';
+        $settings = auth()->user()->company->settings ?? [];
+        $prefix = ($settings['invoice_prefix'] ?? 'INV-') . Carbon::now()->format('Y') . '-';
 
         $maxSeq = Invoice::where('invoice_number', 'like', "{$prefix}%")
             ->get(['invoice_number'])

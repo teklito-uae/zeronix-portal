@@ -25,6 +25,12 @@ class AdminAuthController extends Controller
             ], 401);
         }
 
+        if (!$user->is_active) {
+            return response()->json([
+                'message' => 'Your company registration is still pending approval. We\'ll email you once an administrator activates your account.'
+            ], 403);
+        }
+
         $token = $user->createToken('admin-token', ['role:' . $user->role])->plainTextToken;
 
         return response()->json([
