@@ -89,7 +89,12 @@ export const Settings = () => {
       useCurrencyStore.getState().setFromSettings(res.data.settings);
       queryClient.invalidateQueries({ queryKey: ['brand_settings'] });
     },
-    onError: () => toast.error('Failed to save brand settings'),
+    onError: (err: any) => {
+      const data = err.response?.data;
+      const fieldErrors = data?.errors || data;
+      const detail = (fieldErrors && typeof fieldErrors === 'object' ? Object.values(fieldErrors).flat()[0] : null) || data?.message;
+      toast.error('Failed to save brand settings', detail ? { description: String(detail) } : undefined);
+    },
   });
 
   const handleBrandSubmit = (e: React.FormEvent) => {
@@ -371,13 +376,24 @@ export const Settings = () => {
                     )}
                     
                     <div className="pt-2">
-                      <Input 
-                        type="file" 
-                        accept="image/*" 
+                      <Input
+                        type="file"
+                        accept=".png,.jpg,.jpeg,.svg,image/png,image/jpeg,image/svg+xml"
                         onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            setBrandForm({ ...brandForm, logo: e.target.files[0] });
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const allowedTypes = ['image/png', 'image/jpeg', 'image/svg+xml'];
+                          if (!allowedTypes.includes(file.type)) {
+                            toast.error('Unsupported file type', { description: 'Please upload a PNG, JPG, or SVG file.' });
+                            e.target.value = '';
+                            return;
                           }
+                          if (file.size > 2 * 1024 * 1024) {
+                            toast.error('File too large', { description: 'Logo must be 2MB or smaller.' });
+                            e.target.value = '';
+                            return;
+                          }
+                          setBrandForm({ ...brandForm, logo: file });
                         }}
                         className="text-xs file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-zeronix-blue/10 file:text-zeronix-blue hover:file:bg-zeronix-blue/20"
                       />
