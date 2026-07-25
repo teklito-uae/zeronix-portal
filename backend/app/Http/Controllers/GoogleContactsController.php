@@ -14,10 +14,23 @@ class GoogleContactsController extends Controller
     {
     }
 
+    /**
+     * Auth here is stateless (Bearer-token Sanctum, no session middleware on
+     * api.php), and Google's redirect back to callback() is a bare browser
+     * navigation carrying no Authorization header at all — so the CSRF state
+     * and the identity of who's connecting both have to travel inside the
+     * `state` param itself rather than in a server-side session.
+     */
     public function connect(Request $request)
     {
-        $state = bin2hex(random_bytes(16));
-        $request->session()->put('google_oauth_state', $state);
+        $user = $request->user();
+
+        $state = encrypt([
+            'company_id' => $user->company_id,
+            'user_id' => $user->id,
+            'nonce' => bin2hex(random_bytes(16)),
+            'expires_at' => now()->addMinutes(10)->timestamp,
+        ]);
 
         return response()->json(['auth_url' => $this->oauth->getAuthorizationUrl($state)]);
     }
@@ -26,13 +39,19 @@ class GoogleContactsController extends Controller
     {
         $frontendUrl = rtrim(config('app.frontend_url'), '/');
 
-        if (!auth()->check()) {
-            return redirect($frontendUrl . '/login');
+        $stateRaw = $request->query('state');
+        if (!$stateRaw) {
+            return redirect($frontendUrl . '/workspace/settings?google=denied');
         }
 
-        $expectedState = $request->session()->pull('google_oauth_state');
-        if (!$request->query('state') || $request->query('state') !== $expectedState) {
+        try {
+            $state = decrypt($stateRaw);
+        } catch (\Throwable $e) {
             return redirect($frontendUrl . '/workspace/settings?google=state_mismatch');
+        }
+
+        if (!is_array($state) || ($state['expires_at'] ?? 0) < now()->timestamp) {
+            return redirect($frontendUrl . '/workspace/settings?google=expired');
         }
 
         if (!$request->query('code')) {
@@ -45,13 +64,12 @@ class GoogleContactsController extends Controller
             return redirect($frontendUrl . '/workspace/settings?google=error');
         }
 
-        $user = auth()->user();
-        $companyId = $user->company_id;
+        $companyId = $state['company_id'];
 
         $connection = GoogleContactConnection::withoutGlobalScope('company')->updateOrCreate(
             ['company_id' => $companyId],
             array_filter([
-                'connected_user_id' => $user->id,
+                'connected_user_id' => $state['user_id'],
                 'access_token' => $tokens['access_token'] ?? null,
                 'refresh_token' => $tokens['refresh_token'] ?? null,
                 'token_expires_at' => now()->addSeconds($tokens['expires_in'] ?? 3600),

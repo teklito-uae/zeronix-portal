@@ -372,6 +372,11 @@ foreach (['admin', 'staff'] as $prefix) {
 Route::prefix('admin')->group(function () {
     Route::post('/login', [AdminAuthController::class, 'login']);
 
+    // Google's OAuth redirect is a bare browser navigation with no Bearer
+    // token attached, so this can't sit behind auth:sanctum — the `state`
+    // param itself carries and verifies who's connecting (see controller).
+    Route::get('/google-contacts/callback', [GoogleContactsController::class, 'callback']);
+
     Route::middleware('auth:sanctum')->group(function () {
         // Dashboard (Legacy/Direct)
         Route::get('/dashboard', [DashboardController::class, 'index']);
@@ -393,7 +398,6 @@ Route::prefix('admin')->group(function () {
 
         // Google Contacts integration (admin-only)
         Route::get('/google-contacts/connect', [GoogleContactsController::class, 'connect']);
-        Route::get('/google-contacts/callback', [GoogleContactsController::class, 'callback']);
         Route::get('/google-contacts/status', [GoogleContactsController::class, 'status']);
         Route::post('/google-contacts/sync', [GoogleContactsController::class, 'sync'])->middleware('throttle:1,1');
         Route::post('/google-contacts/disconnect', [GoogleContactsController::class, 'disconnect']);
