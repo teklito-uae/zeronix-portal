@@ -6,7 +6,9 @@ use App\Jobs\SyncGoogleContactsJob;
 use App\Models\GoogleContactConnection;
 use App\Models\Lead;
 use App\Services\GoogleOAuthService;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class GoogleContactsController extends Controller
 {
@@ -47,6 +49,7 @@ class GoogleContactsController extends Controller
         try {
             $state = decrypt($stateRaw);
         } catch (\Throwable $e) {
+            Log::error('Google Contacts callback: state decrypt failed', ['error' => $e->getMessage()]);
             return redirect($frontendUrl . '/workspace/settings?google=state_mismatch');
         }
 
@@ -61,6 +64,10 @@ class GoogleContactsController extends Controller
         try {
             $tokens = $this->oauth->exchangeCode($request->query('code'));
         } catch (\Throwable $e) {
+            Log::error('Google Contacts callback: code exchange failed', [
+                'error' => $e->getMessage(),
+                'google_response' => $e instanceof RequestException ? $e->response->body() : null,
+            ]);
             return redirect($frontendUrl . '/workspace/settings?google=error');
         }
 
