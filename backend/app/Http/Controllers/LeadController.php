@@ -94,6 +94,29 @@ class LeadController extends Controller
         return response()->json(['message' => 'Lead deleted']);
     }
 
+    public function bulkUpdate(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:leads,id',
+            'user_id' => 'nullable|exists:users,id',
+            'status' => 'nullable|string|in:' . implode(',', self::STATUSES),
+        ]);
+
+        $updateData = array_filter([
+            'user_id' => $validated['user_id'] ?? null,
+            'status' => $validated['status'] ?? null,
+        ], fn ($val) => !is_null($val));
+
+        if (empty($updateData)) {
+            return response()->json(['message' => 'No update data provided'], 400);
+        }
+
+        Lead::whereIn('id', $validated['ids'])->update($updateData);
+
+        return response()->json(['message' => 'Leads updated successfully']);
+    }
+
     public function convert(Request $request, Lead $lead)
     {
         if ($lead->status === 'converted') {

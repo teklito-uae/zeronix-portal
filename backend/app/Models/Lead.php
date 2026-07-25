@@ -28,10 +28,13 @@ class Lead extends Model
         'user_id',
         'converted_customer_id',
         'converted_at',
+        'external_id',
+        'synced_at',
     ];
 
     protected $casts = [
         'converted_at' => 'datetime',
+        'synced_at' => 'datetime',
     ];
 
     protected static function boot()

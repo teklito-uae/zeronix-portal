@@ -28,6 +28,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\CustomerLabelController;
 use App\Http\Controllers\CustomerImportController;
+use App\Http\Controllers\GoogleContactsController;
+use App\Http\Controllers\LeadImportController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\Customer\ProductController as CustomerProductController;
 use App\Http\Controllers\Customer\QuoteController as CustomerQuoteController;
@@ -177,6 +179,8 @@ foreach (['admin', 'staff'] as $prefix) {
         Route::post('/contacts/{contact}/activities', [CustomerContactController::class, 'addActivity']);
         Route::post('/contacts/{contact}/tags', [CustomerContactController::class, 'attachTag']);
         Route::delete('/contacts/{contact}/tags/{tag}', [CustomerContactController::class, 'detachTag']);
+        Route::post('/contacts/{contact}/attachments', [CustomerContactController::class, 'uploadAttachment']);
+        Route::delete('/contacts/{contact}/attachments/{index}', [CustomerContactController::class, 'removeAttachment']);
 
         // Companies
         Route::apiResource('companies', CompanyController::class);
@@ -386,6 +390,18 @@ Route::prefix('admin')->group(function () {
         // Customer Contact Import (admin-only)
         Route::post('/customers/import/preview', [CustomerImportController::class, 'preview']);
         Route::post('/customers/import/commit', [CustomerImportController::class, 'commit']);
+
+        // Google Contacts integration (admin-only)
+        Route::get('/google-contacts/connect', [GoogleContactsController::class, 'connect']);
+        Route::get('/google-contacts/callback', [GoogleContactsController::class, 'callback']);
+        Route::get('/google-contacts/status', [GoogleContactsController::class, 'status']);
+        Route::post('/google-contacts/sync', [GoogleContactsController::class, 'sync'])->middleware('throttle:1,1');
+        Route::post('/google-contacts/disconnect', [GoogleContactsController::class, 'disconnect']);
+
+        // Lead import (admin-only)
+        Route::post('/leads/import/preview', [LeadImportController::class, 'preview']);
+        Route::post('/leads/import/commit', [LeadImportController::class, 'commit']);
+        Route::post('/leads/bulk-update', [LeadController::class, 'bulkUpdate']);
 
         // Supplier Product Management
         Route::put('/supplier-products/{id}', [SupplierProductController::class, 'update']);
