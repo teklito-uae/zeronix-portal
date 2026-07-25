@@ -17,15 +17,17 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('marketing:tick')->everyMinute()->withoutOverlapping();
     })
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        // Laravel's ApplicationBuilder wires guests to redirectGuestsTo(fn () =>
+        // route('login')) by default, and that callback runs unconditionally
+        // while Authenticate::unauthenticated() is building the
+        // AuthenticationException (to compute its redirect path) — even for
+        // requests that expect JSON. This backend is a pure JSON API with no
+        // login route (routes/web.php has no login page), so that route()
+        // lookup throws RouteNotFoundException before AuthenticationException
+        // is ever thrown. Overriding it to null stops that crash entirely.
+        $middleware->redirectGuestsTo(fn () => null);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        // This backend is a pure JSON API (routes/web.php has no login page),
-        // so unauthenticated requests must never fall through to Laravel's
-        // default `route('login')` redirect — there is no such route, and
-        // that lookup throws RouteNotFoundException, turning a plain 401
-        // into an uncaught 500 for any request that doesn't send
-        // Accept: application/json (e.g. a bare browser navigation).
         $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         });
