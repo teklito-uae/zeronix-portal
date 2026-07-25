@@ -37,11 +37,9 @@ import { DeliveryDetail } from './pages/workspace/DeliveryDetail';
 import { InvoicesSplitView } from './pages/workspace/InvoicesSplitView';
 import { InvoiceDetail } from './pages/workspace/InvoiceDetail';
 import { PaymentReceiptsSplitView } from './pages/workspace/PaymentReceiptsSplitView';
-import { PaymentReceiptDetail } from './pages/workspace/PaymentReceiptDetail';
 import { PurchasesSplitView } from './pages/workspace/PurchasesSplitView';
 import { PurchaseBillDetail } from './pages/workspace/PurchaseBillDetail';
 import { Expenses } from './pages/workspace/Expenses';
-import { PaymentsMade } from './pages/workspace/PaymentsMade';
 import { Reports } from './pages/workspace/Reports';
 import { Users } from './pages/workspace/Users';
 import { Settings as WorkspaceSettings } from './pages/workspace/Settings';
@@ -113,11 +111,9 @@ const WorkspaceRoutes = () => (
     <Route path="invoices" element={<InvoicesSplitView />} />
     <Route path="invoices/:id" element={<InvoiceDetail />} />
     <Route path="payment-receipts" element={<PaymentReceiptsSplitView />} />
-    <Route path="payment-receipts/:id" element={<PaymentReceiptDetail />} />
     <Route path="purchases" element={<PurchasesSplitView />} />
     <Route path="purchases/:id" element={<PurchaseBillDetail />} />
     <Route path="expenses" element={<Expenses />} />
-    <Route path="payments-made" element={<PaymentsMade />} />
     <Route path="reports" element={<Reports />} />
     <Route path="users" element={<Users />} />
     <Route path="settings" element={<WorkspaceSettings />} />
