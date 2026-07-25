@@ -20,5 +20,13 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // This backend is a pure JSON API (routes/web.php has no login page),
+        // so unauthenticated requests must never fall through to Laravel's
+        // default `route('login')` redirect — there is no such route, and
+        // that lookup throws RouteNotFoundException, turning a plain 401
+        // into an uncaught 500 for any request that doesn't send
+        // Accept: application/json (e.g. a bare browser navigation).
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        });
     })->create();
