@@ -15,6 +15,15 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule) {
         $schedule->command('quotes:notify-followup')->hourly();
         $schedule->command('marketing:tick')->everyMinute()->withoutOverlapping();
+
+        // Shared hosting has no persistent queue:work daemon, so the
+        // scheduler itself drains the database queue on every tick instead.
+        // --stop-when-empty exits once the queue is empty rather than
+        // idling, and --max-time bounds it well under the 1-minute cadence
+        // so it can't overlap the next scheduler run.
+        $schedule->command('queue:work --stop-when-empty --max-time=50 --tries=3')
+            ->everyMinute()
+            ->withoutOverlapping();
     })
     ->withMiddleware(function (Middleware $middleware) {
         // Laravel's ApplicationBuilder wires guests to redirectGuestsTo(fn () =>
