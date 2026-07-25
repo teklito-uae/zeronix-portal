@@ -37,14 +37,17 @@ import { DeliveryDetail } from './pages/workspace/DeliveryDetail';
 import { InvoicesSplitView } from './pages/workspace/InvoicesSplitView';
 import { InvoiceDetail } from './pages/workspace/InvoiceDetail';
 import { PaymentReceiptsSplitView } from './pages/workspace/PaymentReceiptsSplitView';
+import { PaymentReceiptDetail } from './pages/workspace/PaymentReceiptDetail';
 import { PurchasesSplitView } from './pages/workspace/PurchasesSplitView';
 import { PurchaseBillDetail } from './pages/workspace/PurchaseBillDetail';
 import { Expenses } from './pages/workspace/Expenses';
+import { PaymentsMade } from './pages/workspace/PaymentsMade';
 import { Reports } from './pages/workspace/Reports';
 import { Users } from './pages/workspace/Users';
 import { Settings as WorkspaceSettings } from './pages/workspace/Settings';
 import { Notifications } from './pages/workspace/Notifications';
 import { CompanyImport } from './pages/workspace/CompanyImport';
+import { LeadImport } from './pages/workspace/LeadImport';
 import { AttendanceReport } from './pages/workspace/AttendanceReport';
 
 // --- MARKETING IMPORTS (Workspace module) ---
@@ -110,14 +113,17 @@ const WorkspaceRoutes = () => (
     <Route path="invoices" element={<InvoicesSplitView />} />
     <Route path="invoices/:id" element={<InvoiceDetail />} />
     <Route path="payment-receipts" element={<PaymentReceiptsSplitView />} />
+    <Route path="payment-receipts/:id" element={<PaymentReceiptDetail />} />
     <Route path="purchases" element={<PurchasesSplitView />} />
     <Route path="purchases/:id" element={<PurchaseBillDetail />} />
     <Route path="expenses" element={<Expenses />} />
+    <Route path="payments-made" element={<PaymentsMade />} />
     <Route path="reports" element={<Reports />} />
     <Route path="users" element={<Users />} />
     <Route path="settings" element={<WorkspaceSettings />} />
     <Route path="notifications" element={<Notifications />} />
     <Route path="companies/import" element={<CompanyImport />} />
+    <Route path="leads/import" element={<LeadImport />} />
     <Route path="customers/import" element={<Navigate to="/workspace/companies/import" replace />} />
     <Route path="attendance" element={<AttendanceReport />} />
     <Route path="marketing" element={<Navigate to="dashboard" replace />} />

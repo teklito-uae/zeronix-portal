@@ -21,7 +21,8 @@ import {
   Settings as SettingsIcon,
   Tag,
   Trash2,
-  Plus
+  Plus,
+  Contact2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
@@ -30,6 +31,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DocumentDesigner } from './settings/DocumentDesigner';
+import { GoogleContactsSettings } from './settings/GoogleContactsSettings';
 import { CURRENCY_LIST, type CurrencyCode } from '@/lib/currency';
 import { CurrencyIcon } from '@/components/shared/CurrencyIcon';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
@@ -225,6 +227,7 @@ export const Settings = () => {
       title: 'Integrations',
       items: [
         { id: 'email', label: 'Email Config', icon: Mail },
+        { id: 'google_contacts', label: 'Google Contacts', icon: Contact2 },
       ]
     },
     {
@@ -508,6 +511,11 @@ export const Settings = () => {
           {/* TEMPLATES / DOCUMENT DESIGNER TAB */}
           <TabsContent value="templates" className="mt-0">
             <DocumentDesigner />
+          </TabsContent>
+
+          {/* GOOGLE CONTACTS TAB */}
+          <TabsContent value="google_contacts" className="mt-0">
+            <GoogleContactsSettings />
           </TabsContent>
 
           {/* PROFILE TAB */}

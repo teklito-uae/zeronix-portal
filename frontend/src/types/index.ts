@@ -238,12 +238,23 @@ export interface Lead {
   user_id?: number | null;
   converted_customer_id?: number | null;
   converted_at?: string;
+  external_id?: string | null;
+  synced_at?: string | null;
   created_at?: string;
   updated_at?: string;
   // Relations
   owner?: User;
   convertedCustomer?: Customer;
   enquiries_count?: number;
+}
+
+export interface GoogleContactConnectionStatus {
+  connected: boolean;
+  google_account_email: string | null;
+  sync_status: 'idle' | 'syncing' | 'error';
+  last_synced_at: string | null;
+  last_error: string | null;
+  pending_leads_count: number;
 }
 
 export interface Enquiry {

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
@@ -20,21 +21,40 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { StatusBadge } from '@/components/shared/StatusBadge';
-import type { Lead } from '@/types';
-import { UserPlus, Building2, Mail, Phone, ArrowRightLeft, Users, Calendar } from 'lucide-react';
+import type { Lead, User } from '@/types';
+import { UserPlus, Building2, Mail, Phone, ArrowRightLeft, Users, Calendar, Upload, ChevronDown, RefreshCw, FileUp } from 'lucide-react';
 import { Spinner } from '@/components/shared/Spinner';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
-import { useResourceMutation } from '@/hooks/useApi';
+import { useResourceMutation, useResourceList } from '@/hooks/useApi';
 import { ActionGroup } from '@/components/shared/ActionGroup';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
 import Avatar from 'boring-avatars';
 import { useThemeStore } from '@/store/useThemeStore';
+import { getBasePath } from '@/hooks/useBasePath';
 
-const LEAD_SOURCES = ['manual', 'website', 'email', 'referral', 'import', 'other'];
+const LEAD_SOURCES = ['manual', 'website', 'email', 'referral', 'import', 'other', 'google_contacts', 'vcf_import', 'json_import'];
+
+const LEAD_SOURCE_LABELS: Record<string, string> = {
+  google_contacts: 'Google Contacts',
+  vcf_import: 'VCF Import',
+  json_import: 'JSON Import',
+};
+
+const leadSourceLabel = (s: string) => LEAD_SOURCE_LABELS[s] || s.charAt(0).toUpperCase() + s.slice(1);
 
 export const Leads = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { theme } = useThemeStore();
   const avatarColors = theme === 'dark'
@@ -44,9 +64,15 @@ export const Leads = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [activeTab, setActiveTab] = useState('all');
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
+  const [bulkAssignUserId, setBulkAssignUserId] = useState('');
   const [form, setForm] = useState({
-    name: '', company: '', email: '', phone: '', source: 'manual', status: 'new', notes: '',
+    name: '', company: '', email: '', phone: '', source: 'manual', status: 'new', notes: '', user_id: '',
   });
+
+  const { data: staffData } = useResourceList<User>('users', { per_page: 100 });
+  const staffMembers = (staffData?.data || []).filter((u: any) => u.role !== 'customer');
 
   const leadTabs = [
     { id: 'all', label: 'All Leads' },
@@ -58,7 +84,7 @@ export const Leads = () => {
     { id: 'converted', label: 'Converted' },
   ];
 
-  const { create, update, remove } = useResourceMutation('leads');
+  const { create, update, remove, bulkUpdate } = useResourceMutation('leads');
 
   const convertMutation = useMutation({
     mutationFn: async (leadId: number) => (await api.post(`/admin/leads/${leadId}/convert`)).data,
@@ -72,7 +98,7 @@ export const Leads = () => {
 
   const openAdd = () => {
     setEditingLead(null);
-    setForm({ name: '', company: '', email: '', phone: '', source: 'portal', status: 'new', notes: '' });
+    setForm({ name: '', company: '', email: '', phone: '', source: 'portal', status: 'new', notes: '', user_id: '' });
     setDialogOpen(true);
   };
 
@@ -86,20 +112,49 @@ export const Leads = () => {
       source: lead.source || 'manual',
       status: lead.status,
       notes: lead.notes || '',
+      user_id: lead.user_id ? String(lead.user_id) : '',
     });
     setDialogOpen(true);
   };
 
   const handleSave = async () => {
+    const payload: any = { ...form, user_id: form.user_id ? Number(form.user_id) : null };
     if (editingLead) {
-      await update.mutateAsync({ id: editingLead.id, data: form });
+      await update.mutateAsync({ id: editingLead.id, data: payload });
     } else {
-      await create.mutateAsync(form);
+      await create.mutateAsync(payload);
     }
     setDialogOpen(false);
   };
 
   const columns: ColumnDef<Lead>[] = [
+    {
+      id: 'selection',
+      header: () => (
+        <div className="flex items-center px-1">
+          <input
+            type="checkbox"
+            className="w-[18px] h-[18px] rounded border-brand-border/50 bg-brand-surface text-brand-accent focus:ring-0 cursor-pointer shadow-sm"
+            checked={selectedIds.length > 0}
+            onChange={(_e) => {}}
+          />
+        </div>
+      ),
+      cell: ({ row }) => (
+        <div className="flex items-center px-1" onClick={(e) => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            className="w-[18px] h-[18px] rounded border-brand-border/50 bg-brand-surface text-brand-accent focus:ring-0 cursor-pointer shadow-sm"
+            checked={selectedIds.includes(row.original.id)}
+            onChange={(e) => {
+              e.stopPropagation();
+              if (e.target.checked) setSelectedIds([...selectedIds, row.original.id]);
+              else setSelectedIds(selectedIds.filter(id => id !== row.original.id));
+            }}
+          />
+        </div>
+      ),
+    },
     {
       accessorKey: 'name',
       header: 'Lead Details',
@@ -136,7 +191,7 @@ export const Leads = () => {
       accessorKey: 'source',
       header: 'Source',
       cell: ({ row }) => (
-        <span className="text-[12px] font-medium text-brand-secondary capitalize">{row.original.source || '—'}</span>
+        <span className="text-[12px] font-medium text-brand-secondary">{row.original.source ? leadSourceLabel(row.original.source) : '—'}</span>
       ),
     },
     {
@@ -231,9 +286,29 @@ export const Leads = () => {
             name: 'source',
             label: 'Source',
             placeholder: 'Filter by source',
-            options: LEAD_SOURCES.map((s) => ({ label: s.charAt(0).toUpperCase() + s.slice(1), value: s })),
+            options: LEAD_SOURCES.map((s) => ({ label: leadSourceLabel(s), value: s })),
           },
         ]}
+        selectedIds={selectedIds}
+        setSelectedIds={setSelectedIds}
+        onBulkUpdate={() => setBulkAssignOpen(true)}
+        extraActions={
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="w-full sm:w-auto h-[32px] text-[12px] font-medium border-brand-border shadow-sm gap-1.5">
+                <Upload size={13} /> Import <ChevronDown size={13} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 bg-admin-surface border-admin-border rounded-xl shadow-xl p-1">
+              <DropdownMenuItem onClick={() => navigate(`${getBasePath()}/leads/import`)} className="rounded-lg cursor-pointer">
+                <FileUp size={14} className="mr-2" /> Upload File (.vcf/.json)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(`${getBasePath()}/settings`)} className="rounded-lg cursor-pointer">
+                <RefreshCw size={14} className="mr-2" /> Sync Google Contacts
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        }
       />
 
       <Sheet open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -278,7 +353,7 @@ export const Leads = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {LEAD_SOURCES.map((s) => (
-                      <SelectItem key={s} value={s} className="capitalize text-[13px]">{s}</SelectItem>
+                      <SelectItem key={s} value={s} className="text-[13px]">{leadSourceLabel(s)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -294,6 +369,20 @@ export const Leads = () => {
                       <SelectItem key={s} value={s} className="capitalize text-[13px]">{s}</SelectItem>
                     ))}
                     {form.status === 'converted' && <SelectItem value="converted" className="text-[13px]">converted</SelectItem>}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 col-span-2 md:col-span-1">
+                <Label className="text-[12px] font-medium text-brand-secondary ml-1">Assigned To</Label>
+                <Select value={form.user_id || 'unassigned'} onValueChange={(v) => setForm({ ...form, user_id: v === 'unassigned' ? '' : v })}>
+                  <SelectTrigger className="h-[36px] bg-brand-white border-brand-border/50 text-[13px] rounded-lg">
+                    <SelectValue placeholder="Unassigned" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned" className="text-[13px]">Unassigned</SelectItem>
+                    {staffMembers.map((s: any) => (
+                      <SelectItem key={s.id} value={String(s.id)} className="text-[13px]">{s.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -328,6 +417,57 @@ export const Leads = () => {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Bulk Assign Dialog */}
+      <Dialog open={bulkAssignOpen} onOpenChange={setBulkAssignOpen}>
+        <DialogContent className="bg-brand-white border-brand-border/50 sm:max-w-md rounded-xl shadow-xl p-0 overflow-hidden">
+          <div className="p-6 bg-brand-surface border-b border-brand-border/50">
+            <DialogHeader>
+              <DialogTitle className="text-[16px] font-semibold text-brand-primary">Assign Leads</DialogTitle>
+              <DialogDescription className="text-[13px] text-brand-subtle mt-0.5">
+                Assign {selectedIds.length} selected lead{selectedIds.length !== 1 ? 's' : ''} to a staff member.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="space-y-5 p-6">
+            <div className="space-y-2">
+              <Label className="text-[12px] font-medium text-brand-secondary ml-1">Assign To</Label>
+              <Select value={bulkAssignUserId} onValueChange={setBulkAssignUserId}>
+                <SelectTrigger className="h-[36px] bg-brand-surface border-brand-border/50 text-brand-primary rounded-lg text-[13px] font-medium">
+                  <SelectValue placeholder="Select a staff member" />
+                </SelectTrigger>
+                <SelectContent className="bg-brand-white border-brand-border/50 rounded-xl shadow-lg">
+                  {staffMembers.map((s: any) => (
+                    <SelectItem key={s.id} value={String(s.id)}>
+                      {s.name} <span className="text-brand-subtle text-xs">({s.role})</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="p-6 pt-2">
+            <DialogFooter className="gap-2">
+              <Button variant="ghost" onClick={() => setBulkAssignOpen(false)} className="rounded-lg text-[13px] font-medium">Cancel</Button>
+              <Button
+                onClick={() => {
+                  bulkUpdate.mutate({ ids: selectedIds, user_id: Number(bulkAssignUserId) }, {
+                    onSuccess: () => {
+                      setBulkAssignOpen(false);
+                      setBulkAssignUserId('');
+                      setSelectedIds([]);
+                    },
+                  });
+                }}
+                disabled={!bulkAssignUserId || bulkUpdate.isPending}
+                className="bg-brand-primary text-brand-white hover:opacity-90 rounded-lg text-[13px] font-medium px-6 shadow-sm"
+              >
+                {bulkUpdate.isPending ? <Spinner size={16} className="mr-2" /> : null} Assign
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
