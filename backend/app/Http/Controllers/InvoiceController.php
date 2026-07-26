@@ -60,7 +60,7 @@ class InvoiceController extends Controller
             'quote_id' => 'nullable|exists:quotes,id',
             'sales_order_id' => 'nullable|exists:sales_orders,id',
             'delivery_id' => 'nullable|exists:deliveries,id',
-            'deal_id' => 'nullable|exists:deals,id',
+            'deal_id' => 'nullable|exists:enquiries,id',
             'date' => 'required|date',
             'due_date' => 'nullable|date',
             'reference_id' => 'nullable|string',
@@ -229,7 +229,7 @@ class InvoiceController extends Controller
         $validated = $request->validate([
             'customer_id' => 'required|exists:customers,id',
             'customer_contact_id' => 'nullable|exists:customer_contacts,id',
-            'deal_id' => 'nullable|exists:deals,id',
+            'deal_id' => 'nullable|exists:enquiries,id',
             'date' => 'required|date',
             'due_date' => 'nullable|date',
             'reference_id' => 'nullable|string',
@@ -349,7 +349,7 @@ class InvoiceController extends Controller
             'tags' => 'nullable|array',
             'tags.*' => 'string|max:50',
             'due_date' => 'nullable|date',
-            'deal_id' => 'nullable|exists:deals,id',
+            'deal_id' => 'nullable|exists:enquiries,id',
             'payment_terms' => 'nullable|string|max:100',
         ]);
 

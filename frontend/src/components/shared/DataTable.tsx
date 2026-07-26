@@ -145,8 +145,99 @@ export function DataTable<TData, TValue>({
         </div>
       )}
 
+      {/* Mobile Card List (below md) */}
+      <div className="block md:hidden bg-brand-white">
+        {table.getRowModel().rows?.length ? (
+          <div className="space-y-2">
+            {table.getRowModel().rows.map((row) => {
+              const cells = row.getVisibleCells();
+              // Columns with a plain string header are treated as "labeled" content
+              // columns. Columns with no header text (e.g. selection checkboxes or
+              // icon-only action columns, which typically use '' or a render fn as
+              // their header) are unlabeled and rendered without a "label: value" row.
+              const getLabel = (cell: (typeof cells)[number]): string => {
+                const header = cell.column.columnDef.header;
+                return typeof header === 'string' ? header : '';
+              };
+              const primaryIndex = cells.findIndex((c) => getLabel(c) !== '');
+              const leadingCells = primaryIndex > 0 ? cells.slice(0, primaryIndex) : [];
+              const primaryCell = primaryIndex >= 0 ? cells[primaryIndex] : cells[0];
+              const remainingCells = cells.filter(
+                (c) => c !== primaryCell && !leadingCells.includes(c)
+              );
+              const infoCells = remainingCells.filter((c) => getLabel(c) !== '');
+              const actionCells = remainingCells.filter((c) => getLabel(c) === '');
+              return (
+                <div key={row.id}>
+                  <div
+                    onClick={() => {
+                      if (renderRowDetails) {
+                        toggleRow(row.id);
+                      }
+                      onRowClick?.(row.original);
+                    }}
+                    data-state={row.getIsSelected() && 'selected'}
+                    className={`rounded-lg border border-brand-border/50 bg-brand-white p-3 transition-colors duration-100 ${
+                      (onRowClick || renderRowDetails) ? 'cursor-pointer active:bg-brand-bg' : ''
+                    } ${expandedRows[row.id] ? 'bg-brand-bg' : ''} ${
+                      row.getIsSelected() ? 'bg-brand-accent/5' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1.5">
+                      {leadingCells.map((cell) => (
+                        <div key={cell.id}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </div>
+                      ))}
+                      {primaryCell && (
+                        <div className="text-[13px] font-semibold text-brand-primary flex-1 min-w-0">
+                          {flexRender(primaryCell.column.columnDef.cell, primaryCell.getContext())}
+                        </div>
+                      )}
+                    </div>
+                    {infoCells.length > 0 && (
+                      <div className="space-y-1">
+                        {infoCells.map((cell) => (
+                          <div
+                            key={cell.id}
+                            className="flex items-start justify-between gap-3 text-[12px]"
+                          >
+                            <span className="text-brand-subtle shrink-0">{getLabel(cell)}</span>
+                            <span className="text-brand-secondary font-medium text-right">
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {actionCells.length > 0 && (
+                      <div className="flex items-center justify-end gap-2 mt-2 pt-2 border-t border-brand-border/50">
+                        {actionCells.map((cell) => (
+                          <div key={cell.id}>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {renderRowDetails && expandedRows[row.id] && (
+                    <div className="mt-1 p-3 border-l-2 border-l-brand-accent bg-brand-bg/50 rounded-r-lg animate-in slide-in-from-top-1 duration-200">
+                      {renderRowDetails(row.original)}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="h-24 flex items-center justify-center text-center text-[13px] text-brand-subtle">
+            No results.
+          </div>
+        )}
+      </div>
+
       {/* Table Container */}
-      <div className="overflow-x-auto bg-brand-white">
+      <div className="hidden md:block overflow-x-auto bg-brand-white">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -154,7 +245,7 @@ export function DataTable<TData, TValue>({
                 {headerGroup.headers.map((header) => (
                   <TableHead
                      key={header.id}
-                     className="h-10 px-3 md:px-4 text-[12px] font-semibold text-brand-subtle bg-brand-surface whitespace-nowrap"
+                     className="h-10 px-3 md:px-4 text-[13px] md:text-[12px] font-semibold text-brand-subtle bg-brand-surface whitespace-nowrap"
                   >
                       {header.isPlaceholder ? null : (
                         <div
@@ -195,7 +286,7 @@ export function DataTable<TData, TValue>({
                       }`}
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className="px-3 py-2 md:px-4 md:py-2.5 text-[13px] font-medium text-brand-secondary whitespace-nowrap">
+                        <TableCell key={cell.id} className="px-3 py-2 md:px-4 md:py-2.5 text-[14px] md:text-[13px] font-medium text-brand-secondary whitespace-nowrap">
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
                       ))}

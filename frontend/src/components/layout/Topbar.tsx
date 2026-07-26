@@ -102,13 +102,14 @@ export const Topbar = () => {
       })();
 
   return (
-    <header className="flex items-center justify-between mb-2 flex-shrink-0 h-11">
+    <header className="flex flex-col md:flex-row md:items-center justify-between mb-2 flex-shrink-0 md:h-11 gap-2 md:gap-0">
+      <div className="flex items-center justify-between">
       {/* Left: Logo (mobile) / Breadcrumbs (desktop) */}
       <div className="flex items-center gap-3 min-w-0">
         {/* Mobile: Show logo */}
-        <div className="md:hidden">
+        <Link to={homePath} className="md:hidden">
           <Logo size="sm" showText />
-        </div>
+        </Link>
 
         {/* Breadcrumbs */}
           <nav className="hidden md:flex items-center gap-1.5 text-sm min-w-0">
@@ -182,6 +183,16 @@ export const Topbar = () => {
           </button>
         </div>
       </div>
+      </div>
+
+      {/* Mobile: page-injected actions, shown as a scrollable row below the
+          logo/utility row since they can't be reduced to a single FAB action
+          (pageActions is an opaque ReactNode that may hold several buttons). */}
+      {pageActions && (
+        <div className="flex md:hidden items-center gap-2 overflow-x-auto no-scrollbar -mx-1 px-1">
+          {pageActions}
+        </div>
+      )}
 
       <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </header>

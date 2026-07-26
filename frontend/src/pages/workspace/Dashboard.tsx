@@ -16,7 +16,7 @@ import {
   FileText, MessageSquare, TrendingUp, Building2, Banknote,
   Package, Receipt, Users, Activity,
   AlertCircle, ArrowRight, User, CreditCard,
-  Search, Mail, Calendar, Bell, Sun, Moon
+  Search, Mail, Calendar, Bell, Sun, Moon, Star
 } from 'lucide-react';
 import { useThemeStore } from '@/store/useThemeStore';
 import {
@@ -37,7 +37,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { cn, timeAgo } from '@/lib/utils';
+import { cn, timeAgo, toTitleCase } from '@/lib/utils';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
 import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 
@@ -61,6 +61,7 @@ const chartConfig = {
   bank: { label: "Bank Transfer", color: "#6366F1" },
   cash: { label: "Cash Payment", color: "#10B981" },
   distribution: { label: "Payment Distribution" },
+  points: { label: "Points", color: "#F59E0B" },
 } satisfies ChartConfig;
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -113,9 +114,12 @@ const AdminDashboard = () => {
     );
   }
 
-  const { stats, daily_activity = [], recent_enquiries, recent_invoices, recent_activities, user_stats } = data;
+  const { stats, daily_activity = [], recent_enquiries, recent_invoices, recent_activities, user_stats, points } = data;
 
   const pct = stats.total_invoiced > 0 ? Math.round((stats.total_paid / stats.total_invoiced) * 100) : 0;
+
+  const isSalesman = admin?.role === 'salesman';
+  const pointsData = isSalesman && points && !Array.isArray(points) ? points : null;
 
   return (
     <div className="bg-brand-white md:border border-brand-border md:rounded-xl shadow-sm flex flex-col h-full overflow-hidden animate-in fade-in duration-200">
@@ -198,6 +202,50 @@ const AdminDashboard = () => {
         <>
       {isStaff && <ClockInHeader />}
       {isStaff && <ModuleShortcuts permissions={admin?.permissions || []} />}
+
+      {/* Your Points — salesman only */}
+      {pointsData && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          <div className="lg:col-span-1 grid grid-cols-3 gap-3">
+            <StatCard title="Today" value={pointsData.points_today} icon={<Star size={16} />} className="p-3" />
+            <StatCard title="This Week" value={pointsData.points_this_week} icon={<Star size={16} />} className="p-3" />
+            <StatCard title="This Month" value={pointsData.points_this_month} icon={<Star size={16} />} className="p-3" />
+          </div>
+
+          {Array.isArray(pointsData.points_chart_data) && pointsData.points_chart_data.length > 0 && (
+            <Card className="lg:col-span-2 bg-brand-white border border-brand-border rounded-xl overflow-hidden shadow-sm flex flex-col">
+              <CardHeader className="px-4 py-3">
+                <CardTitle className="text-[14px] font-semibold text-brand-primary flex items-center gap-2">
+                  <Star size={16} className="text-brand-subtle" />
+                  Your Points
+                </CardTitle>
+                <CardDescription className="text-[12px] text-brand-subtle mt-0.5">
+                  Last 15 days
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <ChartContainer config={chartConfig} className="aspect-auto h-[140px] w-full">
+                  <BarChart accessibilityLayer data={pointsData.points_chart_data} margin={{ top: 10 }}>
+                    <CartesianGrid vertical={false} stroke="#E2E8F0" strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="date"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                      minTickGap={20}
+                      tick={{ fill: '#94A3B8', fontSize: 9 }}
+                      tickFormatter={(value: string) => value.split(' ')[0]}
+                    />
+                    <ChartTooltip content={<ChartTooltipContent indicator="line" nameKey="points" />} cursor={false} />
+                    <Bar dataKey="points" fill="var(--color-points)" radius={[2, 2, 0, 0]} />
+                  </BarChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
       {/* Row 1 — Financial KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard title="Bank Received" value={<CurrencyAmount amount={stats.total_bank_received} currency={currency} />} icon={<Building2 size={16} />} href={`${getBasePath()}/payment-receipts`} />
@@ -428,7 +476,7 @@ const AdminDashboard = () => {
                       <div className="h-6 w-6 rounded-full bg-brand-surface border border-brand-border text-brand-primary text-[10px] font-bold flex items-center justify-center shrink-0">
                         {u.name?.[0]?.toUpperCase()}
                       </div>
-                      <span className="text-[12px] font-medium text-brand-primary truncate max-w-[80px]">{u.name}</span>
+                      <span className="text-[12px] font-medium text-brand-primary truncate max-w-[80px]">{toTitleCase(u.name)}</span>
                     </div>
                     <div className="flex items-center gap-2 text-[11px] text-brand-subtle font-medium">
                       <span className="bg-brand-bg px-1.5 py-0.5 rounded border border-brand-border/50">{u.enquiries_count} enq</span>

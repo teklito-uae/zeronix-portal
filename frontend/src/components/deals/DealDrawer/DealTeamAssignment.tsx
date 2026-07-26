@@ -4,7 +4,7 @@ import Avatar from 'boring-avatars';
 import api from '@/lib/axios';
 import type { Deal, User } from '@/types';
 import { Label } from '@/components/ui/label';
-import { useThemeStore } from '@/store/useThemeStore';
+import { avatarColorsFor } from '@/lib/avatarColors';
 import { Users } from 'lucide-react';
 
 interface DealTeamAssignmentProps {
@@ -19,11 +19,6 @@ interface DealTeamAssignmentProps {
  * like Deals.tsx's `assignTeam` mutation.
  */
 export const DealTeamAssignment = ({ deal, assignDeal }: DealTeamAssignmentProps) => {
-  const { theme } = useThemeStore();
-  const avatarColors = theme === 'dark'
-    ? ['#ff4d6d', '#ff758f', '#ffbe0b', '#fdfcdc', '#48cae4']
-    : ['#cc063e', '#e83535', '#fd9407', '#e2d9c2', '#10898b'];
-
   const { data: usersList = [] } = useQuery({
     queryKey: ['users', 'all'],
     queryFn: async () => (await api.get('/admin/users?per_page=100')).data.data as User[],
@@ -61,7 +56,7 @@ export const DealTeamAssignment = ({ deal, assignDeal }: DealTeamAssignmentProps
                 }`}
               >
                 <div className={`transition-transform ${isAssigned ? 'scale-110' : ''}`}>
-                  <Avatar size={18} name={u.name} variant="beam" colors={avatarColors} />
+                  <Avatar size={18} name={u.name} variant="beam" colors={avatarColorsFor(u)} />
                 </div>
                 <span className={`text-[11px] font-bold ${isAssigned ? 'text-brand-white' : 'text-brand-secondary'}`}>
                   {u.name.split(' ')[0]}

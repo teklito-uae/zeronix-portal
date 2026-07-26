@@ -4,15 +4,15 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Enquiry;
-use App\Models\EnquiryItem;
+use App\Models\Deal;
+use App\Models\DealItem;
 use Illuminate\Support\Facades\DB;
 
 class EnquiryController extends Controller
 {
     public function index(Request $request)
     {
-        $enquiries = Enquiry::withCount('items')
+        $enquiries = Deal::withCount('items')
             ->where('customer_id', $request->user()->id)
             ->latest()
             ->paginate($request->get('per_page', 10));
@@ -31,7 +31,7 @@ class EnquiryController extends Controller
         ]);
 
         return DB::transaction(function () use ($request) {
-            $enquiry = Enquiry::create([
+            $enquiry = Deal::create([
                 'customer_id' => $request->user()->id,
                 'source' => 'portal',
                 'priority' => 'normal',
@@ -40,7 +40,7 @@ class EnquiryController extends Controller
             ]);
 
             foreach ($request->items as $item) {
-                EnquiryItem::create([
+                DealItem::create([
                     'enquiry_id' => $enquiry->id,
                     'product_id' => $item['product_id'] ?? null,
                     'quantity' => $item['quantity'],
@@ -77,7 +77,7 @@ class EnquiryController extends Controller
 
     public function show($id, Request $request)
     {
-        $enquiry = Enquiry::with(['items.product', 'user'])
+        $enquiry = Deal::with(['items.product', 'user'])
             ->where('customer_id', $request->user()->id)
             ->findOrFail($id);
 

@@ -27,7 +27,7 @@ export const DealsHeader = ({ viewMode, onViewModeChange, onNewDeal }: DealsHead
       </div>
       <div className="flex items-center gap-2">
         <Button onClick={onNewDeal} className="text-[13px] font-medium px-4 h-[34px] rounded-lg shadow-sm">
-          <Plus size={15} className="mr-1.5" /> New Deal
+          <Plus size={15} className="mr-1.5" /> <span className="hidden sm:inline">New Deal</span>
         </Button>
       </div>
     </div>

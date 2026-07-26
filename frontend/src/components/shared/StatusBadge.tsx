@@ -1,7 +1,7 @@
-import { cn } from '@/lib/utils';
-import type { EnquiryStatus, EnquiryPriority, QuoteStatus, InvoiceStatus } from '@/types';
+import { cn, toTitleCase } from '@/lib/utils';
+import type { DealStage, DealPriority, QuoteStatus, InvoiceStatus } from '@/types';
 
-type StatusType = EnquiryStatus | EnquiryPriority | QuoteStatus | InvoiceStatus | string;
+type StatusType = DealStage | DealPriority | QuoteStatus | InvoiceStatus | string;
 
 interface StatusBadgeProps {
   status: StatusType;
@@ -9,10 +9,13 @@ interface StatusBadgeProps {
 }
 
 const statusConfig: Record<string, { label: string; className: string; pulse?: boolean }> = {
-  // Enquiry statuses
+  // Deal stages
   new: { label: 'NEW', className: 'text-[#23F78C] bg-[#23F78C1F]' },
   assigned: { label: 'ASSIGNED', className: 'text-[#0F52BA] bg-[#0F52BA1F]' },
   in_progress: { label: 'IN PROGRESS', className: 'text-[#0F52BA] bg-[#0F52BA1F]' },
+  requirement: { label: 'REQUIREMENT', className: 'text-[#0F52BA] bg-[#0F52BA1F]' },
+  proposal_sent: { label: 'PROPOSAL SENT', className: 'text-[#8B5CF6] bg-[#8B5CF61F]' },
+  negotiation: { label: 'NEGOTIATION', className: 'text-[#F59E0B] bg-[#F59E0B1F]' },
   quoted: { label: 'QUOTED', className: 'text-[#8B5CF6] bg-[#8B5CF61F]' },
   won: { label: 'WON', className: 'text-[#10B981] bg-[#10B9811F]' },
   lost: { label: 'LOST', className: 'text-[#EF4444] bg-[#EF44441F]' },
@@ -36,6 +39,8 @@ const statusConfig: Record<string, { label: string; className: string; pulse?: b
   rejected: { label: 'REJECTED', className: 'text-[#EF4444] bg-[#EF44441F]' },
   expired: { label: 'EXPIRED', className: 'text-admin-text-muted bg-admin-surface-hover' },
   invoiced: { label: 'INVOICED', className: 'text-[#10B981] bg-[#10B9811F]' },
+  approved: { label: 'APPROVED', className: 'text-[#10B981] bg-[#10B9811F]' },
+  superseded: { label: 'SUPERSEDED', className: 'text-admin-text-muted bg-admin-surface-hover' },
 
   // Sales Order / Delivery statuses
   confirmed: { label: 'CONFIRMED', className: 'text-[#0F52BA] bg-[#0F52BA1F]' },
@@ -68,8 +73,6 @@ const statusConfig: Record<string, { label: string; className: string; pulse?: b
   healthy: { label: 'HEALTHY', className: 'text-[#10B981] bg-[#10B9811F]' },
   warning: { label: 'WARNING', className: 'text-[#F59E0B] bg-[#F59E0B1F]' },
 };
-
-const toTitleCase = (s: string) => s.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
 
 export const StatusBadge = ({ status, className }: StatusBadgeProps) => {
   const config = (status && statusConfig[status]) || {

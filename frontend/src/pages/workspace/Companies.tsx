@@ -26,12 +26,14 @@ import { Switch } from '@/components/ui/switch';
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useThemeStore } from '@/store/useThemeStore';
+import { avatarColorsFor } from '@/lib/avatarColors';
 import { useResourceList, useResourceList as useLabels, useResourceMutation } from '@/hooks/useApi';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useTopbarActions } from '@/hooks/useTopbarActions';
 import { toast } from 'sonner';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
 import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
+import { toTitleCase } from '@/lib/utils';
 
 /**
  * Companies Module
@@ -59,6 +61,7 @@ export const Companies = () => {
   // Form States
   const [form, setForm] = useState({
     name: '', company: '', email: '', phone: '', address: '', trn: '', industry: '', website: '', description: '', is_portal_active: true, user_ids: [] as string[],
+    type: 'business' as 'business' | 'individual',
   });
   const [formLabelIds, setFormLabelIds] = useState<number[]>([]);
 
@@ -98,7 +101,7 @@ export const Companies = () => {
     setFormLabelIds([]);
     setForm({
       name: '', company: '', email: '', phone: '', address: '', trn: '', industry: '', website: '', description: '',
-      is_portal_active: true, user_ids: currentUser?.id ? [currentUser.id.toString()] : []
+      is_portal_active: true, user_ids: currentUser?.id ? [currentUser.id.toString()] : [], type: 'business',
     });
     setDialogOpen(true);
   };
@@ -118,6 +121,7 @@ export const Companies = () => {
       description: customer.description || '',
       is_portal_active: customer.is_portal_active ?? true,
       user_ids: customer.assigned_users?.map((u: any) => u.id.toString()) || [],
+      type: customer.type || 'business',
     });
     setDialogOpen(true);
   };
@@ -168,7 +172,7 @@ export const Companies = () => {
       accessorKey: 'name',
       header: 'Company',
       cell: ({ row }) => {
-        const primary = row.original.company || row.original.name;
+        const primary = toTitleCase(row.original.company || row.original.name);
         const showContactPerson = !!row.original.company;
         return (
           <div className="flex items-center gap-3">
@@ -182,7 +186,7 @@ export const Companies = () => {
               <p className="text-sm font-bold text-admin-text-primary truncate">{primary}</p>
               {showContactPerson && (
                 <p className="text-[11px] text-admin-text-muted flex items-center gap-1 truncate font-medium">
-                  <UserIcon size={10} /> {row.original.name}
+                  <UserIcon size={10} /> {toTitleCase(row.original.name)}
                 </p>
               )}
             </div>
@@ -228,11 +232,11 @@ export const Companies = () => {
                   <Tooltip key={u.id}>
                     <TooltipTrigger asChild>
                       <div className="relative border-2 border-brand-white rounded-full bg-brand-surface shadow-sm transition-transform hover:z-20 hover:scale-110" style={{ zIndex: 10 - i }}>
-                        <Avatar size={24} name={u.name} variant="beam" colors={avatarColors} />
+                        <Avatar size={24} name={u.name} variant="beam" colors={avatarColorsFor(u)} />
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="bg-brand-secondary text-brand-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-md border-none">
-                      {u.name}
+                      {toTitleCase(u.name)}
                     </TooltipContent>
                   </Tooltip>
                 ))}
@@ -244,14 +248,14 @@ export const Companies = () => {
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="bg-brand-secondary text-brand-white text-[11px] font-bold px-2.5 py-1.5 rounded-md shadow-md border-none max-w-[200px]">
-                      {users.slice(3).map((u: any) => u.name).join(', ')}
+                      {users.slice(3).map((u: any) => toTitleCase(u.name)).join(', ')}
                     </TooltipContent>
                   </Tooltip>
                 )}
               </div>
               {users.length === 1 && (
                 <span className="text-[11px] font-medium text-admin-text-secondary truncate max-w-[80px]">
-                  {users[0].name.split(' ')[0]}
+                  {toTitleCase(users[0].name).split(' ')[0]}
                 </span>
               )}
             </div>
@@ -362,7 +366,7 @@ export const Companies = () => {
         </Button>
       )}
       <Button size="sm" onClick={openAdd} className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover">
-        <UserPlus size={14} /> Add Company
+        <UserPlus size={14} /> <span className="hidden sm:inline">Add Account</span>
       </Button>
     </>
   );
@@ -405,8 +409,8 @@ export const Companies = () => {
     <div className="h-full flex flex-col">
       <ResourceListingPage<Customer>
         resource="customers"
-        title="Company Directory"
-        subtitle="Manage company profiles, portal access, and trade history."
+        title="Account Directory"
+        subtitle="Manage account profiles, portal access, and trade history."
         icon={<Users size={20} />}
         columns={columns}
         onRowClick={(row) => navigate(`${getBasePath()}/companies/${row.id}`)}
@@ -432,7 +436,7 @@ export const Companies = () => {
           <div className="p-6 border-b border-admin-border flex-shrink-0">
             <SheetHeader className="space-y-1 text-left">
               <SheetTitle className="text-xl font-bold text-admin-text-primary pr-6">
-                {editingCustomer ? 'Update Company Profile' : 'Register New Company'}
+                {editingCustomer ? 'Update Account Profile' : 'Register New Account'}
               </SheetTitle>
               <SheetDescription className="text-sm text-admin-text-secondary">
                 Configure contact information and portal access settings.
@@ -458,6 +462,23 @@ export const Companies = () => {
                 className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl"
                 placeholder="Legal business name"
               />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Account Type</Label>
+              <div className="flex gap-2 h-11 items-center">
+                {(['business', 'individual'] as const).map((t) => (
+                  <div
+                    key={t}
+                    onClick={() => setForm({ ...form, type: t })}
+                    className={`cursor-pointer flex-1 h-full flex items-center justify-center rounded-xl border text-[12px] font-semibold capitalize transition-all ${form.type === t
+                        ? 'bg-brand-accent/10 border-brand-accent text-brand-primary shadow-sm'
+                        : 'bg-brand-surface border-brand-border/50 text-brand-subtle hover:bg-brand-bg hover:border-brand-border hover:text-brand-primary'
+                      }`}
+                  >
+                    {t}
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Email Address *</Label>
@@ -542,7 +563,7 @@ export const Companies = () => {
             </div>
             {currentUser?.role === 'admin' && (
               <div className="md:col-span-2 space-y-3 mt-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Assign to Staff</Label>
+                <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Assign to Team</Label>
                 <div className="flex flex-wrap gap-2">
                   {staffMembers.map((staff: any) => {
                     const isSelected = form.user_ids.includes(staff.id.toString());
@@ -558,7 +579,7 @@ export const Companies = () => {
                             : 'bg-brand-surface border-brand-border/50 text-brand-subtle hover:bg-brand-bg hover:border-brand-border hover:text-brand-primary'
                           }`}
                       >
-                        {staff.name}
+                        {toTitleCase(staff.name)}
                       </div>
                     );
                   })}
@@ -575,7 +596,7 @@ export const Companies = () => {
                 disabled={!form.name || create.isPending || update.isPending}
                 className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover min-w-[140px] rounded-xl font-bold shadow-lg shadow-zeronix-blue/20"
               >
-                {(create.isPending || update.isPending) ? <Spinner size={16} /> : (editingCustomer ? 'Update Profile' : 'Register Company')}
+                {(create.isPending || update.isPending) ? <Spinner size={16} /> : (editingCustomer ? 'Update Profile' : 'Register Account')}
               </Button>
             </SheetFooter>
           </div>
@@ -585,8 +606,8 @@ export const Companies = () => {
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete Company Profile?"
-        description="This will permanently delete the company and all associated trade data. This action is irreversible."
+        title="Delete Account Profile?"
+        description="This will permanently delete the account and all associated trade data. This action is irreversible."
         confirmLabel="Yes, Delete Permanently"
         onConfirm={() => deletingId && remove.mutate(deletingId)}
         variant="destructive"

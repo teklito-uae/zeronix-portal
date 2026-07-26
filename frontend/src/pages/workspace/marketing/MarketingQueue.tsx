@@ -8,6 +8,7 @@ import { StatCard } from '@/components/shared/StatCard';
 import { PageLoader } from '@/components/shared/PageLoader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { Pagination } from '@/components/shared/Pagination';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -21,13 +22,14 @@ export const MarketingQueue = () => {
   const [status, setStatus] = useState('all');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(25);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['marketing/queue', status, search, page],
+    queryKey: ['marketing/queue', status, search, page, perPage],
     queryFn: async () =>
       (
         await api.get('/admin/marketing/queue', {
-          params: { status: status === 'all' ? undefined : status, search: search || undefined, page, per_page: 25 },
+          params: { status: status === 'all' ? undefined : status, search: search || undefined, page, per_page: perPage },
         })
       ).data,
     refetchInterval: 15000,
@@ -130,12 +132,16 @@ export const MarketingQueue = () => {
         </div>
       )}
 
-      {data?.last_page > 1 && (
-        <div className="flex justify-center gap-2 mt-4">
-          <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)} className="h-8 text-[12px]">Previous</Button>
-          <span className="text-[12px] text-brand-subtle self-center">Page {page} of {data.last_page}</span>
-          <Button variant="outline" size="sm" disabled={page === data.last_page} onClick={() => setPage((p) => p + 1)} className="h-8 text-[12px]">Next</Button>
-        </div>
+      {!isLoading && rows.length > 0 && (
+        <Pagination
+          page={page}
+          perPage={perPage}
+          total={data?.total || 0}
+          lastPage={data?.last_page || 1}
+          onPageChange={setPage}
+          onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
+          className="mt-4 static px-0"
+        />
       )}
     </MarketingLayout>
   );

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Carbon;
@@ -22,6 +23,7 @@ class Lead extends Model
         'company',
         'email',
         'phone',
+        'phone_2',
         'source',
         'status',
         'notes',
@@ -50,9 +52,9 @@ class Lead extends Model
         });
     }
 
-    public function enquiries(): HasMany
+    public function deals(): HasMany
     {
-        return $this->hasMany(Enquiry::class);
+        return $this->hasMany(Deal::class);
     }
 
     public function convertedCustomer(): BelongsTo
@@ -63,5 +65,10 @@ class Lead extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function assigned_users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'lead_user');
     }
 }

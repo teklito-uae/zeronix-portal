@@ -58,7 +58,7 @@ export const CustomerProfile = () => {
           <div className="flex-1 text-center md:text-left pt-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-black text-admin-text-primary tracking-tight uppercase">{customer.name}</h1>
+                <h1 className="text-2xl md:text-3xl font-black text-admin-text-primary tracking-tight uppercase">{customer.name}</h1>
                 <p className="text-admin-text-secondary mt-1 flex items-center justify-center md:justify-start gap-2 font-medium">
                   <Mail size={16} className="text-zeronix-blue" /> {customer.email}
                 </p>

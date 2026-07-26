@@ -67,8 +67,7 @@ class QuoteController extends Controller
         $validated = $request->validate([
             'customer_id' => 'required|exists:customers,id',
             'customer_contact_id' => 'nullable|exists:customer_contacts,id',
-            'enquiry_id' => 'nullable|exists:enquiries,id',
-            'deal_id' => 'nullable|exists:deals,id',
+            'deal_id' => 'nullable|exists:enquiries,id',
             'date' => 'required|date',
             'valid_until' => 'nullable|date',
             'reference_id' => 'nullable|string',
@@ -118,7 +117,6 @@ class QuoteController extends Controller
                 'quote_number' => $quoteNumber,
                 'customer_id' => $validated['customer_id'],
                 'customer_contact_id' => $validated['customer_contact_id'] ?? $customer?->primaryContact()?->id,
-                'enquiry_id' => $validated['enquiry_id'] ?? null,
                 'deal_id' => $validated['deal_id'] ?? null,
                 'user_id' => $request->user()->id,
                 'date' => $validated['date'],
@@ -188,7 +186,6 @@ class QuoteController extends Controller
             'customerContact',
             'items.product',
             'user',
-            'enquiry',
             'deal',
             'activities.user',
             'activities.customer',
@@ -215,7 +212,7 @@ class QuoteController extends Controller
 
         $validated = $request->validate([
             'customer_id' => 'required|exists:customers,id',
-            'deal_id' => 'nullable|exists:deals,id',
+            'deal_id' => 'nullable|exists:enquiries,id',
             'date' => 'required|date',
             'valid_until' => 'nullable|date',
             'reference_id' => 'nullable|string',
@@ -342,14 +339,14 @@ class QuoteController extends Controller
             'tags.*' => 'string|max:50',
             'valid_until' => 'nullable|date',
             'due_date' => 'nullable|date',
-            'deal_id' => 'nullable|exists:deals,id',
+            'deal_id' => 'nullable|exists:enquiries,id',
             'payment_terms' => 'nullable|string|max:100',
             'delivery_date' => 'nullable|date',
         ]);
 
         $quote->update(array_filter($validated, fn ($v, $k) => $request->has($k), ARRAY_FILTER_USE_BOTH));
 
-        return response()->json($quote->load(['customer', 'customerContact', 'items.product', 'user', 'enquiry', 'deal']));
+        return response()->json($quote->load(['customer', 'customerContact', 'items.product', 'user', 'deal']));
     }
 
     public function duplicate(Request $request, Quote $quote)
@@ -365,7 +362,6 @@ class QuoteController extends Controller
                 'quote_number' => $quoteNumber,
                 'customer_id' => $quote->customer_id,
                 'customer_contact_id' => $quote->customer_contact_id,
-                'enquiry_id' => $quote->enquiry_id,
                 'deal_id' => $quote->deal_id,
                 'user_id' => $request->user()->id,
                 'date' => Carbon::now()->toDateString(),
@@ -569,9 +565,23 @@ class QuoteController extends Controller
         }
     }
 
+    public function approve(Request $request, Quote $quote)
+    {
+        $this->authorize('update', $quote);
+
+        $quote->approve();
+
+        return response()->json($quote->fresh());
+    }
+
     public function convertToSalesOrder(Request $request, Quote $quote)
     {
         $this->authorize('view', $quote);
+
+        if ($quote->status !== 'approved') {
+            return response()->json(['message' => 'Only an approved quote can be converted to a sales order.'], 422);
+        }
+
         $quote->load('items');
 
         DB::beginTransaction();
@@ -584,9 +594,9 @@ class QuoteController extends Controller
                 'order_number' => $orderNumber,
                 'customer_id' => $quote->customer_id,
                 'customer_contact_id' => $quote->customer_contact_id,
-                'enquiry_id' => $quote->enquiry_id,
+                'deal_id' => $quote->deal_id,
                 'quote_id' => $quote->id,
-                'user_id' => $request->user()->id,
+                'user_id' => $quote->user_id,
                 'date' => now()->toDateString(),
                 'status' => 'draft',
                 'subtotal' => $quote->subtotal,
@@ -603,6 +613,8 @@ class QuoteController extends Controller
                     'unit_price' => $item->unit_price,
                     'tax_percent' => $item->tax_percent,
                     'tax_amount' => $item->tax_amount,
+                    'discount_percent' => $item->discount_percent,
+                    'discount_amount' => $item->discount_amount,
                     'total' => $item->total,
                 ]);
             }

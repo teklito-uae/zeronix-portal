@@ -80,14 +80,14 @@ class Customer extends Authenticatable
         return $this->hasMany(Invoice::class);
     }
 
-    public function enquiries(): HasMany
-    {
-        return $this->hasMany(Enquiry::class);
-    }
-
     public function deals(): HasMany
     {
         return $this->hasMany(Deal::class);
+    }
+
+    public function salesOrders(): HasMany
+    {
+        return $this->hasMany(SalesOrder::class);
     }
 
     public function contacts(): HasMany

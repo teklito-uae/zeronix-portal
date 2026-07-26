@@ -21,7 +21,7 @@ export const PlatformDashboard = () => {
       <SEO title="Platform Overview" description="Zeronix SaaS God Mode Dashboard" />
       
       <div className="flex flex-col gap-2 mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Zeronix Mission Control</h1>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Zeronix Mission Control</h1>
         <p className="text-slate-500">Global overview of all active tenants and system health.</p>
       </div>
 
@@ -34,7 +34,7 @@ export const PlatformDashboard = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">{stats?.total_companies || 0}</div>
+            <div className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">{stats?.total_companies || 0}</div>
             <p className="text-xs text-slate-500 mt-2 font-medium flex items-center gap-1">
               <span className="text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded text-[10px]">{stats?.growth?.companies || '+0%'}</span> Active: {stats?.active_companies || 0}
             </p>
@@ -49,7 +49,7 @@ export const PlatformDashboard = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">{stats?.total_users || 0}</div>
+            <div className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">{stats?.total_users || 0}</div>
             <p className="text-xs text-slate-500 mt-2 font-medium flex items-center gap-1">
               <span className="text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded text-[10px]">{stats?.growth?.users || '+0%'}</span> Staff & Admins: {stats?.active_users || 0}
             </p>
@@ -64,7 +64,7 @@ export const PlatformDashboard = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">{stats?.total_customers || 0}</div>
+            <div className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">{stats?.total_customers || 0}</div>
             <p className="text-xs text-slate-500 mt-2 font-medium flex items-center gap-1">
               Registered across all tenants
             </p>
@@ -79,7 +79,7 @@ export const PlatformDashboard = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">
+            <div className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
               {new Intl.NumberFormat('en-AE', { style: 'currency', currency: 'USD' }).format(stats?.total_revenue || 0)}
             </div>
             <p className="text-xs text-slate-500 mt-2 font-medium flex items-center gap-1">

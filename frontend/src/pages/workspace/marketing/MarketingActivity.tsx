@@ -4,7 +4,7 @@ import api from '@/lib/axios';
 import { MarketingLayout } from '@/components/marketing/MarketingLayout';
 import { PageLoader } from '@/components/shared/PageLoader';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { Button } from '@/components/ui/button';
+import { Pagination } from '@/components/shared/Pagination';
 import { Activity as ActivityIcon, Send, MousePointerClick, Radio, UserMinus, AlertTriangle } from 'lucide-react';
 
 const ICONS: Record<string, any> = {
@@ -18,10 +18,11 @@ const ICONS: Record<string, any> = {
 
 export const MarketingActivity = () => {
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(25);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['marketing/activity', page],
-    queryFn: async () => (await api.get('/admin/marketing/activity', { params: { page, per_page: 25 } })).data,
+    queryKey: ['marketing/activity', page, perPage],
+    queryFn: async () => (await api.get('/admin/marketing/activity', { params: { page, per_page: perPage } })).data,
     refetchInterval: 20000,
   });
 
@@ -55,12 +56,16 @@ export const MarketingActivity = () => {
         </div>
       )}
 
-      {data?.last_page > 1 && (
-        <div className="flex justify-center gap-2 mt-4">
-          <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)} className="h-8 text-[12px]">Previous</Button>
-          <span className="text-[12px] text-brand-subtle self-center">Page {page} of {data.last_page}</span>
-          <Button variant="outline" size="sm" disabled={page === data.last_page} onClick={() => setPage((p) => p + 1)} className="h-8 text-[12px]">Next</Button>
-        </div>
+      {!isLoading && items.length > 0 && (
+        <Pagination
+          page={page}
+          perPage={perPage}
+          total={data?.total || 0}
+          lastPage={data?.last_page || 1}
+          onPageChange={setPage}
+          onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
+          className="mt-4 static px-0"
+        />
       )}
     </MarketingLayout>
   );

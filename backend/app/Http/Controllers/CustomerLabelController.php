@@ -59,7 +59,12 @@ class CustomerLabelController extends Controller
         ]);
 
         $customerIds = $label->customers()->pluck('customers.id');
-        Customer::whereIn('id', $customerIds)->update(['user_id' => $validated['user_id']]);
+
+        // customers.user_id was dropped in favor of the customer_user pivot.
+        $customers = Customer::whereIn('id', $customerIds)->get();
+        foreach ($customers as $customer) {
+            $customer->assigned_users()->syncWithoutDetaching([$validated['user_id']]);
+        }
 
         // Notify the assigned staff member
         $staff = \App\Models\User::find($validated['user_id']);

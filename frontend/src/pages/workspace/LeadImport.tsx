@@ -16,7 +16,9 @@ interface ParsedLeadRow {
   name: string;
   email: string | null;
   phone: string | null;
+  phone_2: string | null;
   company: string | null;
+  notes: string | null;
   conflict_type: 'none' | 'duplicate_lead' | 'already_customer';
   existing_lead_id: number | null;
   action: 'create' | 'merge' | 'skip';
@@ -80,8 +82,8 @@ export const LeadImport = () => {
 
   const handleFile = useCallback((f: File) => {
     const ext = f.name.split('.').pop()?.toLowerCase();
-    if (!['vcf', 'json'].includes(ext || '')) {
-      toast.error('Only .vcf and .json files are supported');
+    if (!['vcf', 'json', 'csv'].includes(ext || '')) {
+      toast.error('Only .vcf, .csv and .json files are supported');
       return;
     }
 
@@ -163,7 +165,7 @@ export const LeadImport = () => {
       <div className="space-y-4">
         <div>
           <h3 className="text-sm font-bold text-admin-text-primary mb-1">1. Select File</h3>
-          <p className="text-xs text-admin-text-muted">Supports .vcf (vCard) and .json formats</p>
+          <p className="text-xs text-admin-text-muted">Supports .csv, .vcf (vCard) and .json formats</p>
         </div>
         <div
           onDragOver={e => { e.preventDefault(); setDragOver(true); }}
@@ -178,7 +180,7 @@ export const LeadImport = () => {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".vcf,.json"
+            accept=".vcf,.json,.csv"
             className="hidden"
             onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])}
           />
@@ -204,7 +206,7 @@ export const LeadImport = () => {
               <p className="text-sm font-bold text-admin-text-primary">Drop file here</p>
               <p className="text-xs text-admin-text-muted mt-1">or click to browse</p>
               <div className="flex gap-2 mt-4">
-                {['.vcf', '.json'].map(ext => (
+                {['.csv', '.vcf', '.json'].map(ext => (
                   <span key={ext} className="px-2 py-0.5 bg-admin-bg border border-admin-border rounded-full text-[10px] font-bold text-admin-text-muted">
                     {ext}
                   </span>
@@ -215,6 +217,13 @@ export const LeadImport = () => {
         </div>
 
         {/* Sample format hints */}
+        <div className="bg-admin-bg border border-admin-border rounded-xl p-4 space-y-2">
+          <p className="text-[11px] font-bold text-admin-text-muted uppercase tracking-wider">CSV Format Example</p>
+          <pre className="text-[10px] text-admin-text-secondary font-mono overflow-x-auto">{`name,company,phone,email,notes
+Ahmed Al Rashid,Al Noor LLC,+971501234567,ahmed@alnoor.ae,Met at expo`}</pre>
+          <p className="text-[10px] text-admin-text-muted">First row must be a header. Columns like "full name", "first name/last name", "mobile" and "organization" are also recognized.</p>
+        </div>
+
         <div className="bg-admin-bg border border-admin-border rounded-xl p-4 space-y-2">
           <p className="text-[11px] font-bold text-admin-text-muted uppercase tracking-wider">JSON Format Example</p>
           <pre className="text-[10px] text-admin-text-secondary font-mono overflow-x-auto">{`[
@@ -232,8 +241,9 @@ export const LeadImport = () => {
         <div className="space-y-2">
           <h3 className="text-sm font-bold text-admin-text-primary">2. Preview & Import</h3>
           <p className="text-xs text-admin-text-muted">
-            We'll parse the file and flag any contacts that already exist as leads or customers,
-            so you can decide how to handle each one before anything is saved.
+            We'll parse the file and flag any contacts whose email or phone number already exist
+            as a lead or customer, so you can review, edit, or remove each row before anything is
+            saved. Duplicates are checked again right before the data is written to the database.
           </p>
         </div>
 
@@ -285,7 +295,9 @@ export const LeadImport = () => {
                 <th className="text-left px-4 py-2.5 text-[10px] font-bold text-admin-text-muted uppercase tracking-wider">Name</th>
                 <th className="text-left px-4 py-2.5 text-[10px] font-bold text-admin-text-muted uppercase tracking-wider">Email</th>
                 <th className="text-left px-4 py-2.5 text-[10px] font-bold text-admin-text-muted uppercase tracking-wider">Phone</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-admin-text-muted uppercase tracking-wider">Phone 2</th>
                 <th className="text-left px-4 py-2.5 text-[10px] font-bold text-admin-text-muted uppercase tracking-wider">Company</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-admin-text-muted uppercase tracking-wider">Notes</th>
                 <th className="text-left px-4 py-2.5 text-[10px] font-bold text-admin-text-muted uppercase tracking-wider">Status</th>
                 <th className="w-8 px-2"></th>
               </tr>
@@ -324,8 +336,22 @@ export const LeadImport = () => {
                   </td>
                   <td className="px-4 py-2">
                     <input
+                      value={row.phone_2 || ''}
+                      onChange={e => updateRow(idx, 'phone_2', e.target.value)}
+                      className="w-full bg-transparent border-b border-transparent hover:border-admin-border focus:border-zeronix-blue outline-none text-admin-text-secondary py-0.5"
+                    />
+                  </td>
+                  <td className="px-4 py-2">
+                    <input
                       value={row.company || ''}
                       onChange={e => updateRow(idx, 'company', e.target.value)}
+                      className="w-full bg-transparent border-b border-transparent hover:border-admin-border focus:border-zeronix-blue outline-none text-admin-text-secondary py-0.5"
+                    />
+                  </td>
+                  <td className="px-4 py-2">
+                    <input
+                      value={row.notes || ''}
+                      onChange={e => updateRow(idx, 'notes', e.target.value)}
                       className="w-full bg-transparent border-b border-transparent hover:border-admin-border focus:border-zeronix-blue outline-none text-admin-text-secondary py-0.5"
                     />
                   </td>
@@ -404,15 +430,15 @@ export const LeadImport = () => {
       {results && (
         <div className="grid grid-cols-3 gap-4 w-full max-w-md">
           <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-center">
-            <p className="text-2xl font-black text-emerald-600">{results.created}</p>
+            <p className="text-xl md:text-2xl font-black text-emerald-600">{results.created}</p>
             <p className="text-xs text-admin-text-muted mt-1 font-bold uppercase">Created</p>
           </div>
           <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-center">
-            <p className="text-2xl font-black text-blue-600">{results.merged}</p>
+            <p className="text-xl md:text-2xl font-black text-blue-600">{results.merged}</p>
             <p className="text-xs text-admin-text-muted mt-1 font-bold uppercase">Merged</p>
           </div>
           <div className="bg-admin-bg border border-admin-border rounded-xl p-4 text-center">
-            <p className="text-2xl font-black text-admin-text-secondary">{results.skipped}</p>
+            <p className="text-xl md:text-2xl font-black text-admin-text-secondary">{results.skipped}</p>
             <p className="text-xs text-admin-text-muted mt-1 font-bold uppercase">Skipped</p>
           </div>
         </div>
@@ -466,7 +492,7 @@ export const LeadImport = () => {
         </div>
         <div>
           <h2 className="text-xl font-bold text-admin-text-primary tracking-tight">Import Leads</h2>
-          <p className="text-xs text-admin-text-muted mt-0.5">Upload VCF or JSON to bulk-import leads</p>
+          <p className="text-xs text-admin-text-muted mt-0.5">Upload CSV, VCF, or JSON to bulk-import leads</p>
         </div>
       </div>
 

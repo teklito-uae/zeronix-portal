@@ -1,5 +1,5 @@
 import type {
-  Customer, Brand, Category, Supplier, Product, Enquiry, SupplierProduct,
+  Customer, Brand, Category, Supplier, Product, Deal, SupplierProduct,
   Quote, QuoteItem, Invoice, InvoiceItem
 } from '@/types';
 
@@ -18,8 +18,8 @@ export const mockSuppliers: Supplier[] = [];
 // ── Mock Products ──────────────────────────────────────
 export const mockProducts: Product[] = [];
 
-// ── Mock Enquiries ─────────────────────────────────────
-export const mockEnquiries: Enquiry[] = [];
+// ── Mock Deals ─────────────────────────────────────────
+export const mockDeals: Deal[] = [];
 
 // ── Mock Supplier Products ─────────────────────────────
 export const mockSupplierProducts: SupplierProduct[] = [];

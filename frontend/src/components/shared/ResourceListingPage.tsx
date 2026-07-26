@@ -13,11 +13,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Filter, X, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
+import { Search, Filter, X, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SEO } from './SEO';
 import { PageLoader } from './PageLoader';
 import { EmptyState } from './EmptyState';
+import { Pagination } from './Pagination';
 
 interface FilterConfig {
   name: string;
@@ -84,14 +85,13 @@ export function ResourceListingPage<T extends { id: number }>({
 }: ResourceListingPageProps<T>) {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState('10');
+  const [perPage, setPerPage] = useState(10);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
   const [showFilters, setShowFilters] = useState(false);
   const [searchExpanded, setSearchExpanded] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const [goToPageInput, setGoToPageInput] = useState('');
 
   // Sync search input with debounce
   useEffect(() => {
@@ -106,7 +106,7 @@ export function ResourceListingPage<T extends { id: number }>({
   const queryParams = {
     page,
     search: search || undefined,
-    per_page: Number(perPage),
+    per_page: perPage,
     ...activeFilters,
     ...baseFilters,
   };
@@ -134,46 +134,6 @@ export function ResourceListingPage<T extends { id: number }>({
 
   const activeFilterCount = Object.values(activeFilters).filter(v => v !== '').length;
   const hasActiveFilters = search || activeFilterCount > 0;
-
-  // Pagination helpers
-  const renderPaginationButtons = () => {
-    const buttons = [];
-    const maxVisiblePages = 5;
-
-    let startPage = Math.max(1, page - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(lastPage, startPage + maxVisiblePages - 1);
-
-    if (endPage - startPage + 1 < maxVisiblePages) {
-      startPage = Math.max(1, endPage - maxVisiblePages + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      buttons.push(
-        <Button
-          key={i}
-          variant="ghost"
-          onClick={() => setPage(i)}
-          className={cn(
-            "h-8 w-8 p-0 rounded-md text-sm font-semibold transition-colors",
-            page === i
-              ? "bg-zeronix-blue text-white hover:bg-zeronix-blue-hover hover:text-white"
-              : "text-admin-text-secondary hover:bg-admin-surface-hover"
-          )}
-        >
-          {i}
-        </Button>
-      );
-    }
-    return buttons;
-  };
-
-  const handleGoToPage = () => {
-    const p = parseInt(goToPageInput);
-    if (!isNaN(p) && p >= 1 && p <= lastPage) {
-      setPage(p);
-      setGoToPageInput('');
-    }
-  };
 
 
   return (
@@ -312,9 +272,10 @@ export function ResourceListingPage<T extends { id: number }>({
             {createPath && (
               <Button
                 onClick={() => onCreateClick ? onCreateClick() : navigate(createPath)}
-                className="w-full sm:w-auto text-[13px] font-medium px-4 h-[32px] rounded-lg transition-all shadow-sm"
+                className="w-auto self-start sm:self-auto text-[13px] font-medium px-3 sm:px-4 h-[32px] rounded-lg transition-all shadow-sm gap-1.5"
               >
-                {createLabel}
+                <Plus size={15} />
+                <span className="hidden sm:inline">{createLabel}</span>
               </Button>
             )}
           </div>
@@ -366,46 +327,14 @@ export function ResourceListingPage<T extends { id: number }>({
 
       {/* Pagination */}
       {!customContent && data.length > 0 && (
-        <div className="sticky bottom-0 z-10 px-5 py-3 border-t border-brand-border bg-brand-white flex flex-col sm:flex-row items-center justify-between gap-4 flex-shrink-0">
-          <div className="text-[12px] text-brand-subtle font-medium">
-            Showing <span className="text-brand-primary">{(page - 1) * Number(perPage) + 1}</span> to <span className="text-brand-primary">{Math.min(page * Number(perPage), total)}</span> of <span className="text-brand-primary">{total}</span> results
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-[12px] text-brand-subtle">Rows:</span>
-              <Select value={perPage} onValueChange={(v) => { setPerPage(v); setPage(1); }}>
-                <SelectTrigger className="h-[30px] w-16 text-[12px] bg-brand-white border-brand-border shadow-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-brand-white border-brand-border">
-                  <SelectItem value="10" className="text-[12px]">10</SelectItem>
-                  <SelectItem value="25" className="text-[12px]">25</SelectItem>
-                  <SelectItem value="50" className="text-[12px]">50</SelectItem>
-                  <SelectItem value="100" className="text-[12px]">100</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center gap-1">
-              <Button variant="outline" size="icon" className="h-[30px] w-[30px] rounded-lg border-brand-border shadow-sm" onClick={() => setPage(1)} disabled={page === 1}>
-                <ChevronsLeft size={14} className="text-brand-secondary" />
-              </Button>
-              <Button variant="outline" size="icon" className="h-[30px] w-[30px] rounded-lg border-brand-border shadow-sm" onClick={() => setPage(prev => Math.max(1, prev - 1))} disabled={page === 1}>
-                <ChevronLeft size={14} className="text-brand-secondary" />
-              </Button>
-              <div className="flex items-center gap-1 px-2">
-                {renderPaginationButtons()}
-              </div>
-              <Button variant="outline" size="icon" className="h-[30px] w-[30px] rounded-lg border-brand-border shadow-sm" onClick={() => setPage(prev => Math.min(lastPage, prev + 1))} disabled={page === lastPage || lastPage === 0}>
-                <ChevronRight size={14} className="text-brand-secondary" />
-              </Button>
-              <Button variant="outline" size="icon" className="h-[30px] w-[30px] rounded-lg border-brand-border shadow-sm" onClick={() => setPage(lastPage)} disabled={page === lastPage || lastPage === 0}>
-                <ChevronsRight size={14} className="text-brand-secondary" />
-              </Button>
-            </div>
-          </div>
-        </div>
+        <Pagination
+          page={page}
+          perPage={perPage}
+          total={total}
+          lastPage={lastPage}
+          onPageChange={setPage}
+          onPerPageChange={(next) => { setPerPage(next); setPage(1); }}
+        />
       )}
     </div>
   );

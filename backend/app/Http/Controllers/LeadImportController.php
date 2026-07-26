@@ -25,10 +25,15 @@ class LeadImportController extends Controller
                 function ($attribute, $value, $fail) {
                     $ext  = strtolower($value->getClientOriginalExtension());
                     $mime = $value->getMimeType();
-                    $validExts  = ['vcf', 'json'];
-                    $validMimes = ['text/vcard', 'text/x-vcard', 'application/json', 'text/plain', 'text/json'];
+                    $validExts  = ['vcf', 'json', 'csv'];
+                    $validMimes = [
+                        'text/vcard', 'text/x-vcard',
+                        'application/json', 'text/json',
+                        'text/csv', 'application/csv', 'application/vnd.ms-excel',
+                        'text/plain',
+                    ];
                     if (!in_array($ext, $validExts) && !in_array($mime, $validMimes)) {
-                        $fail('Only .vcf (vCard) and .json files are supported.');
+                        $fail('Only .vcf (vCard), .csv, and .json files are supported.');
                     }
                 },
             ],
@@ -36,37 +41,55 @@ class LeadImportController extends Controller
 
         $file = $request->file('file');
         $content = file_get_contents($file->getRealPath());
-        $isVcf = str_ends_with(strtolower($file->getClientOriginalName()), '.vcf');
-        $source = $isVcf ? 'vcf_import' : 'json_import';
+        $name = strtolower($file->getClientOriginalName());
 
-        $parsed = $isVcf
-            ? ContactFileParserService::parseVcf($content)
-            : ContactFileParserService::parseJson($content);
+        if (str_ends_with($name, '.vcf')) {
+            $parsed = ContactFileParserService::parseVcf($content);
+            $source = 'vcf_import';
+        } elseif (str_ends_with($name, '.csv')) {
+            $parsed = ContactFileParserService::parseCsv($content);
+            $source = 'csv_import';
+        } else {
+            $parsed = ContactFileParserService::parseJson($content);
+            $source = 'json_import';
+        }
 
         $rows = array_map(function ($row) use ($source) {
             $email = $row['emails'][0] ?? null;
+            $phone = $row['phones'][0] ?? null;
+            $phone2 = $row['phones'][1] ?? null;
+            $phoneCandidates = array_values(array_filter([$phone, $phone2]));
 
             $conflictType = 'none';
             $existingLeadId = null;
 
+            $existingLead = null;
             if ($email) {
                 $existingLead = Lead::where('email', $email)->first();
-                if ($existingLead) {
-                    $conflictType = 'duplicate_lead';
-                    $existingLeadId = $existingLead->id;
-                } elseif (
-                    Customer::where('email', $email)->exists()
-                    || CustomerContact::where('email', $email)->exists()
-                ) {
-                    $conflictType = 'already_customer';
-                }
+            }
+            if (!$existingLead && !empty($phoneCandidates)) {
+                $existingLead = Lead::where(function ($q) use ($phoneCandidates) {
+                    $q->whereIn('phone', $phoneCandidates)->orWhereIn('phone_2', $phoneCandidates);
+                })->first();
+            }
+
+            if ($existingLead) {
+                $conflictType = 'duplicate_lead';
+                $existingLeadId = $existingLead->id;
+            } elseif (
+                ($email && (Customer::where('email', $email)->exists() || CustomerContact::where('email', $email)->exists()))
+                || (!empty($phoneCandidates) && (Customer::whereIn('phone', $phoneCandidates)->exists() || CustomerContact::whereIn('phone', $phoneCandidates)->exists()))
+            ) {
+                $conflictType = 'already_customer';
             }
 
             return [
                 'name' => $row['full_name'],
                 'email' => $email,
-                'phone' => $row['phones'][0] ?? null,
+                'phone' => $phone,
+                'phone_2' => $phone2,
                 'company' => $row['organization_name'],
+                'notes' => $row['notes'] ?? null,
                 'source' => $source,
                 'conflict_type' => $conflictType,
                 'existing_lead_id' => $existingLeadId,
@@ -90,7 +113,9 @@ class LeadImportController extends Controller
             'rows.*.name' => 'required|string|max:255',
             'rows.*.email' => 'nullable|email|max:255',
             'rows.*.phone' => 'nullable|string|max:50',
+            'rows.*.phone_2' => 'nullable|string|max:50',
             'rows.*.company' => 'nullable|string|max:255',
+            'rows.*.notes' => 'nullable|string',
             'rows.*.source' => 'nullable|string',
             'rows.*.action' => 'nullable|in:create,merge,skip',
             'rows.*.existing_lead_id' => 'nullable|integer',
@@ -116,9 +141,34 @@ class LeadImportController extends Controller
                                 'name' => $row['name'],
                                 'company' => $row['company'] ?? $lead->company,
                                 'phone' => $row['phone'] ?? $lead->phone,
+                                'phone_2' => $row['phone_2'] ?? $lead->phone_2,
+                                'notes' => $row['notes'] ?? $lead->notes,
                             ]);
                             $results['merged']++;
                         }
+                        continue;
+                    }
+
+                    // Re-check for duplicates at commit time (not just at preview time),
+                    // since other imports/leads may have landed in between. Phone has no
+                    // DB-level unique constraint, so this is the only guard against it.
+                    // Checked against both phone and phone_2 on either side, since the
+                    // same number can land in either slot depending on import order.
+                    $phoneCandidates = array_values(array_filter([$row['phone'] ?? null, $row['phone_2'] ?? null]));
+
+                    $duplicate = null;
+                    if (!empty($row['email'])) {
+                        $duplicate = Lead::where('email', $row['email'])->first();
+                    }
+                    if (!$duplicate && !empty($phoneCandidates)) {
+                        $duplicate = Lead::where(function ($q) use ($phoneCandidates) {
+                            $q->whereIn('phone', $phoneCandidates)->orWhereIn('phone_2', $phoneCandidates);
+                        })->first();
+                    }
+
+                    if ($duplicate) {
+                        $results['skipped']++;
+                        $results['errors'][] = "Row {$index} ({$row['name']}): skipped — already exists as lead #{$duplicate->id} ({$duplicate->lead_code})";
                         continue;
                     }
 
@@ -128,6 +178,8 @@ class LeadImportController extends Controller
                             'company' => $row['company'] ?? null,
                             'email' => $row['email'] ?? null,
                             'phone' => $row['phone'] ?? null,
+                            'phone_2' => $row['phone_2'] ?? null,
+                            'notes' => $row['notes'] ?? null,
                             'source' => $row['source'] ?? 'json_import',
                             'status' => 'new',
                         ]);

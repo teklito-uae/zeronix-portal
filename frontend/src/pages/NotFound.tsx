@@ -17,7 +17,7 @@ export const NotFound = () => {
           </div>
         </div>
 
-        <h1 className="text-3xl font-bold text-white mb-3">Page Not Found</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-white mb-3">Page Not Found</h1>
         <p className="text-slate-400 mb-10 leading-relaxed">
           The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.
         </p>

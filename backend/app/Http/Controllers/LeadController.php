@@ -14,7 +14,7 @@ class LeadController extends Controller
 
     public function index(Request $request)
     {
-        $query = Lead::with('owner')->withCount('enquiries');
+        $query = Lead::with('owner')->withCount('deals');
 
         $query->forUser($request->user());
 
@@ -54,12 +54,14 @@ class LeadController extends Controller
             'company' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255|unique:leads,email',
             'phone' => 'nullable|string|max:50',
+            'phone_2' => 'nullable|string|max:50',
             'source' => 'nullable|string',
             'status' => 'nullable|string|in:' . implode(',', self::STATUSES),
             'notes' => 'nullable|string',
+            'user_id' => 'nullable|exists:users,id',
         ]);
 
-        $validated['user_id'] = $request->user()->id ?? null;
+        $validated['user_id'] = $validated['user_id'] ?? $request->user()->id ?? null;
 
         $lead = Lead::create($validated);
 
@@ -68,19 +70,25 @@ class LeadController extends Controller
 
     public function show(Request $request, Lead $lead)
     {
-        return response()->json($lead->load(['owner', 'convertedCustomer', 'enquiries']));
+        $this->authorize('view', $lead);
+
+        return response()->json($lead->load(['owner', 'convertedCustomer', 'deals']));
     }
 
     public function update(Request $request, Lead $lead)
     {
+        $this->authorize('update', $lead);
+
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'company' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255|unique:leads,email,' . $lead->id,
             'phone' => 'nullable|string|max:50',
+            'phone_2' => 'nullable|string|max:50',
             'source' => 'nullable|string',
             'status' => 'nullable|string|in:' . implode(',', self::STATUSES),
             'notes' => 'nullable|string',
+            'user_id' => 'nullable|exists:users,id',
         ]);
 
         $lead->update($validated);
@@ -90,6 +98,8 @@ class LeadController extends Controller
 
     public function destroy(Request $request, Lead $lead)
     {
+        $this->authorize('delete', $lead);
+
         $lead->delete();
         return response()->json(['message' => 'Lead deleted']);
     }
@@ -119,18 +129,33 @@ class LeadController extends Controller
 
     public function convert(Request $request, Lead $lead)
     {
+        $this->authorize('update', $lead);
+
         if ($lead->status === 'converted') {
             return response()->json(['message' => 'Lead has already been converted.'], 422);
         }
 
         DB::beginTransaction();
         try {
-            // Email is globally unique on customers — reuse an existing account
-            // instead of letting a duplicate insert fail, so the same business
-            // doesn't end up split across two customer records.
+            // Dedup in priority order, so the same business doesn't end up split
+            // across two customer records:
+            //   (a) exact email match (email is globally unique on customers)
+            //   (b) exact phone match
+            //   (c) case-insensitive company name match, combined with a phone
+            //       match — company name alone is too ambiguous to key off of.
             $customer = $lead->email
                 ? Customer::where('email', $lead->email)->first()
                 : null;
+
+            if (!$customer && !empty($lead->phone)) {
+                $customer = Customer::where('phone', $lead->phone)->first();
+            }
+
+            if (!$customer && !empty($lead->company) && !empty($lead->phone)) {
+                $customer = Customer::whereRaw('LOWER(company) = ?', [strtolower($lead->company)])
+                    ->where('phone', $lead->phone)
+                    ->first();
+            }
 
             if (!$customer) {
                 $customer = Customer::create([
@@ -163,8 +188,21 @@ class LeadController extends Controller
             ]);
 
             // Only customer_id is touched here — lead_id is intentionally preserved on
-            // these enquiries for historical reporting (the lead is never deleted).
-            $lead->enquiries()->update(['customer_id' => $customer->id]);
+            // these deals for historical reporting (the lead is never deleted).
+            $lead->deals()->update(['customer_id' => $customer->id]);
+
+            // Assign both the lead's original owner and the converting user to the
+            // resulting customer, so the person who just converted it (and whoever
+            // it was originally owned by) can actually see it afterwards.
+            $assigneeIds = collect([$lead->user_id, $request->user()->id])
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            if (!empty($assigneeIds)) {
+                $customer->assigned_users()->syncWithoutDetaching($assigneeIds);
+            }
 
             DB::commit();
         } catch (\Exception $e) {

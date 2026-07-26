@@ -101,7 +101,7 @@ export const UnifiedLogin = () => {
             <div className="flex justify-center mb-6">
               <Logo size="lg" />
             </div>
-            <h1 className="text-3xl font-bold tracking-tight text-brand-primary">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-brand-primary">
               {isPlatform ? 'Zeronix Platform' : isPortal ? 'Client Portal' : 'Workspace Login'}
             </h1>
             <p className="mt-2 text-sm text-brand-muted">
@@ -191,7 +191,7 @@ export const UnifiedLogin = () => {
           <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-8 border transition-all duration-1000 ${loginType === 'client' ? 'bg-brand-success/10 border-brand-success/30' : 'bg-brand-accent/10 border-brand-accent/30'}`}>
             <ShieldCheck size={32} className={loginType === 'client' ? 'text-brand-success' : 'text-brand-accent'} />
           </div>
-          <h2 className="text-4xl font-extrabold text-brand-primary tracking-tight mb-4">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-brand-primary tracking-tight mb-4">
             {loginType === 'client' ? 'Welcome to the Hub' : 'Zeronix Mission Control'}
           </h2>
           <p className={`text-lg mb-12 ${loginType === 'client' ? 'text-brand-success-text' : 'text-brand-secondary'}`}>
@@ -204,7 +204,7 @@ export const UnifiedLogin = () => {
             {FEATURES.map((feature, idx) => (
               <div
                 key={idx}
-                className={`absolute transition-all duration-500 flex items-center gap-3 text-2xl font-bold ${loginType === 'client' ? 'text-brand-success-text' : 'text-brand-accent'} ${
+                className={`absolute transition-all duration-500 flex items-center gap-3 text-xl md:text-2xl font-bold ${loginType === 'client' ? 'text-brand-success-text' : 'text-brand-accent'} ${
                   idx === featureIndex ? 'opacity-100 transform-none' : 'opacity-0 translate-y-4'
                 }`}
               >

@@ -156,7 +156,7 @@ export const CustomerRegister = () => {
         {/* Header */}
         <div className="flex flex-col items-center mb-10">
           <Logo size="lg" />
-          <h1 className="mt-6 text-3xl font-bold tracking-tight text-brand-primary">Register your business</h1>
+          <h1 className="mt-6 text-2xl md:text-3xl font-bold tracking-tight text-brand-primary">Register your business</h1>
           <p className="mt-2 text-brand-muted">Set up your company workspace on Zeronix</p>
         </div>
 
@@ -395,7 +395,7 @@ export const CustomerRegister = () => {
                   <div className="w-20 h-20 bg-brand-accent-light rounded-full flex items-center justify-center mx-auto mb-6">
                     <Building2 className="text-brand-accent" size={40} />
                   </div>
-                  <h2 className="text-2xl font-bold text-brand-primary mb-2">Almost Done!</h2>
+                  <h2 className="text-xl md:text-2xl font-bold text-brand-primary mb-2">Almost Done!</h2>
                   <p className="text-brand-muted mb-8">Please review your company profile before submitting.</p>
                 </div>
 

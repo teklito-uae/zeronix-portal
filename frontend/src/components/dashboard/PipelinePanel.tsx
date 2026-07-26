@@ -35,7 +35,7 @@ export const PipelinePanel = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-end gap-3">
+      <div className="flex items-center justify-end gap-3 flex-wrap">
         <div className="space-y-1">
           <Label className="text-[10px] text-brand-subtle">From</Label>
           <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-8 text-[12px] w-36" />
@@ -54,34 +54,38 @@ export const PipelinePanel = () => {
             <StatCard title="Total Leads" value={data?.total_leads ?? 0} icon={<UserCircle2 size={18} />} href={`${getBasePath()}/leads`} />
             <StatCard title="Converted Leads" value={data?.converted_leads ?? 0} icon={<TrendingUp size={18} />} href={`${getBasePath()}/leads`} />
             <StatCard title="Conversion Rate" value={`${data?.conversion_rate ?? 0}%`} icon={<TrendingUp size={18} />} />
-            <StatCard title="Open Enquiries" value={Object.entries(enquiriesByStatus).filter(([s]) => !['won', 'lost', 'closed'].includes(s)).reduce((sum, [, c]) => sum + Number(c), 0)} icon={<MessageSquareText size={18} />} href={`${getBasePath()}/enquiries`} />
+            <StatCard title="Open Deals" value={Object.entries(enquiriesByStatus).filter(([s]) => !['won', 'lost', 'closed'].includes(s)).reduce((sum, [, c]) => sum + Number(c), 0)} icon={<MessageSquareText size={18} />} href={`${getBasePath()}/deals`} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-brand-white border border-brand-border rounded-xl p-4 shadow-sm">
               <h3 className="text-[13px] font-semibold text-brand-primary mb-3">Lead Funnel by Status</h3>
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={leadChartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="status" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="#6366F1" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="h-[200px] sm:h-[260px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={leadChartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="status" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#6366F1" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
 
             <div className="bg-brand-white border border-brand-border rounded-xl p-4 shadow-sm">
-              <h3 className="text-[13px] font-semibold text-brand-primary mb-3">Enquiry Pipeline by Status</h3>
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={enquiryChartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="status" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="#10B981" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <h3 className="text-[13px] font-semibold text-brand-primary mb-3">Deal Funnel by Stage</h3>
+              <div className="h-[200px] sm:h-[260px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={enquiryChartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="status" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#10B981" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
 

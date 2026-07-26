@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import api from '@/lib/axios';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import {
   Shield, Mail, Phone, UserCog, CheckCircle2, Lock, Download,
-  LayoutDashboard, Users as UsersIcon, MessageSquareText, FileText,
+  LayoutDashboard, Users as UsersIcon, FileText,
   Receipt, Package, Truck, Clock, Activity, Banknote, Megaphone,
   UserCircle2, ClipboardList, PackageCheck, ShoppingCart, Wallet, BarChart3, Handshake
 } from 'lucide-react';
@@ -27,14 +29,13 @@ import { ActionGroup } from '@/components/shared/ActionGroup';
 import { useResourceMutation } from '@/hooks/useApi';
 import { PhoneFlag } from '@/components/shared/PhoneFlag';
 import Avatar from 'boring-avatars';
-import { useThemeStore } from '@/store/useThemeStore';
+import { avatarColorsFor } from '@/lib/avatarColors';
 
 const AVAILABLE_MODULES = [
   { id: 'dashboard', label: 'Dashboard Overview', icon: LayoutDashboard, desc: 'High-level analytics' },
   { id: 'leads', label: 'Leads', icon: UserCircle2, desc: 'Track and qualify prospects' },
   { id: 'companies', label: 'Companies', icon: UsersIcon, desc: 'Manage client company profiles' },
   { id: 'contacts', label: 'Contacts', icon: UsersIcon, desc: 'Manage contact persons across companies' },
-  { id: 'enquiries', label: 'Enquiry Hub', icon: MessageSquareText, desc: 'Process customer enquiries & RFQs' },
   { id: 'deals', label: 'Deal Pipeline', icon: Handshake, desc: 'Track sales opportunities to close' },
   { id: 'quotes', label: 'Quotation Engine', icon: FileText, desc: 'Draft and send quotes' },
   { id: 'sales-orders', label: 'Sales Orders', icon: ClipboardList, desc: 'Confirm orders for fulfilment' },
@@ -57,10 +58,6 @@ const AVAILABLE_MODULES = [
  * Refactored to use the standardized State-Driven architecture.
  */
 export const Users = () => {
-  const { theme } = useThemeStore();
-  const avatarColors = theme === 'dark' 
-    ? ['#ff4d6d', '#ff758f', '#ffbe0b', '#fdfcdc', '#48cae4']
-    : ['#cc063e', '#e83535', '#fd9407', '#e2d9c2', '#10898b'];
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -71,6 +68,7 @@ export const Users = () => {
     phone: '',
     password: '',
     role: 'salesman',
+    manager_id: '',
     designation: '',
     is_active: true,
     permissions: [] as string[],
@@ -80,12 +78,16 @@ export const Users = () => {
 
   // CRUD State Hooks
   const { create, update } = useResourceMutation('users');
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['users', 'all'],
+    queryFn: async () => (await api.get('/admin/users?per_page=200')).data.data as User[],
+  });
 
   // Handlers
   const resetForm = () => {
     setEditId(null);
     setForm({
-      name: '', email: '', phone: '', password: '', role: 'salesman', designation: '', is_active: true, permissions: [],
+      name: '', email: '', phone: '', password: '', role: 'salesman', manager_id: '', designation: '', is_active: true, permissions: [],
       shift_start: '09:00', shift_end: '18:00'
     });
   };
@@ -103,6 +105,7 @@ export const Users = () => {
       phone: user.phone || '',
       password: '',
       role: user.role || 'salesman',
+      manager_id: user.manager_id ? String(user.manager_id) : '',
       designation: user.designation || '',
       is_active: user.is_active ?? true,
       permissions: user.permissions || [],
@@ -113,10 +116,11 @@ export const Users = () => {
   };
 
   const handleSave = async () => {
+    const payload = { ...form, manager_id: form.manager_id ? Number(form.manager_id) : null };
     if (editId) {
-      await update.mutateAsync({ id: editId, data: form });
+      await update.mutateAsync({ id: editId, data: payload });
     } else {
-      await create.mutateAsync(form);
+      await create.mutateAsync(payload);
     }
     setDialogOpen(false);
   };
@@ -141,7 +145,7 @@ export const Users = () => {
             size={36}
             name={row.original.name || 'Staff'}
             variant="beam"
-            colors={avatarColors}
+            colors={avatarColorsFor(row.original)}
           />
           <div className="min-w-0">
             <p className="text-[14px] font-semibold text-brand-primary flex items-center gap-2">
@@ -171,9 +175,11 @@ export const Users = () => {
       cell: ({ row }) => (
         <span className={`px-2.5 py-1 rounded-md text-[11px] font-medium ${row.original.role === 'admin'
             ? 'bg-brand-accent/10 text-brand-accent border border-brand-accent/20'
+            : row.original.role === 'manager'
+            ? 'bg-brand-warning-bg text-brand-warning border border-brand-warning/20'
             : 'bg-brand-surface text-brand-secondary border border-brand-border/50'
           }`}>
-          {row.original.role === 'admin' ? 'Super Admin' : 'Sales Agent'}
+          {row.original.role === 'admin' ? 'Super Admin' : row.original.role === 'manager' ? 'Manager' : 'Sales Agent'}
         </span>
       ),
     },
@@ -223,6 +229,7 @@ export const Users = () => {
             placeholder: 'All Roles',
             options: [
               { label: 'Super Admin', value: 'admin' },
+              { label: 'Manager', value: 'manager' },
               { label: 'Sales Agent', value: 'salesman' },
             ],
           },
@@ -286,6 +293,7 @@ export const Users = () => {
                       </SelectTrigger>
                       <SelectContent className="bg-brand-white border-brand-border/50 rounded-lg">
                         <SelectItem value="admin">Super Admin</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
                         <SelectItem value="salesman">Sales Agent</SelectItem>
                       </SelectContent>
                     </Select>
@@ -294,6 +302,21 @@ export const Users = () => {
                     <Label className="text-[12px] font-medium text-brand-secondary ml-1">Designation</Label>
                     <Input value={form.designation} onChange={e => setForm({ ...form, designation: e.target.value })} className="h-[36px] bg-brand-white border-brand-border/50 text-[13px] text-brand-primary rounded-lg" placeholder="e.g. Sales Manager" />
                   </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[12px] font-medium text-brand-secondary ml-1">Reports To</Label>
+                  <Select value={form.manager_id || 'none'} onValueChange={v => setForm({ ...form, manager_id: v === 'none' ? '' : v })}>
+                    <SelectTrigger className="h-[36px] bg-brand-white border-brand-border/50 text-[13px] text-brand-primary rounded-lg">
+                      <SelectValue placeholder="No manager" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-brand-white border-brand-border/50 rounded-lg max-h-[240px]">
+                      <SelectItem value="none">No manager</SelectItem>
+                      {allUsers.filter(u => u.id !== editId).map(u => (
+                        <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-brand-subtle ml-1">A Manager sees their own records plus everyone who reports to them.</p>
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[12px] font-medium text-brand-secondary ml-1">Phone Number</Label>

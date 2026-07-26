@@ -20,6 +20,7 @@ export interface User {
   manager_id?: number | null;
   manager?: User;
   designation?: string;
+  avatar_color?: string | null;
   permissions?: string[];
   is_active?: boolean;
   shift_start?: string;
@@ -233,6 +234,7 @@ export interface Lead {
   company?: string;
   email?: string;
   phone?: string;
+  phone_2?: string;
   source?: string;
   status: LeadStatus;
   notes?: string;

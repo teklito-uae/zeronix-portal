@@ -56,7 +56,7 @@ export const DeliveryEditor = ({ id, isNew }: DeliveryEditorProps) => {
 
   useBreadcrumb([
     { label: 'Deliveries', href: `${getBasePath()}/deliveries` },
-    { label: docLabel },
+    { label: docLabel, badge: !isNew && docData.status && <StatusBadge status={docData.status} /> },
   ]);
 
   const { data: customersList = [] } = useQuery({
@@ -159,38 +159,30 @@ export const DeliveryEditor = ({ id, isNew }: DeliveryEditorProps) => {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 pb-20 md:pb-0">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" onClick={() => navigate(`${getBasePath()}/deliveries`)} className="rounded-2xl border-brand-border h-11 w-11 hover:bg-brand-white-hover shadow-sm transition-all active:scale-95">
-            <ArrowLeft size={20} />
-          </Button>
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-2xl font-bold text-brand-primary tracking-tight">
-                {isNew ? 'New Delivery' : `DELIVERY ${docData.delivery_number || '#' + id}`}
-              </h1>
-              {!isNew && <StatusBadge status={docData.status} />}
-            </div>
-            <p className="text-xs font-medium text-brand-subtle mt-0.5 uppercase tracking-wide opacity-70">
-              {isNew ? 'Outbound Goods Movement' : 'Managing Delivery Records'}
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => navigate(`${getBasePath()}/deliveries`)}
+          className="md:hidden shrink-0"
+        >
+          <ArrowLeft size={18} />
+        </Button>
+        <div className="flex-1 flex flex-wrap items-center justify-end gap-2">
           {!isNew && docData.status !== 'delivered' && docData.status !== 'cancelled' && (
-            <Button onClick={handleMarkDelivered} disabled={loading} size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-10 px-5 font-bold text-[11px] uppercase tracking-wider shadow-lg shadow-emerald-600/10">
-              <CheckCircle2 size={16} className="mr-2" /> Mark Delivered
+            <Button onClick={handleMarkDelivered} disabled={loading} size="sm" variant="outline" className="text-brand-success border-brand-success/30 hover:bg-brand-success/10">
+              <CheckCircle2 size={15} /> <span className="hidden sm:inline">Mark Delivered</span>
             </Button>
           )}
           {canInvoice && (
-            <Button onClick={handleConvertToInvoice} disabled={loading} size="sm" className="bg-brand-accent hover:bg-brand-accent-hover text-white rounded-xl h-10 px-5 font-bold text-[11px] uppercase tracking-wider shadow-lg">
-              <FileCheck2 size={16} className="mr-2" /> Convert to Invoice
+            <Button onClick={handleConvertToInvoice} disabled={loading} size="sm" variant="outline">
+              <FileCheck2 size={15} /> <span className="hidden sm:inline">Convert to Invoice</span>
             </Button>
           )}
           {!isLocked && (
-            <Button onClick={handleSaveDoc} disabled={loading} size="sm" className="bg-brand-accent hover:bg-brand-accent-hover text-white rounded-md h-9 px-4 font-medium text-sm transition-all active:scale-95">
-              {loading ? <Loader2 className="animate-spin mr-2" size={16} /> : <Save size={16} className="mr-2" />}
-              Save Delivery
+            <Button onClick={handleSaveDoc} disabled={loading} size="sm">
+              {loading ? <Loader2 className="animate-spin" size={15} /> : <Save size={15} />}
+              <span className="hidden sm:inline">Save</span>
             </Button>
           )}
         </div>

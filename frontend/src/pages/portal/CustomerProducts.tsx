@@ -15,12 +15,14 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { SEO } from '@/components/shared/SEO';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { Pagination } from '@/components/shared/Pagination';
 
 export const CustomerProducts = () => {
   const addItem = useCartStore((state) => state.addItem);
   const addManualItem = useCartStore((state) => state.addManualItem);
   
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(15);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [category, setCategory] = useState('all');
@@ -29,9 +31,9 @@ export const CustomerProducts = () => {
   const [manualQty, setManualQty] = useState(1);
 
   const { data: productsData, isLoading } = useQuery<PaginatedResponse<Product>>({
-    queryKey: ['customer-products', page, search, category],
+    queryKey: ['customer-products', page, perPage, search, category],
     queryFn: async () => {
-      const params: any = { page, per_page: 15 };
+      const params: any = { page, per_page: perPage };
       if (search) params.search = search;
       if (category !== 'all') params.category = category;
       const res = await api.get('/customer/products', { params });
@@ -217,36 +219,15 @@ export const CustomerProducts = () => {
             </div>
 
             {/* Pagination */}
-            <div className="sticky bottom-0 z-10 flex items-center justify-between p-4 mt-2 bg-admin-bg/95 backdrop-blur-sm border-t border-admin-border">
-              <p className="text-[11px] text-admin-text-muted font-bold uppercase tracking-wider">
-                {productsData.total} products available
-              </p>
-              <div className="flex items-center gap-3">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setPage(p => Math.max(1, p - 1))} 
-                  disabled={page === 1}
-                  className="h-8 text-xs font-medium border-admin-border bg-admin-surface"
-                >
-                  Prev
-                </Button>
-                <div className="flex items-center gap-1.5 px-3 py-1 bg-admin-surface border border-admin-border rounded-md">
-                  <span className="text-xs font-bold text-admin-text-primary">{page}</span>
-                  <span className="text-[10px] text-admin-text-muted">/</span>
-                  <span className="text-xs font-medium text-admin-text-muted">{productsData.last_page}</span>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setPage(p => p + 1)} 
-                  disabled={page >= productsData.last_page}
-                  className="h-8 text-xs font-medium border-admin-border bg-admin-surface"
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
+            <Pagination
+              page={page}
+              perPage={perPage}
+              total={productsData.total}
+              lastPage={productsData.last_page}
+              onPageChange={setPage}
+              onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
+              className="mt-2"
+            />
           </>
         ) : (
           <EmptyState

@@ -27,6 +27,7 @@ import { useResourceList } from '@/hooks/useApi';
 import type { CustomerContact, Customer, Tag } from '@/types';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
 import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
+import { toTitleCase } from '@/lib/utils';
 
 /**
  * Standalone, cross-company Contacts directory.
@@ -158,7 +159,7 @@ export const Contacts = () => {
         <div className="flex items-center gap-2.5">
           <Avatar name={row.original.full_name} className="h-8 w-8 text-[11px] flex-shrink-0" />
           <div className="flex items-center gap-2 min-w-0">
-            <p className="text-sm font-bold text-admin-text-primary truncate">{row.original.full_name}</p>
+            <p className="text-sm font-bold text-admin-text-primary truncate">{toTitleCase(row.original.full_name)}</p>
             {row.original.is_primary && (
               <span className="text-[10px] font-bold text-brand-accent bg-brand-accent-light px-1.5 py-0.5 rounded flex items-center gap-1 flex-shrink-0">
                 <Star size={10} /> PRIMARY
@@ -183,7 +184,7 @@ export const Contacts = () => {
       header: 'Company',
       cell: ({ row }) => {
         const customer = row.original.customer;
-        const label = customer?.company || customer?.name || '—';
+        const label = toTitleCase(customer?.company || customer?.name || '—');
         return (
           <button
             type="button"

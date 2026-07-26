@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import api from '@/lib/axios';
 import { getBasePath } from '@/hooks/useBasePath';
-import { cn } from '@/lib/utils';
+import { cn, toTitleCase } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
 import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
@@ -43,8 +43,12 @@ import {
   Receipt,
   Wallet,
   Plus,
+  Paperclip,
+  Download,
 } from 'lucide-react';
-import type { CustomerContact, ContactActivity, Tag, Deal, Quote, Invoice } from '@/types';
+import type { CustomerContact, ContactActivity, Tag, Deal, Quote, Invoice, QuoteAttachment } from '@/types';
+
+const storageBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api').replace(/\/api\/?$/, '');
 
 interface ContactDetailResponse {
   contact: CustomerContact;
@@ -96,6 +100,7 @@ export const ContactDetailPanel = ({ contactId, onClose }: ContactDetailPanelPro
   const [activityDueDate, setActivityDueDate] = useState('');
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
   const [tagSearch, setTagSearch] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['contacts', contactId],
@@ -140,6 +145,34 @@ export const ContactDetailPanel = ({ contactId, onClose }: ContactDetailPanelPro
     },
     onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to create tag'),
   });
+
+  const uploadAttachment = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      return (await api.post(`/admin/contacts/${contactId}/attachments`, formData)).data;
+    },
+    onSuccess: () => {
+      toast.success('Attachment uploaded.');
+      invalidate();
+    },
+    onError: (err: any) => toast.error(err.response?.data?.message || 'Upload failed.'),
+  });
+
+  const deleteAttachment = useMutation({
+    mutationFn: async (index: number) => (await api.delete(`/admin/contacts/${contactId}/attachments/${index}`)).data,
+    onSuccess: () => {
+      toast.success('Attachment removed.');
+      invalidate();
+    },
+    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to remove attachment.'),
+  });
+
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) uploadAttachment.mutate(file);
+    e.target.value = '';
+  };
 
   const resetComposer = () => {
     setComposerType(null);
@@ -202,7 +235,7 @@ export const ContactDetailPanel = ({ contactId, onClose }: ContactDetailPanelPro
               <Avatar name={contact.full_name} className="h-14 w-14 text-lg flex-shrink-0" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-base font-bold text-admin-text-primary truncate">{contact.full_name}</h3>
+                  <h3 className="text-base font-bold text-admin-text-primary truncate">{toTitleCase(contact.full_name)}</h3>
                   {contact.is_active ? (
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
                       ACTIVE
@@ -222,7 +255,7 @@ export const ContactDetailPanel = ({ contactId, onClose }: ContactDetailPanelPro
                     onClick={() => navigate(`${getBasePath()}/companies/${contact.customer_id}`)}
                     className="inline-flex items-center gap-1 text-xs font-semibold text-zeronix-blue hover:underline mt-1.5"
                   >
-                    <Building2 size={12} /> {contact.customer.company || contact.customer.name}
+                    <Building2 size={12} /> {toTitleCase(contact.customer.company || contact.customer.name)}
                   </button>
                 )}
               </div>
@@ -362,7 +395,7 @@ export const ContactDetailPanel = ({ contactId, onClose }: ContactDetailPanelPro
                       className="w-full text-left bg-admin-bg border border-admin-border rounded-xl p-4 hover:border-zeronix-blue/40 transition-colors"
                     >
                       <p className="text-sm font-bold text-admin-text-primary">
-                        {contact.customer.company || contact.customer.name}
+                        {toTitleCase(contact.customer.company || contact.customer.name)}
                       </p>
                       {contact.customer.industry && (
                         <p className="text-xs text-admin-text-secondary mt-0.5">{contact.customer.industry}</p>
@@ -580,8 +613,59 @@ export const ContactDetailPanel = ({ contactId, onClose }: ContactDetailPanelPro
             )}
 
             {activeTab === 'files' && (
-              <div className="p-5">
-                <p className="text-xs text-admin-text-muted text-center py-10">File attachments coming soon.</p>
+              <div className="p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-admin-text-muted">Attachments</h4>
+                  <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileSelected} />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 text-admin-text-muted hover:text-admin-text-primary rounded-lg"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadAttachment.isPending}
+                  >
+                    {uploadAttachment.isPending ? (
+                      <Spinner size={14} />
+                    ) : (
+                      <Plus size={14} />
+                    )}
+                  </Button>
+                </div>
+
+                {(contact.attachments ?? []).length === 0 ? (
+                  <p className="text-xs text-admin-text-muted text-center py-10">No attachments yet.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {(contact.attachments ?? []).map((att: QuoteAttachment, idx: number) => (
+                      <li
+                        key={`${att.path}-${idx}`}
+                        className="flex items-center justify-between gap-2 bg-admin-bg border border-admin-border rounded-lg px-3 py-2"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Paperclip size={13} className="text-admin-text-muted flex-shrink-0" />
+                          <span className="text-xs text-admin-text-primary truncate">{att.name}</span>
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <a
+                            href={`${storageBaseUrl}/storage/${att.path}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-admin-text-muted hover:text-admin-text-primary p-1"
+                          >
+                            <Download size={13} />
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => deleteAttachment.mutate(idx)}
+                            className="text-admin-text-muted hover:text-red-600 p-1"
+                          >
+                            <X size={13} />
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
           </div>

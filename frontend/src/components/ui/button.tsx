@@ -23,11 +23,11 @@ const buttonVariants = cva(
           "text-brand-accent underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-9 px-4 py-2 text-[13px] rounded-lg [&_svg]:size-[16px]",
-        sm: "h-[30px] px-3 py-1.5 text-[12px] rounded-lg [&_svg]:size-[14px]",
-        xs: "h-6 px-2 py-1 text-[11px] rounded-md [&_svg]:size-[12px]",
-        lg: "h-10 px-5 py-2.5 text-[14px] rounded-lg [&_svg]:size-[18px]",
-        icon: "h-8 w-8 rounded-lg [&_svg]:size-[16px]",
+        default: "h-11 md:h-9 px-4 py-2 text-[13px] rounded-lg [&_svg]:size-[16px]",
+        sm: "h-10 md:h-[30px] px-3 py-1.5 text-[12px] rounded-lg [&_svg]:size-[14px]",
+        xs: "h-8 md:h-6 px-2 py-1 text-[11px] rounded-md [&_svg]:size-[12px]",
+        lg: "h-11 md:h-10 px-5 py-2.5 text-[14px] rounded-lg [&_svg]:size-[18px]",
+        icon: "h-11 w-11 md:h-8 md:w-8 rounded-lg [&_svg]:size-[16px]",
       },
     },
     defaultVariants: {

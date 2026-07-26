@@ -10,6 +10,7 @@ import { SEO } from '@/components/shared/SEO';
 import { PageLoader } from '@/components/shared/PageLoader';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { DataTable } from '@/components/shared/DataTable';
+import { Pagination } from '@/components/shared/Pagination';
 import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 import {
   Select,
@@ -156,6 +157,16 @@ export default function DealsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Mobile default: Kanban's multi-column layout is cramped on small
+  // screens, so default to List on first mount when below the `md`
+  // breakpoint. Runs once — any explicit toggle afterwards (via
+  // DealsHeader) is never overridden since this effect doesn't re-run.
+  useEffect(() => {
+    const isMobile = !window.matchMedia('(min-width: 768px)').matches;
+    if (isMobile) setViewMode('list');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Keep the URL in sync whenever the selected deal changes (opening a deal
   // from the Kanban/list view, or closing the drawer) so deep-linking and
   // page refreshes keep working the same way the old Deals.tsx behaved.
@@ -214,6 +225,19 @@ export default function DealsPage() {
     [allDeals, stageFilter]
   );
 
+  // NOTE: /admin/deals/pipeline returns the full unpaginated deal list (it's
+  // shared with the Kanban board, which needs every deal per stage), so the
+  // List view paginates client-side. A true DB-level page/per_page endpoint
+  // would need a backend follow-up if this list grows large.
+  const [listPage, setListPage] = useState(1);
+  const [listPerPage, setListPerPage] = useState(10);
+  useEffect(() => { setListPage(1); }, [stageFilter]);
+  const pagedDeals = useMemo(
+    () => filteredDeals.slice((listPage - 1) * listPerPage, listPage * listPerPage),
+    [filteredDeals, listPage, listPerPage]
+  );
+  const listLastPage = Math.max(1, Math.ceil(filteredDeals.length / listPerPage));
+
   return (
     <div className="bg-brand-white flex flex-col h-full overflow-hidden animate-in fade-in duration-200">
       <SEO title="Deals" />
@@ -251,9 +275,17 @@ export default function DealsPage() {
             </div>
             <DataTable<Deal, unknown>
               columns={getDealColumns(currency)}
-              data={filteredDeals}
+              data={pagedDeals}
               onRowClick={(deal) => setSelectedDealId(deal.id)}
-              pageSize={20}
+              hidePagination
+            />
+            <Pagination
+              page={listPage}
+              perPage={listPerPage}
+              total={filteredDeals.length}
+              lastPage={listLastPage}
+              onPageChange={setListPage}
+              onPerPageChange={(next) => { setListPerPage(next); setListPage(1); }}
             />
           </div>
         )}

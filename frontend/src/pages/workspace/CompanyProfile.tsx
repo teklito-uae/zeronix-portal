@@ -21,14 +21,16 @@ import { PageLoader } from '@/components/shared/PageLoader';
 import { useResourceMutation } from '@/hooks/useApi';
 import Avatar from 'boring-avatars';
 import { useThemeStore } from '@/store/useThemeStore';
+import { avatarColorsFor } from '@/lib/avatarColors';
 import { format, isToday, isYesterday } from 'date-fns';
+import { toTitleCase } from '@/lib/utils';
 
 import type { ColumnDef } from '@tanstack/react-table';
-import type { Quote, Invoice, CustomerContact, Deal, CustomerLabel, ActivityLogEntry } from '@/types';
+import type { Quote, Invoice, CustomerContact, Deal, CustomerLabel, SalesOrder } from '@/types';
 import {
   Mail, Phone, Building2, Calendar, FileText, MessageSquare, Receipt, MapPin, ShieldCheck, Wallet,
   ArrowUpRight, Edit, User as UserIcon, Users, Plus, Star, Trash2, Pencil, Briefcase, Globe, Handshake,
-  Activity as ActivityIcon, AlertTriangle, Clock, type LucideIcon,
+  Activity as ActivityIcon, AlertTriangle, Clock, ShoppingCart, type LucideIcon,
 } from 'lucide-react';
 import { Spinner } from '@/components/shared/Spinner';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
@@ -110,7 +112,7 @@ const CustomerContactsPanel = ({ customerId }: { customerId: number }) => {
           <div key={c.id} className="flex items-center justify-between px-5 py-3">
             <div>
               <div className="flex items-center gap-2">
-                <p className="text-[14px] font-semibold text-brand-primary">{c.full_name}</p>
+                <p className="text-[14px] font-semibold text-brand-primary">{toTitleCase(c.full_name)}</p>
                 {c.is_primary && (
                   <span className="text-[10px] font-bold text-brand-accent bg-brand-accent-light px-1.5 py-0.5 rounded flex items-center gap-1">
                     <Star size={10} /> PRIMARY
@@ -152,31 +154,31 @@ const CustomerContactsPanel = ({ customerId }: { customerId: number }) => {
             </SheetHeader>
           </div>
           <div className="flex-1 overflow-y-auto grid grid-cols-2 gap-4 p-6">
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 col-span-2 md:col-span-1">
               <Label className="text-[12px] font-medium text-brand-secondary ml-1">First Name *</Label>
               <Input value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} className="h-[36px] text-[13px] rounded-lg" />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 col-span-2 md:col-span-1">
               <Label className="text-[12px] font-medium text-brand-secondary ml-1">Last Name</Label>
               <Input value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} className="h-[36px] text-[13px] rounded-lg" />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 col-span-2 md:col-span-1">
               <Label className="text-[12px] font-medium text-brand-secondary ml-1">Designation</Label>
               <Input value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} className="h-[36px] text-[13px] rounded-lg" placeholder="e.g. Sales Manager" />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 col-span-2 md:col-span-1">
               <Label className="text-[12px] font-medium text-brand-secondary ml-1">Department</Label>
               <Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} className="h-[36px] text-[13px] rounded-lg" />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 col-span-2 md:col-span-1">
               <Label className="text-[12px] font-medium text-brand-secondary ml-1">Email</Label>
               <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-[36px] text-[13px] rounded-lg" />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 col-span-2 md:col-span-1">
               <Label className="text-[12px] font-medium text-brand-secondary ml-1">Phone</Label>
               <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-[36px] text-[13px] rounded-lg" />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 col-span-2 md:col-span-1">
               <Label className="text-[12px] font-medium text-brand-secondary ml-1">Mobile</Label>
               <Input value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} className="h-[36px] text-[13px] rounded-lg" />
             </div>
@@ -200,43 +202,46 @@ const CustomerContactsPanel = ({ customerId }: { customerId: number }) => {
   );
 };
 
-// Maps an ActivityLog entry to a display icon/color and a short title, derived from
-// its subject_type (e.g. App\Models\Quote) and action (e.g. created_quote).
-const activityMeta = (subjectType: string | undefined, action: string): { Icon: LucideIcon; color: string; bg: string; title: string } => {
-  const base = subjectType?.split('\\').pop() || '';
-  const verb = action.split('_')[0];
-  const verbLabel = verb === 'created' ? 'Created' : verb === 'updated' ? 'Updated' : verb === 'deleted' ? 'Deleted' : 'Updated';
-  const spaced = base.replace(/([a-z])([A-Z])/g, '$1 $2');
-  const title = spaced ? `${spaced} ${verbLabel}` : verbLabel;
+// Merged customer timeline entry (deal/quote/invoice/contact activity etc.),
+// returned by GET /admin/customers/{id}/timeline as {type, description, user, at}.
+interface TimelineEntry {
+  type: string;
+  description: string;
+  user?: { id: number; name: string } | null;
+  at: string;
+}
 
+// Maps a timeline entry's `type` to a display icon/color.
+const activityMeta = (type: string): { Icon: LucideIcon; color: string; bg: string } => {
   const palette: Record<string, { Icon: LucideIcon; color: string; bg: string }> = {
-    Quote: { Icon: FileText, color: 'text-brand-warning', bg: 'bg-brand-warning-bg' },
-    Invoice: { Icon: Receipt, color: 'text-brand-success', bg: 'bg-brand-success-bg' },
-    Deal: { Icon: Handshake, color: 'text-brand-accent', bg: 'bg-brand-accent-light dark:bg-brand-accent/20' },
-    Enquiry: { Icon: MessageSquare, color: 'text-brand-info', bg: 'bg-brand-info-bg' },
-    CustomerContact: { Icon: Users, color: 'text-brand-accent', bg: 'bg-brand-accent-light dark:bg-brand-accent/20' },
-    Customer: { Icon: Building2, color: 'text-brand-primary', bg: 'bg-brand-surface' },
+    quote: { Icon: FileText, color: 'text-brand-warning', bg: 'bg-brand-warning-bg' },
+    invoice: { Icon: Receipt, color: 'text-brand-success', bg: 'bg-brand-success-bg' },
+    deal: { Icon: Handshake, color: 'text-brand-accent', bg: 'bg-brand-accent-light dark:bg-brand-accent/20' },
+    sales_order: { Icon: ShoppingCart, color: 'text-brand-info', bg: 'bg-brand-info-bg' },
+    contact: { Icon: Users, color: 'text-brand-accent', bg: 'bg-brand-accent-light dark:bg-brand-accent/20' },
+    customer: { Icon: Building2, color: 'text-brand-primary', bg: 'bg-brand-surface' },
+    call: { Icon: Phone, color: 'text-brand-accent', bg: 'bg-brand-accent-light dark:bg-brand-accent/20' },
+    email: { Icon: Mail, color: 'text-brand-info', bg: 'bg-brand-info-bg' },
+    meeting: { Icon: Calendar, color: 'text-brand-warning', bg: 'bg-brand-warning-bg' },
+    note: { Icon: MessageSquare, color: 'text-brand-subtle', bg: 'bg-brand-surface' },
+    task: { Icon: ActivityIcon, color: 'text-brand-accent', bg: 'bg-brand-accent-light dark:bg-brand-accent/20' },
   };
 
-  if (verb === 'deleted') {
-    return { Icon: Trash2, color: 'text-brand-danger', bg: 'bg-brand-danger-bg', title };
-  }
-
-  return { ...(palette[base] || { Icon: FileText, color: 'text-brand-subtle', bg: 'bg-brand-surface' }), title };
+  return palette[type] || { Icon: FileText, color: 'text-brand-subtle', bg: 'bg-brand-surface' };
 };
 
 const ActivityFeedPanel = ({ customerId }: { customerId: number }) => {
   const { data: activities = [], isLoading } = useQuery({
-    queryKey: ['customers', customerId, 'activities'],
-    queryFn: async () => (await api.get(`/admin/customers/${customerId}/activities`)).data as ActivityLogEntry[],
+    queryKey: ['customers', customerId, 'timeline'],
+    queryFn: async () => (await api.get(`/admin/customers/${customerId}/timeline`)).data as TimelineEntry[],
     enabled: !!customerId,
   });
 
   const groups = useMemo(() => {
-    const map = new Map<string, ActivityLogEntry[]>();
+    const map = new Map<string, TimelineEntry[]>();
     activities.forEach((a) => {
-      if (!a.created_at) return;
-      const d = new Date(a.created_at);
+      if (!a.at) return;
+      const d = new Date(a.at);
       const key = isToday(d) ? 'Today' : isYesterday(d) ? 'Yesterday' : format(d, 'MMM d, yyyy');
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(a);
@@ -247,7 +252,7 @@ const ActivityFeedPanel = ({ customerId }: { customerId: number }) => {
   return (
     <>
       <div className="px-5 py-4 border-b border-brand-border/50 flex items-center gap-2 text-[14px] font-semibold text-brand-primary flex-shrink-0">
-        <ActivityIcon size={16} className="text-brand-accent" /> Activity
+        <ActivityIcon size={16} className="text-brand-accent" /> Timeline
       </div>
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
@@ -261,21 +266,21 @@ const ActivityFeedPanel = ({ customerId }: { customerId: number }) => {
           <div key={label}>
             <div className="px-5 py-2 text-[10px] font-bold uppercase tracking-wider text-brand-subtle bg-brand-surface/60">{label}</div>
             <div className="divide-y divide-brand-border/40">
-              {items.map((a) => {
-                const meta = activityMeta(a.subject_type, a.action);
+              {items.map((a, idx) => {
+                const meta = activityMeta(a.type);
                 const Icon = meta.Icon;
                 return (
-                  <div key={a.id} className="flex gap-3 px-5 py-3">
+                  <div key={idx} className="flex gap-3 px-5 py-3">
                     <div className={`h-8 w-8 rounded-lg ${meta.bg} flex items-center justify-center flex-shrink-0`}>
                       <Icon size={14} className={meta.color} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-[12px] font-semibold text-brand-primary">{meta.title}</p>
-                        {a.created_at && <span className="text-[10px] text-brand-subtle flex-shrink-0">{format(new Date(a.created_at), 'h:mm a')}</span>}
+                        <p className="text-[12px] font-semibold text-brand-primary capitalize">{a.type.replace('_', ' ')}</p>
+                        {a.at && <span className="text-[10px] text-brand-subtle flex-shrink-0">{format(new Date(a.at), 'h:mm a')}</span>}
                       </div>
                       <p className="text-[11px] text-brand-secondary mt-0.5 leading-snug">{a.description}</p>
-                      {a.user?.name && <p className="text-[10px] text-brand-subtle mt-1">by {a.user.name}</p>}
+                      {a.user?.name && <p className="text-[10px] text-brand-subtle mt-1">by {toTitleCase(a.user.name)}</p>}
                     </div>
                   </div>
                 );
@@ -338,7 +343,7 @@ export const CompanyProfile = () => {
   }, [data]);
 
   useBreadcrumb([
-    { label: 'Company Registry', href: `${getBasePath()}/companies` },
+    { label: 'Account Registry', href: `${getBasePath()}/companies` },
     { label: data?.customer?.name || 'Identity Profile' },
   ]);
 
@@ -366,7 +371,7 @@ export const CompanyProfile = () => {
 
   if (error || !data) return null;
 
-  const { customer, quotes, invoices, deals } = data;
+  const { customer, quotes, invoices, deals, sales_orders } = data;
 
   const quoteColumns: ColumnDef<Quote>[] = [
     {
@@ -435,8 +440,8 @@ export const CompanyProfile = () => {
       header: 'Owner',
       cell: ({ row }) => row.original.user ? (
         <div className="flex items-center gap-2">
-          <Avatar size={22} name={row.original.user.name} variant="beam" colors={avatarColors} />
-          <span className="text-[12px] font-medium text-brand-secondary">{row.original.user.name}</span>
+          <Avatar size={22} name={row.original.user.name} variant="beam" colors={avatarColorsFor(row.original.user)} />
+          <span className="text-[12px] font-medium text-brand-secondary">{toTitleCase(row.original.user.name)}</span>
         </div>
       ) : <span className="text-[12px] text-brand-subtle">Unassigned</span>,
     },
@@ -468,16 +473,43 @@ export const CompanyProfile = () => {
     },
   ];
 
+  const salesOrderColumns: ColumnDef<SalesOrder>[] = [
+    {
+      accessorKey: 'order_number',
+      header: 'Order #',
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-zeronix-blue font-bold uppercase">
+          {row.original.order_number || `SO-${String(row.original.id).padStart(4, '0')}`}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }) => <StatusBadge status={row.original.status} />,
+    },
+    {
+      accessorKey: 'total',
+      header: 'Total',
+      cell: ({ row }) => (
+        <span className="font-mono text-sm font-bold text-admin-text-primary">
+          <CurrencyAmount amount={row.original.total || 0} currency={currency} />
+        </span>
+      ),
+    },
+  ];
+
   const profileTabs: PageTab[] = [
     { id: 'overview', label: 'Overview', icon: <UserIcon size={16} /> },
     { id: 'contacts', label: 'Contacts', icon: <Users size={16} />, count: customer.contacts_count },
     { id: 'deals', label: 'Deals', icon: <Handshake size={16} />, count: customer.deals_count },
     { id: 'quotes', label: 'Quotes', icon: <FileText size={16} />, count: customer.quotes_count },
+    { id: 'sales-orders', label: 'Sales Orders', icon: <ShoppingCart size={16} />, count: customer.sales_orders_count },
     { id: 'invoices', label: 'Invoices', icon: <Receipt size={16} />, count: customer.invoices_count },
   ];
 
   const aboutRows: { label: string; value: ReactNode; icon: LucideIcon }[] = [
-    { label: 'Company', value: customer.company || 'Private Entity', icon: Building2 },
+    { label: 'Company', value: toTitleCase(customer.company || 'Private Entity'), icon: Building2 },
     { label: 'Industry', value: customer.industry || 'Not specified', icon: Briefcase },
     { label: 'TRN', value: customer.trn || 'Not registered', icon: FileText },
     { label: 'Website', value: customer.website || 'N/A', icon: Globe },
@@ -498,7 +530,7 @@ export const CompanyProfile = () => {
                 <Avatar size={56} name={customer.name || 'User'} variant="marble" colors={avatarColors} />
                 <div>
                   <div className="flex items-center gap-2.5 flex-wrap">
-                    <h1 className="text-xl font-bold text-brand-primary tracking-tight">{customer.name}</h1>
+                    <h1 className="text-xl font-bold text-brand-primary tracking-tight">{toTitleCase(customer.name)}</h1>
                     {customer.is_portal_active ? (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
                         ACTIVE
@@ -510,7 +542,7 @@ export const CompanyProfile = () => {
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-3 mt-1.5 text-[12px] font-medium text-brand-secondary">
-                    <span className="flex items-center gap-1.5"><Building2 size={13} className="text-brand-accent" />{customer.company || 'Private Entity'}</span>
+                    <span className="flex items-center gap-1.5"><Building2 size={13} className="text-brand-accent" />{toTitleCase(customer.company || 'Private Entity')}</span>
                     {customer.industry && <span className="flex items-center gap-1.5"><Briefcase size={13} className="text-brand-info" />{customer.industry}</span>}
                     {customer.website && <span className="flex items-center gap-1.5"><Globe size={13} className="text-brand-accent" />{customer.website}</span>}
                   </div>
@@ -529,7 +561,7 @@ export const CompanyProfile = () => {
                   onClick={() => setEditOpen(true)}
                   className="h-[36px] rounded-lg border-brand-border text-[12px] font-medium gap-2 shadow-sm px-4 text-brand-secondary hover:text-brand-primary"
                 >
-                  <Edit size={14} /> Edit Company
+                  <Edit size={14} /> Edit Account
                 </Button>
                 {!customer.is_portal_active ? (
                   <Button
@@ -572,10 +604,10 @@ export const CompanyProfile = () => {
             {activeTab === 'overview' && (
               <div className="p-6 flex-1 overflow-auto space-y-5">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
-                  {/* About Company */}
+                  {/* About Account */}
                   <div className="bg-brand-white border border-brand-border/50 rounded-xl shadow-sm overflow-hidden">
                     <div className="px-5 py-4 border-b border-brand-border/50 flex items-center gap-2 text-[14px] font-semibold text-brand-primary">
-                      <Building2 size={16} className="text-brand-accent" /> About Company
+                      <Building2 size={16} className="text-brand-accent" /> About Account
                     </div>
                     <div className="divide-y divide-brand-border/50">
                       {aboutRows.map((row) => (
@@ -628,7 +660,7 @@ export const CompanyProfile = () => {
                           <Avatar size={32} name={c.full_name} variant="beam" colors={avatarColors} />
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5">
-                              <p className="text-[13px] font-semibold text-brand-primary truncate">{c.full_name}</p>
+                              <p className="text-[13px] font-semibold text-brand-primary truncate">{toTitleCase(c.full_name)}</p>
                               {c.is_primary && <Star size={11} className="text-brand-accent flex-shrink-0" fill="currentColor" />}
                             </div>
                             <p className="text-[11px] text-brand-subtle truncate">{c.designation || 'No designation'}</p>
@@ -638,10 +670,10 @@ export const CompanyProfile = () => {
                     </div>
                   </div>
 
-                  {/* Company Summary */}
+                  {/* Account Summary */}
                   <div className="bg-brand-white border border-brand-border/50 rounded-xl shadow-sm flex flex-col overflow-hidden">
                     <div className="px-5 py-4 border-b border-brand-border/50 flex items-center gap-2 text-[14px] font-semibold text-brand-primary">
-                      <Wallet size={16} className="text-brand-success" /> Company Summary
+                      <Wallet size={16} className="text-brand-success" /> Account Summary
                     </div>
                     <div className="p-5 grid grid-cols-2 gap-3">
                       <div className="p-3 rounded-lg bg-brand-surface border border-brand-border/50">
@@ -718,6 +750,17 @@ export const CompanyProfile = () => {
               </div>
             )}
 
+            {activeTab === 'sales-orders' && (
+              <div className="p-6 flex-1 overflow-auto">
+                <div className="bg-brand-white border border-brand-border/50 rounded-xl overflow-hidden shadow-sm">
+                  <div className="px-5 py-4 border-b border-brand-border/50 bg-brand-surface flex items-center gap-2 text-[13px] font-semibold text-brand-primary">
+                     <ShoppingCart size={16} className="text-brand-info" /> Sales Orders
+                  </div>
+                  <DataTable columns={salesOrderColumns} data={sales_orders || []} onRowClick={(row) => navigate(`${getBasePath()}/sales-orders/${row.id}`)} />
+                </div>
+              </div>
+            )}
+
             {activeTab === 'invoices' && (
               <div className="p-6 flex-1 overflow-auto">
                 <div className="bg-brand-white border border-brand-border/50 rounded-xl overflow-hidden shadow-sm">
@@ -746,38 +789,38 @@ export const CompanyProfile = () => {
             </SheetHeader>
           </div>
           <div className="flex-1 overflow-y-auto grid grid-cols-2 gap-4 p-6">
-            <div className="space-y-2">
+            <div className="space-y-2 col-span-2 md:col-span-1">
               <Label className="text-[12px] font-medium text-brand-secondary ml-1">Full Name</Label>
               <Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="h-[36px] bg-brand-surface border-brand-border/50 rounded-lg text-[13px]" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 col-span-2 md:col-span-1">
               <Label className="text-[12px] font-medium text-brand-secondary ml-1">Company</Label>
               <Input value={form.company} onChange={e => setForm({...form, company: e.target.value})} className="h-[36px] bg-brand-surface border-brand-border/50 rounded-lg text-[13px]" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 col-span-2 md:col-span-1">
               <Label className="text-[12px] font-medium text-brand-secondary ml-1">Email</Label>
               <Input value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="h-[36px] bg-brand-surface border-brand-border/50 rounded-lg text-[13px]" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 col-span-2 md:col-span-1">
               <Label className="text-[12px] font-medium text-brand-secondary ml-1">Phone</Label>
               <Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="h-[36px] bg-brand-surface border-brand-border/50 rounded-lg text-[13px]" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 col-span-2 md:col-span-1">
               <Label className="text-[12px] font-medium text-brand-secondary ml-1">TRN</Label>
               <Input value={form.trn} onChange={e => setForm({...form, trn: e.target.value})} className="h-[36px] bg-brand-surface border-brand-border/50 rounded-lg text-[13px] font-mono" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 col-span-2 md:col-span-1">
               <Label className="text-[12px] font-medium text-brand-secondary ml-1">Portal Access</Label>
               <div className="flex items-center gap-3 h-[36px] px-3 bg-brand-surface border border-brand-border/50 rounded-lg">
                 <Switch checked={form.is_portal_active} onCheckedChange={v => setForm({...form, is_portal_active: v})} />
                 <span className="text-[12px] font-medium text-brand-primary">{form.is_portal_active ? 'Enabled' : 'Disabled'}</span>
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 col-span-2 md:col-span-1">
               <Label className="text-[12px] font-medium text-brand-secondary ml-1">Industry</Label>
               <Input value={form.industry} onChange={e => setForm({...form, industry: e.target.value})} className="h-[36px] bg-brand-surface border-brand-border/50 rounded-lg text-[13px]" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 col-span-2 md:col-span-1">
               <Label className="text-[12px] font-medium text-brand-secondary ml-1">Website</Label>
               <Input value={form.website} onChange={e => setForm({...form, website: e.target.value})} className="h-[36px] bg-brand-surface border-brand-border/50 rounded-lg text-[13px]" placeholder="https://example.com" />
             </div>

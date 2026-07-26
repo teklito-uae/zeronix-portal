@@ -22,10 +22,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
-import { cn } from '@/lib/utils';
+import { cn, toTitleCase } from '@/lib/utils';
+import { avatarColorsFor } from '@/lib/avatarColors';
 import type { Deal, DealStage } from '@/types';
-
-const AVATAR_COLORS = ['#cc063e', '#e83535', '#fd9407', '#e2d9c2', '#10898b'];
 
 interface DealCardProps {
   deal: Deal;
@@ -87,8 +86,8 @@ export const DealCard = memo(function DealCard({ deal, onOpen, onEdit, onConvert
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
-          {owner && <Avatar size={18} name={owner.name} variant="beam" colors={AVATAR_COLORS} />}
-          <span className="text-[11px] font-medium text-brand-subtle truncate">{owner?.name ?? 'Unassigned'}</span>
+          {owner && <Avatar size={18} name={owner.name} variant="beam" colors={avatarColorsFor(owner)} />}
+          <span className="text-[11px] font-medium text-brand-subtle truncate">{owner?.name ? toTitleCase(owner.name) : 'Unassigned'}</span>
         </div>
         <PriorityBadge priority={deal.priority} />
       </div>
@@ -98,7 +97,7 @@ export const DealCard = memo(function DealCard({ deal, onOpen, onEdit, onConvert
         {company && (
           <p className="text-[11px] text-brand-subtle flex items-center gap-1 mt-0.5 truncate font-medium">
             <Building2 size={10} className="shrink-0" />
-            {company}
+            {toTitleCase(company)}
           </p>
         )}
       </div>
@@ -107,7 +106,7 @@ export const DealCard = memo(function DealCard({ deal, onOpen, onEdit, onConvert
         <p className="text-[13px] font-bold text-brand-primary">
           <CurrencyAmount amount={deal.value} currency={currency} />
         </p>
-        {deal.stage === 'cancelled' && <StatusBadge status="cancelled" className="text-[9px] px-1.5 py-0" />}
+        {deal.stage === 'cancelled' && <StatusBadge status="cancelled" className="text-[10px] px-1.5 py-0" />}
       </div>
 
       {(visibleTags.length > 0 || overflowTagsCount > 0) && (
@@ -116,12 +115,12 @@ export const DealCard = memo(function DealCard({ deal, onOpen, onEdit, onConvert
             <SharedTagBadge key={tag.id} tag={tag.name} color={tag.color} className="px-1.5 py-0 text-[10px]" />
           ))}
           {overflowTagsCount > 0 && (
-            <span className="text-[10px] font-semibold text-brand-subtle px-1">+{overflowTagsCount}</span>
+            <span className="text-[11px] font-semibold text-brand-subtle px-1">+{overflowTagsCount}</span>
           )}
         </div>
       )}
 
-      <div className="mt-2.5 pt-2 border-t border-brand-border/30 flex items-center justify-between text-[10px] text-brand-subtle">
+      <div className="mt-2.5 pt-2 border-t border-brand-border/30 flex items-center justify-between text-[11px] text-brand-subtle">
         {deal.expected_close_date ? (
           <span className="flex items-center gap-1">
             <Calendar size={10} />
@@ -138,9 +137,10 @@ export const DealCard = memo(function DealCard({ deal, onOpen, onEdit, onConvert
         )}
       </div>
 
-      {/* Hover-only action row */}
+      {/* Action row — in normal flow (always reachable) on touch; becomes a
+          hover-reveal absolute overlay from md up, matching the old desktop look. */}
       <div
-        className="absolute inset-x-0 bottom-0 translate-y-full opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transition-all flex items-center justify-end gap-1 p-1.5 pointer-events-none group-hover:pointer-events-auto"
+        className="static md:absolute inset-x-0 md:bottom-0 mt-2 md:mt-0 translate-y-0 opacity-100 pointer-events-auto md:translate-y-full md:opacity-0 md:group-hover:opacity-100 md:group-hover:translate-y-0 transition-all flex items-center justify-end gap-1 p-1.5 md:pointer-events-none md:group-hover:pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-1 rounded-lg border border-brand-border/50 bg-brand-white shadow-md px-1 py-1">
@@ -148,7 +148,7 @@ export const DealCard = memo(function DealCard({ deal, onOpen, onEdit, onConvert
             type="button"
             title="View"
             onClick={() => onOpen(deal.id)}
-            className="h-6 w-6 flex items-center justify-center rounded-md text-brand-subtle hover:bg-brand-surface hover:text-brand-primary"
+            className="h-9 w-9 md:h-6 md:w-6 flex items-center justify-center rounded-md text-brand-subtle hover:bg-brand-surface hover:text-brand-primary"
           >
             <Eye size={13} />
           </button>
@@ -156,7 +156,7 @@ export const DealCard = memo(function DealCard({ deal, onOpen, onEdit, onConvert
             type="button"
             title="Edit"
             onClick={() => onEdit(deal.id)}
-            className="h-6 w-6 flex items-center justify-center rounded-md text-brand-subtle hover:bg-brand-surface hover:text-brand-primary"
+            className="h-9 w-9 md:h-6 md:w-6 flex items-center justify-center rounded-md text-brand-subtle hover:bg-brand-surface hover:text-brand-primary"
           >
             <Pencil size={13} />
           </button>
@@ -164,7 +164,7 @@ export const DealCard = memo(function DealCard({ deal, onOpen, onEdit, onConvert
             type="button"
             title="Convert to Quote"
             onClick={() => onConvertToQuote(deal.id)}
-            className="h-6 w-6 flex items-center justify-center rounded-md text-brand-subtle hover:bg-brand-surface hover:text-brand-primary"
+            className="h-9 w-9 md:h-6 md:w-6 flex items-center justify-center rounded-md text-brand-subtle hover:bg-brand-surface hover:text-brand-primary"
           >
             <FileText size={13} />
           </button>
@@ -173,7 +173,7 @@ export const DealCard = memo(function DealCard({ deal, onOpen, onEdit, onConvert
               <button
                 type="button"
                 title="More"
-                className="h-6 w-6 flex items-center justify-center rounded-md text-brand-subtle hover:bg-brand-surface hover:text-brand-primary"
+                className="h-9 w-9 md:h-6 md:w-6 flex items-center justify-center rounded-md text-brand-subtle hover:bg-brand-surface hover:text-brand-primary"
               >
                 <MoreHorizontal size={13} />
               </button>

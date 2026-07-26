@@ -31,58 +31,86 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import type { Lead, User } from '@/types';
-import { UserPlus, Building2, Mail, Phone, ArrowRightLeft, Users, Calendar, Upload, ChevronDown, RefreshCw, FileUp } from 'lucide-react';
+import { UserPlus, Building2, Mail, Phone, ArrowRightLeft, Users, Upload, ChevronDown, RefreshCw, FileUp, Trash2, X, Tags } from 'lucide-react';
 import { Spinner } from '@/components/shared/Spinner';
+import { toTitleCase } from '@/lib/utils';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import { useResourceMutation, useResourceList } from '@/hooks/useApi';
 import { ActionGroup } from '@/components/shared/ActionGroup';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
 import Avatar from 'boring-avatars';
-import { useThemeStore } from '@/store/useThemeStore';
 import { getBasePath } from '@/hooks/useBasePath';
+import { parsePhoneNumberFromString } from 'libphonenumber-js';
+import { avatarColorsFor } from '@/lib/avatarColors';
 
-const LEAD_SOURCES = ['manual', 'website', 'email', 'referral', 'import', 'other', 'google_contacts', 'vcf_import', 'json_import'];
+const LEAD_SOURCES = ['manual', 'website', 'email', 'referral', 'import', 'other', 'google_contacts', 'csv_import', 'vcf_import', 'json_import'];
 
 const LEAD_SOURCE_LABELS: Record<string, string> = {
   google_contacts: 'Google Contacts',
+  csv_import: 'Google Contacts',
   vcf_import: 'VCF Import',
   json_import: 'JSON Import',
 };
 
 const leadSourceLabel = (s: string) => LEAD_SOURCE_LABELS[s] || s.charAt(0).toUpperCase() + s.slice(1);
 
+// Distinct pill colors per source, keyed by the raw value (not the display
+// label — csv_import and google_contacts share a label but keep separate
+// colors here so the underlying source is still visually distinguishable).
+const SOURCE_BADGE_STYLES: Record<string, string> = {
+  manual: 'text-[#6366F1] bg-[#6366F11F]',
+  portal: 'text-[#0F52BA] bg-[#0F52BA1F]',
+  website: 'text-[#0F52BA] bg-[#0F52BA1F]',
+  email: 'text-[#8B5CF6] bg-[#8B5CF61F]',
+  referral: 'text-[#F59E0B] bg-[#F59E0B1F]',
+  google_contacts: 'text-[#10B981] bg-[#10B9811F]',
+  csv_import: 'text-[#10B981] bg-[#10B9811F]',
+  vcf_import: 'text-[#0EA5E9] bg-[#0EA5E91F]',
+  json_import: 'text-[#0EA5E9] bg-[#0EA5E91F]',
+};
+const sourceBadgeStyle = (s: string) => SOURCE_BADGE_STYLES[s] || 'text-admin-text-secondary bg-admin-surface-hover';
+
+const LEAD_STATUSES = ['new', 'contacted', 'qualified', 'lost', 'unresponsive', 'converted'];
+
+// Renders a country flag (derived from the phone's calling code) next to the
+// number. UAE ('AE') is used as the default country when a number has no
+// explicit "+" country code, since that's the common local format seen here
+// (e.g. "050-382-1311").
+const getFlagEmoji = (countryCode: string) =>
+  countryCode
+    .toUpperCase()
+    .replace(/./g, (c) => String.fromCodePoint(c.charCodeAt(0) + 127397));
+
+const PhoneWithFlag = ({ phone }: { phone: string }) => {
+  const parsed = parsePhoneNumberFromString(phone, 'AE');
+  const flag = parsed?.country ? getFlagEmoji(parsed.country) : null;
+  return (
+    <p className="text-[12px] text-brand-subtle flex items-center gap-1.5">
+      {flag ? <span className="text-[13px] leading-none">{flag}</span> : <Phone size={12} className="opacity-40" />}
+      {phone}
+    </p>
+  );
+};
+
 export const Leads = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { theme } = useThemeStore();
-  const avatarColors = theme === 'dark'
-    ? ['#818CF8', '#A5B4FC', '#34D399', '#FBBF24', '#F472B6']
-    : ['#4F46E5', '#6366F1', '#10B981', '#F59E0B', '#EC4899'];
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
-  const [activeTab, setActiveTab] = useState('all');
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
   const [bulkAssignUserId, setBulkAssignUserId] = useState('');
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [form, setForm] = useState({
-    name: '', company: '', email: '', phone: '', source: 'manual', status: 'new', notes: '', user_id: '',
+    name: '', company: '', email: '', phone: '', phone_2: '', source: 'manual', status: 'new', notes: '', user_id: '',
   });
 
   const { data: staffData } = useResourceList<User>('users', { per_page: 100 });
   const staffMembers = (staffData?.data || []).filter((u: any) => u.role !== 'customer');
-
-  const leadTabs = [
-    { id: 'all', label: 'All Leads' },
-    { id: 'new', label: 'New' },
-    { id: 'contacted', label: 'Contacted' },
-    { id: 'qualified', label: 'Qualified' },
-    { id: 'lost', label: 'Lost' },
-    { id: 'unresponsive', label: 'Unresponsive' },
-    { id: 'converted', label: 'Converted' },
-  ];
 
   const { create, update, remove, bulkUpdate } = useResourceMutation('leads');
 
@@ -96,9 +124,20 @@ export const Leads = () => {
     onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to convert lead'),
   });
 
+  // No dedicated bulk-delete endpoint exists for leads, so each selected
+  // lead is deleted individually and the list is invalidated once at the end.
+  const bulkDelete = useMutation({
+    mutationFn: (ids: number[]) => Promise.all(ids.map((id) => api.delete(`/admin/leads/${id}`))),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      toast.success('Selected leads deleted');
+    },
+    onError: () => toast.error('Failed to delete some leads'),
+  });
+
   const openAdd = () => {
     setEditingLead(null);
-    setForm({ name: '', company: '', email: '', phone: '', source: 'portal', status: 'new', notes: '', user_id: '' });
+    setForm({ name: '', company: '', email: '', phone: '', phone_2: '', source: 'portal', status: 'new', notes: '', user_id: '' });
     setDialogOpen(true);
   };
 
@@ -109,6 +148,7 @@ export const Leads = () => {
       company: lead.company || '',
       email: lead.email || '',
       phone: lead.phone || '',
+      phone_2: lead.phone_2 || '',
       source: lead.source || 'manual',
       status: lead.status,
       notes: lead.notes || '',
@@ -129,38 +169,11 @@ export const Leads = () => {
 
   const columns: ColumnDef<Lead>[] = [
     {
-      id: 'selection',
-      header: () => (
-        <div className="flex items-center px-1">
-          <input
-            type="checkbox"
-            className="w-[18px] h-[18px] rounded border-brand-border/50 bg-brand-surface text-brand-accent focus:ring-0 cursor-pointer shadow-sm"
-            checked={selectedIds.length > 0}
-            onChange={(_e) => {}}
-          />
-        </div>
-      ),
-      cell: ({ row }) => (
-        <div className="flex items-center px-1" onClick={(e) => e.stopPropagation()}>
-          <input
-            type="checkbox"
-            className="w-[18px] h-[18px] rounded border-brand-border/50 bg-brand-surface text-brand-accent focus:ring-0 cursor-pointer shadow-sm"
-            checked={selectedIds.includes(row.original.id)}
-            onChange={(e) => {
-              e.stopPropagation();
-              if (e.target.checked) setSelectedIds([...selectedIds, row.original.id]);
-              else setSelectedIds(selectedIds.filter(id => id !== row.original.id));
-            }}
-          />
-        </div>
-      ),
-    },
-    {
       accessorKey: 'name',
       header: 'Lead Details',
       cell: ({ row }) => (
         <div className="min-w-0">
-          <p className="text-[14px] font-semibold text-brand-primary truncate">{row.original.name}</p>
+          <p className="text-[14px] font-semibold text-brand-primary truncate">{toTitleCase(row.original.name)}</p>
           {row.original.company && (
             <p className="text-[11px] text-brand-subtle flex items-center gap-1.5 truncate font-medium mt-0.5">
               <Building2 size={12} /> {row.original.company}
@@ -179,19 +192,20 @@ export const Leads = () => {
               <Mail size={12} className="opacity-40" /> {row.original.email}
             </p>
           )}
-          {row.original.phone && (
-            <p className="text-[12px] text-brand-subtle flex items-center gap-1.5">
-              <Phone size={12} className="opacity-40" /> {row.original.phone}
-            </p>
-          )}
+          {row.original.phone && <PhoneWithFlag phone={row.original.phone} />}
+          {row.original.phone_2 && <PhoneWithFlag phone={row.original.phone_2} />}
         </div>
       ),
     },
     {
       accessorKey: 'source',
       header: 'Source',
-      cell: ({ row }) => (
-        <span className="text-[12px] font-medium text-brand-secondary">{row.original.source ? leadSourceLabel(row.original.source) : '—'}</span>
+      cell: ({ row }) => row.original.source ? (
+        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${sourceBadgeStyle(row.original.source)}`}>
+          {leadSourceLabel(row.original.source)}
+        </span>
+      ) : (
+        <span className="text-[12px] text-brand-subtle">—</span>
       ),
     },
     {
@@ -201,7 +215,7 @@ export const Leads = () => {
     },
     {
       accessorKey: 'owner',
-      header: 'Owner',
+      header: 'Assigned to',
       cell: ({ row }) => {
         const owner = row.original.owner;
         if (!owner) return (
@@ -211,28 +225,18 @@ export const Leads = () => {
         );
         return (
           <div className="flex items-center gap-2">
-            <Avatar size={22} name={owner.name} variant="beam" colors={avatarColors} />
-            <span className="text-[12px] font-medium text-brand-secondary truncate max-w-[100px]">{owner.name}</span>
+            <Avatar size={22} name={owner.name} variant="beam" colors={avatarColorsFor(owner)} />
+            <span className="text-[12px] font-medium text-brand-secondary truncate max-w-[100px]">{toTitleCase(owner.name)}</span>
           </div>
         );
       },
     },
     {
-      accessorKey: 'created_at',
-      header: 'Created',
-      cell: ({ row }) => (
-        <span className="text-[12px] text-brand-subtle flex items-center gap-1.5 font-medium">
-          <Calendar size={12} className="opacity-50" />
-          {row.original.created_at ? new Date(row.original.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
-        </span>
-      ),
-    },
-    {
-      accessorKey: 'enquiries_count',
+      accessorKey: 'deals_count',
       header: 'Activity',
       cell: ({ row }) => (
         <div className="text-xs font-bold text-admin-text-secondary">
-          {row.original.enquiries_count || 0} <span className="text-[10px] text-admin-text-muted font-medium ml-0.5">Enquiries</span>
+          {row.original.deals_count || 0} <span className="text-[10px] text-admin-text-muted font-medium ml-0.5">Deals</span>
         </div>
       ),
     },
@@ -276,12 +280,15 @@ export const Leads = () => {
         createLabel="Add Lead"
         createPath="#"
         onCreateClick={openAdd}
+        onRowClick={openEdit}
         searchPlaceholder="Search by name, company, email..."
-        tabs={leadTabs}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        baseFilters={{ status: activeTab !== 'all' ? activeTab : undefined }}
         filters={[
+          {
+            name: 'status',
+            label: 'Status',
+            placeholder: 'Filter by status',
+            options: LEAD_STATUSES.map((s) => ({ label: s.charAt(0).toUpperCase() + s.slice(1), value: s })),
+          },
           {
             name: 'source',
             label: 'Source',
@@ -289,9 +296,47 @@ export const Leads = () => {
             options: LEAD_SOURCES.map((s) => ({ label: leadSourceLabel(s), value: s })),
           },
         ]}
+        enableRowSelection
         selectedIds={selectedIds}
         setSelectedIds={setSelectedIds}
-        onBulkUpdate={() => setBulkAssignOpen(true)}
+        floatingBulkActions={(ids, clear) => (
+          <div className="bg-brand-primary text-brand-white px-4 py-2 rounded-full shadow-lg flex items-center gap-3 flex-wrap justify-center">
+            <span className="text-[13px] font-medium">{ids.length} selected</span>
+            <div className="w-px h-4 bg-brand-white/20" />
+            <Button
+              onClick={() => setBulkAssignOpen(true)}
+              size="sm"
+              variant="ghost"
+              className="text-brand-white hover:text-brand-primary hover:bg-brand-white h-7 px-3 text-xs rounded-full transition-colors"
+            >
+              <UserPlus size={14} className="mr-1.5" /> Assign to Team
+            </Button>
+            <Select
+              onValueChange={(status) => bulkUpdate.mutate({ ids, status }, { onSuccess: clear })}
+            >
+              <SelectTrigger className="h-7 px-3 text-xs rounded-full border-0 bg-transparent text-brand-white hover:bg-brand-white hover:text-brand-primary transition-colors w-auto gap-1.5 [&>svg]:opacity-70">
+                <Tags size={14} />
+                <SelectValue placeholder="Change Status" />
+              </SelectTrigger>
+              <SelectContent className="bg-brand-white border-brand-border rounded-xl">
+                {LEAD_STATUSES.filter((s) => s !== 'converted').map((s) => (
+                  <SelectItem key={s} value={s} className="capitalize text-[13px]">{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={() => setBulkDeleteOpen(true)}
+              size="sm"
+              variant="ghost"
+              className="text-red-200 hover:text-brand-white hover:bg-red-500/80 h-7 px-3 text-xs rounded-full transition-colors"
+            >
+              <Trash2 size={14} className="mr-1.5" /> Delete
+            </Button>
+            <button onClick={clear} className="text-brand-white/70 hover:text-brand-white">
+              <X size={16} />
+            </button>
+          </div>
+        )}
         extraActions={
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -301,7 +346,7 @@ export const Leads = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 bg-admin-surface border-admin-border rounded-xl shadow-xl p-1">
               <DropdownMenuItem onClick={() => navigate(`${getBasePath()}/leads/import`)} className="rounded-lg cursor-pointer">
-                <FileUp size={14} className="mr-2" /> Upload File (.vcf/.json)
+                <FileUp size={14} className="mr-2" /> Upload File (.vcf/.json/.csv)
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate(`${getBasePath()}/settings`)} className="rounded-lg cursor-pointer">
                 <RefreshCw size={14} className="mr-2" /> Sync Google Contacts
@@ -345,6 +390,10 @@ export const Leads = () => {
                 <Label className="text-[12px] font-medium text-brand-secondary ml-1">Phone</Label>
                 <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-[36px] bg-brand-white border-brand-border/50 text-[13px] rounded-lg" placeholder="+971 50 123 4567" />
               </div>
+              <div className="space-y-1.5 col-span-2 md:col-span-1">
+                <Label className="text-[12px] font-medium text-brand-secondary ml-1">Phone 2</Label>
+                <Input value={form.phone_2} onChange={(e) => setForm({ ...form, phone_2: e.target.value })} className="h-[36px] bg-brand-white border-brand-border/50 text-[13px] rounded-lg" placeholder="+971 50 123 4567" />
+              </div>
               <div className="space-y-1.5">
                 <Label className="text-[12px] font-medium text-brand-secondary ml-1">Source</Label>
                 <Select value={form.source} onValueChange={(v) => setForm({ ...form, source: v })}>
@@ -381,7 +430,12 @@ export const Leads = () => {
                   <SelectContent>
                     <SelectItem value="unassigned" className="text-[13px]">Unassigned</SelectItem>
                     {staffMembers.map((s: any) => (
-                      <SelectItem key={s.id} value={String(s.id)} className="text-[13px]">{s.name}</SelectItem>
+                      <SelectItem key={s.id} value={String(s.id)} className="text-[13px]">
+                        <span className="flex items-center gap-2">
+                          <Avatar size={18} name={s.name} variant="beam" colors={avatarColorsFor(s)} />
+                          {toTitleCase(s.name)}
+                        </span>
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -439,7 +493,7 @@ export const Leads = () => {
                 <SelectContent className="bg-brand-white border-brand-border/50 rounded-xl shadow-lg">
                   {staffMembers.map((s: any) => (
                     <SelectItem key={s.id} value={String(s.id)}>
-                      {s.name} <span className="text-brand-subtle text-xs">({s.role})</span>
+                      {toTitleCase(s.name)} <span className="text-brand-subtle text-xs">({s.role})</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -468,6 +522,24 @@ export const Leads = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Delete Confirmation */}
+      <ConfirmDialog
+        open={bulkDeleteOpen}
+        onOpenChange={setBulkDeleteOpen}
+        title="Delete selected leads?"
+        description={`This will permanently delete ${selectedIds.length} lead${selectedIds.length !== 1 ? 's' : ''}. This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={() => {
+          bulkDelete.mutate(selectedIds, {
+            onSuccess: () => {
+              setBulkDeleteOpen(false);
+              setSelectedIds([]);
+            },
+          });
+        }}
+      />
     </div>
   );
 };

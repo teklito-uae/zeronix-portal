@@ -7,12 +7,12 @@ import { cn } from '@/lib/utils';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/shared/DataTable';
 import { CopyableText } from '@/components/shared/CopyableText';
 import { ActionGroup } from '@/components/shared/ActionGroup';
 import { ProductModal } from '@/components/shared/ProductModal';
 import { PageLoader } from '@/components/shared/PageLoader';
+import { Pagination } from '@/components/shared/Pagination';
 import Avatar from 'boring-avatars';
 import { useThemeStore } from '@/store/useThemeStore';
 import { Mail, Phone, Globe, MapPin, UserCircle, Package } from 'lucide-react';
@@ -30,12 +30,13 @@ export const SupplierProfile = () => {
     : ['#cc063e', '#e83535', '#fd9407', '#e2d9c2', '#10898b'];
   
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<SupplierProduct | null>(null);
 
   const { data: supplierData, isLoading } = useQuery({
-    queryKey: ['supplier', id, page],
-    queryFn: async () => (await api.get(`/admin/suppliers/${id}?page=${page}`)).data
+    queryKey: ['supplier', id, page, perPage],
+    queryFn: async () => (await api.get(`/admin/suppliers/${id}`, { params: { page, per_page: perPage } })).data
   });
 
   const { data: brandsData } = useQuery({
@@ -146,7 +147,7 @@ export const SupplierProfile = () => {
            />
            <div>
               <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-semibold text-brand-primary tracking-tight">{supplier.name}</h1>
+                <h1 className="text-xl md:text-2xl font-semibold text-brand-primary tracking-tight">{supplier.name}</h1>
                 <Badge variant="secondary" className="bg-brand-accent/10 text-brand-accent border-0 text-[10px] font-medium h-5">SUPPLIER</Badge>
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-[13px] text-brand-secondary font-medium">
@@ -174,34 +175,14 @@ export const SupplierProfile = () => {
            hidePagination={true}
          />
          
-         <div className="flex items-center justify-between px-6 py-4 border-t border-brand-border/50 bg-brand-surface/30">
-            <p className="text-[12px] font-medium text-brand-subtle">
-               Showing {products.length} of {productsResult?.total || 0} entries
-            </p>
-            <div className="flex items-center gap-3">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setPage(p => Math.max(1, p - 1))} 
-                disabled={page === 1}
-                className="h-8 px-3 rounded-lg border-brand-border/50 bg-brand-white font-medium text-[12px] shadow-sm text-brand-secondary hover:bg-brand-surface"
-              >
-                Previous
-              </Button>
-              <div className="h-8 px-3 rounded-lg bg-brand-surface border border-brand-border/50 flex items-center justify-center font-semibold text-[12px] text-brand-primary">
-                 {page} / {productsResult?.last_page || 1}
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setPage(p => p + 1)} 
-                disabled={page >= (productsResult?.last_page || 1)}
-                className="h-8 px-3 rounded-lg border-brand-border/50 bg-brand-white font-medium text-[12px] shadow-sm text-brand-secondary hover:bg-brand-surface"
-              >
-                Next
-              </Button>
-            </div>
-         </div>
+         <Pagination
+           page={page}
+           perPage={perPage}
+           total={productsResult?.total || 0}
+           lastPage={productsResult?.last_page || 1}
+           onPageChange={setPage}
+           onPerPageChange={(next) => { setPerPage(next); setPage(1); }}
+         />
       </div>
 
       <ProductModal

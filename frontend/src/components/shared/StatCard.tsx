@@ -23,11 +23,11 @@ export const StatCard = ({ title, value, subtitle, icon, iconBg, href, className
       )}
     >
       <div className="flex items-center justify-between">
-        <h3 className="text-[13px] font-medium text-brand-secondary">{title}</h3>
+        <h3 className="text-base font-medium text-brand-secondary">{title}</h3>
         <div className={cn("text-brand-subtle", iconBg && "h-8 w-8 rounded-lg flex items-center justify-center", iconBg)}>{icon}</div>
       </div>
       <div>
-        <p className="text-[24px] font-semibold text-brand-primary leading-tight tracking-tight">{value}</p>
+        <p className="text-2xl md:text-3xl font-semibold text-brand-primary leading-tight tracking-tight">{value}</p>
         {subtitle && <p className="text-[12px] font-normal text-brand-subtle mt-0.5">{subtitle}</p>}
       </div>
     </div>

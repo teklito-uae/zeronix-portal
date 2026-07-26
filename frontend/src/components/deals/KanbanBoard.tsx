@@ -257,7 +257,7 @@ export function KanbanBoard({
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="flex gap-3 overflow-x-auto h-full pb-3">
+      <div className="flex gap-3 overflow-x-auto h-full pb-3 snap-x snap-mandatory sm:snap-none">
         {KANBAN_COLUMNS.map((config) => (
           <KanbanColumn
             key={config.key}

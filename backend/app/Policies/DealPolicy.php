@@ -15,13 +15,13 @@ class DealPolicy
         return true;
     }
 
-    public function view(User $user, Deal $deal)
+    public function view(User $user, Deal $deal): bool
     {
-        if ($user->role === 'admin') {
+        if (in_array($user->role, ['admin', 'super_admin'], true)) {
             return true;
         }
 
-        return $deal->user_id === $user->id;
+        return $deal->assigned_users()->where('users.id', $user->id)->exists() || $deal->user_id === $user->id;
     }
 
     public function create(User $user)
@@ -29,17 +29,20 @@ class DealPolicy
         return true;
     }
 
-    public function update(User $user, Deal $deal)
+    /**
+     * Determine whether the user can update the model.
+     */
+    public function update(User $user, Deal $deal): bool
     {
-        if ($user->role === 'admin') {
+        if (in_array($user->role, ['admin', 'super_admin'], true)) {
             return true;
         }
 
-        return $deal->user_id === $user->id;
+        return $deal->assigned_users()->where('users.id', $user->id)->exists() || $deal->user_id === $user->id;
     }
 
     public function delete(User $user, Deal $deal)
     {
-        return $user->role === 'admin';
+        return in_array($user->role, ['admin', 'super_admin'], true);
     }
 }

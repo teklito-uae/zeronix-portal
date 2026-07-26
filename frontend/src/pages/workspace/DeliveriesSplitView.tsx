@@ -10,9 +10,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageLoader } from '@/components/shared/PageLoader';
 import { SEO } from '@/components/shared/SEO';
+import { Pagination } from '@/components/shared/Pagination';
 import api from '@/lib/axios';
 import type { Delivery } from '@/types';
-import { Search, ChevronLeft, ChevronRight, Building2, Plus } from 'lucide-react';
+import { Search, Building2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -42,6 +43,7 @@ export const DeliveriesSplitView = () => {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(20);
 
   // Debounce search input
   useEffect(() => {
@@ -56,7 +58,7 @@ export const DeliveriesSplitView = () => {
     search: search || undefined,
     status: activeTab !== 'all' ? activeTab : undefined,
     page,
-    per_page: 20,
+    per_page: perPage,
   });
 
   const deliveries: Delivery[] = resourceData?.data || [];
@@ -199,30 +201,15 @@ export const DeliveriesSplitView = () => {
 
           {/* Pagination */}
           {!isLoading && deliveries.length > 0 && (
-            <div className="flex items-center justify-between px-4 py-2.5 border-t border-brand-border/50 flex-shrink-0">
-              <span className="text-[11px] text-brand-subtle">
-                Page {page} of {lastPage} ({total})
-              </span>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-7 w-7 rounded-md border-brand-border"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                >
-                  <ChevronLeft size={13} />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-7 w-7 rounded-md border-brand-border"
-                  onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
-                  disabled={page === lastPage || lastPage === 0}
-                >
-                  <ChevronRight size={13} />
-                </Button>
-              </div>
+            <div className="px-4 py-2.5 border-t border-brand-border/50 flex-shrink-0">
+              <Pagination
+                page={page}
+                perPage={perPage}
+                total={total}
+                lastPage={lastPage}
+                onPageChange={setPage}
+                onPerPageChange={(next) => { setPerPage(next); setPage(1); }}
+              />
             </div>
           )}
         </div>

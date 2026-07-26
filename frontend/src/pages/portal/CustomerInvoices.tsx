@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
 import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
+import { Pagination } from '@/components/shared/Pagination';
 
 const INVOICE_STATUSES = [
   { label: 'Posted', value: 'posted' },
@@ -28,6 +29,7 @@ const INVOICE_STATUSES = [
 export const CustomerInvoices = () => {
   const currency = useCurrencyStore((s) => s.currency);
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(15);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const queryClient = useQueryClient();
@@ -41,9 +43,9 @@ export const CustomerInvoices = () => {
   const [confirmNotes, setConfirmNotes] = useState('');
 
   const { data: invoicesData, isLoading } = useQuery<PaginatedResponse<Invoice>>({
-    queryKey: ['customer-invoices', page, search, status],
+    queryKey: ['customer-invoices', page, perPage, search, status],
     queryFn: async () => {
-      const params: any = { page, search, per_page: 15 };
+      const params: any = { page, search, per_page: perPage };
       if (status !== 'all') params.status = status;
       const res = await api.get('/customer/invoices', { params });
       return res.data;
@@ -55,10 +57,10 @@ export const CustomerInvoices = () => {
       api.post(`/customer/invoices/${data.id}/confirm-delivery`, { status: data.status, notes: data.notes }),
     onMutate: async (newData) => {
       await queryClient.cancelQueries({ queryKey: ['customer-invoices'] });
-      const previousInvoices = queryClient.getQueryData(['customer-invoices', page, search, status]);
+      const previousInvoices = queryClient.getQueryData(['customer-invoices', page, perPage, search, status]);
 
       if (previousInvoices) {
-        queryClient.setQueryData(['customer-invoices', page, search, status], (old: any) => ({
+        queryClient.setQueryData(['customer-invoices', page, perPage, search, status], (old: any) => ({
           ...old,
           data: old.data.map((inv: any) =>
             inv.id === newData.id && inv.linked_delivery
@@ -77,7 +79,7 @@ export const CustomerInvoices = () => {
     },
     onError: (_err, _newData, context) => {
       if (context?.previousInvoices) {
-        queryClient.setQueryData(['customer-invoices', page, search, status], context.previousInvoices);
+        queryClient.setQueryData(['customer-invoices', page, perPage, search, status], context.previousInvoices);
       }
       toast.error('Failed to submit confirmation.');
     }
@@ -274,36 +276,14 @@ export const CustomerInvoices = () => {
 
       {/* Pagination Control */}
       {!isLoading && invoicesData?.data && invoicesData.data.length > 0 && (
-        <div className="sticky bottom-0 z-10 flex items-center justify-between px-6 py-4 border-t border-admin-border bg-admin-surface/95 backdrop-blur-sm rounded-lg shadow-sm">
-          <p className="text-[10px] text-admin-text-muted font-bold uppercase tracking-widest">
-            {invoicesData.total} Invoices Total
-          </p>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="h-9 px-4 text-xs font-bold border-admin-border text-admin-text-secondary hover:bg-admin-bg"
-            >
-              Previous
-            </Button>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-admin-bg rounded-md border border-admin-border">
-              <span className="text-xs font-bold text-admin-text-primary">{page}</span>
-              <span className="text-[10px] text-admin-text-muted font-bold uppercase">/</span>
-              <span className="text-xs font-bold text-admin-text-muted">{invoicesData.last_page}</span>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => p + 1)}
-              disabled={page >= invoicesData.last_page}
-              className="h-9 px-4 text-xs font-bold border-admin-border text-admin-text-secondary hover:bg-admin-bg"
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <Pagination
+          page={page}
+          perPage={perPage}
+          total={invoicesData.total}
+          lastPage={invoicesData.last_page}
+          onPageChange={setPage}
+          onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
+        />
       )}
 
       {/* Confirmation Dialog */}

@@ -432,15 +432,15 @@ export const CompanyImport = () => {
       {results && (
         <div className="grid grid-cols-3 gap-4 w-full max-w-md">
           <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-center">
-            <p className="text-2xl font-black text-emerald-600">{results.created}</p>
+            <p className="text-xl md:text-2xl font-black text-emerald-600">{results.created}</p>
             <p className="text-xs text-admin-text-muted mt-1 font-bold uppercase">Created</p>
           </div>
           <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-center">
-            <p className="text-2xl font-black text-blue-600">{results.merged}</p>
+            <p className="text-xl md:text-2xl font-black text-blue-600">{results.merged}</p>
             <p className="text-xs text-admin-text-muted mt-1 font-bold uppercase">Merged</p>
           </div>
           <div className="bg-admin-bg border border-admin-border rounded-xl p-4 text-center">
-            <p className="text-2xl font-black text-admin-text-secondary">{results.skipped}</p>
+            <p className="text-xl md:text-2xl font-black text-admin-text-secondary">{results.skipped}</p>
             <p className="text-xs text-admin-text-muted mt-1 font-bold uppercase">Skipped</p>
           </div>
         </div>

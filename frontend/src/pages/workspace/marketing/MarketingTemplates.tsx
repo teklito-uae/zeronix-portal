@@ -7,6 +7,7 @@ import { useResourceList } from '@/hooks/useApi';
 import { PageLoader } from '@/components/shared/PageLoader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { Pagination } from '@/components/shared/Pagination';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -37,14 +38,19 @@ export const MarketingTemplates = () => {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
   const [deleteTarget, setDeleteTarget] = useState<MarketingTemplate | null>(null);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(25);
 
   const { data, isLoading } = useResourceList<MarketingTemplate>('marketing/templates', {
     search: search || undefined,
     category: category === 'all' ? undefined : category,
-    per_page: 50,
+    page,
+    per_page: perPage,
   });
 
   const templates: MarketingTemplate[] = data?.data || [];
+  const total = data?.total || 0;
+  const lastPage = data?.last_page || 1;
 
   const duplicate = async (template: MarketingTemplate) => {
     try {
@@ -82,13 +88,13 @@ export const MarketingTemplates = () => {
       <div className="flex items-center gap-2 mb-4">
         <div className="relative w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-subtle" size={14} />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search templates..." className="pl-8 h-9 text-[13px]" />
+          <Input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search templates..." className="pl-8 h-9 text-[13px]" />
         </div>
         <div className="flex gap-1.5 flex-wrap">
           {CATEGORIES.map((c) => (
             <button
               key={c.value}
-              onClick={() => setCategory(c.value)}
+              onClick={() => { setCategory(c.value); setPage(1); }}
               className={`h-8 px-3 rounded-md text-[12px] font-medium border transition-colors ${
                 category === c.value ? 'bg-brand-accent text-white border-brand-accent' : 'bg-brand-white text-brand-secondary border-brand-border'
               }`}
@@ -147,6 +153,18 @@ export const MarketingTemplates = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {!isLoading && templates.length > 0 && (
+        <Pagination
+          page={page}
+          perPage={perPage}
+          total={total}
+          lastPage={lastPage}
+          onPageChange={setPage}
+          onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
+          className="mt-4 static px-0"
+        />
       )}
 
       <ConfirmDialog

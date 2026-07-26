@@ -313,6 +313,9 @@ button:focus-visible, a:focus-visible {
   .pb-mobile-nav {
     padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
   }
+  body {
+    font-size: 14px;
+  }
 }
 
 @supports (padding: env(safe-area-inset-bottom)) {

@@ -51,6 +51,8 @@ class CustomerContactController extends Controller
 
     public function update(Request $request, Customer $customer, CustomerContact $contact)
     {
+        $this->authorize('update', $contact);
+
         $validated = $request->validate([
             'first_name' => 'sometimes|required|string|max:255',
             'last_name' => 'nullable|string|max:255',
@@ -72,18 +74,24 @@ class CustomerContactController extends Controller
 
     public function destroy(Request $request, Customer $customer, CustomerContact $contact)
     {
+        $this->authorize('delete', $contact);
+
         $contact->delete();
         return response()->json(['message' => 'Contact deleted']);
     }
 
     public function setPrimary(Request $request, Customer $customer, CustomerContact $contact)
     {
+        $this->authorize('update', $contact);
+
         $contact->update(['is_primary' => true]);
         return response()->json($customer->contacts()->orderByDesc('is_primary')->get());
     }
 
     public function show(Request $request, CustomerContact $contact)
     {
+        $this->authorize('view', $contact);
+
         $contact->load('customer:id,name,company,website,industry', 'tags');
 
         $contact->deals_count = (int) Deal::where('customer_contact_id', $contact->id)->count();
@@ -96,7 +104,7 @@ class CustomerContactController extends Controller
 
         return response()->json([
             'contact' => $contact,
-            'deals' => $contact->deals()->latest()->limit(10)->get(),
+            'deals' => $contact->primaryDeals()->latest()->limit(10)->get(),
             'quotes' => $contact->quotes()->latest()->limit(10)->get(),
             'invoices' => $contact->invoices()->latest()->limit(10)->get(),
             'activities' => $contact->activities()->with('user')->latest()->limit(30)->get(),
@@ -105,6 +113,8 @@ class CustomerContactController extends Controller
 
     public function addActivity(Request $request, CustomerContact $contact)
     {
+        $this->authorize('update', $contact);
+
         $validated = $request->validate([
             'type' => 'required|string|in:call,email,meeting,note,task',
             'notes' => 'nullable|string',
@@ -120,6 +130,8 @@ class CustomerContactController extends Controller
 
     public function attachTag(Request $request, CustomerContact $contact)
     {
+        $this->authorize('update', $contact);
+
         $validated = $request->validate([
             'tag_id' => 'required|exists:tags,id',
         ]);
@@ -131,15 +143,54 @@ class CustomerContactController extends Controller
 
     public function detachTag(CustomerContact $contact, Tag $tag)
     {
+        $this->authorize('update', $contact);
+
         $contact->tags()->detach($tag->id);
 
         return response()->json($contact->tags()->get());
     }
 
+    public function uploadAttachment(Request $request, CustomerContact $contact)
+    {
+        $this->authorize('update', $contact);
+
+        $request->validate([
+            'file' => 'required|file|max:10240',
+        ]);
+
+        $path = $request->file('file')->store('contact-attachments', 'public');
+
+        $attachments = $contact->attachments ?? [];
+        $attachments[] = [
+            'name' => $request->file('file')->getClientOriginalName(),
+            'path' => $path,
+            'size' => $request->file('file')->getSize(),
+            'uploaded_at' => now()->toIso8601String(),
+        ];
+
+        $contact->update(['attachments' => $attachments]);
+
+        return response()->json($contact->fresh());
+    }
+
+    public function removeAttachment(Request $request, CustomerContact $contact, int $index)
+    {
+        $this->authorize('update', $contact);
+
+        $attachments = $contact->attachments ?? [];
+        if (isset($attachments[$index])) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($attachments[$index]['path']);
+            unset($attachments[$index]);
+            $contact->update(['attachments' => array_values($attachments)]);
+        }
+
+        return response()->json($contact->fresh());
+    }
+
     public function indexAll(Request $request)
     {
         $query = CustomerContact::with('customer:id,name,company')
-            ->withCount(['deals as deals_count'])
+            ->withCount(['primaryDeals as deals_count'])
             ->whereHas('customer', fn ($q) => $q->forUser($request->user()));
 
         $lifetimeValueSub = DB::table('invoices')

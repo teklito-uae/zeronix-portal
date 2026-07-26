@@ -16,8 +16,9 @@ import {
 import { BarChart3, TrendingUp, TrendingDown, DollarSign, Users, Clock } from 'lucide-react';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
 import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
+import type { CurrencyCode } from '@/lib/currency';
 
-type Tab = 'sales' | 'staff' | 'pnl' | 'aging';
+type Tab = 'sales' | 'staff' | 'pnl' | 'aging' | 'crm';
 
 export const Reports = () => {
   const currency = useCurrencyStore((s) => s.currency);
@@ -54,11 +55,32 @@ export const Reports = () => {
     enabled: activeTab === 'aging',
   });
 
+  const { data: crmDashboardData, isLoading: crmDashboardLoading } = useQuery({
+    queryKey: ['reports', 'crm-dashboard', params],
+    queryFn: async () => (await api.get('/admin/reports/crm-dashboard', { params })).data,
+    enabled: activeTab === 'crm',
+  });
+
+  const { data: enquiriesBySourceData, isLoading: enquiriesBySourceLoading } = useQuery({
+    queryKey: ['reports', 'enquiries-by-source'],
+    queryFn: async () => (await api.get('/admin/reports/enquiries-by-source')).data,
+    enabled: activeTab === 'crm',
+  });
+
+  const { data: pipelineSummaryData, isLoading: pipelineSummaryLoading } = useQuery({
+    queryKey: ['reports', 'pipeline-summary'],
+    queryFn: async () => (await api.get('/admin/reports/pipeline-summary')).data,
+    enabled: activeTab === 'crm',
+  });
+
+  const crmLoading = crmDashboardLoading || enquiriesBySourceLoading || pipelineSummaryLoading;
+
   const tabs: { id: Tab; label: string }[] = [
     { id: 'sales', label: 'Sales' },
     { id: 'staff', label: 'Sales by Staff' },
     ...(isAdmin ? [{ id: 'pnl' as Tab, label: 'Profit & Loss' }] : []),
     { id: 'aging', label: 'Receivables Aging' },
+    { id: 'crm', label: 'CRM' },
   ];
 
   return (
@@ -193,6 +215,98 @@ export const Reports = () => {
             </div>
           )
         )}
+
+        {activeTab === 'crm' && (
+          crmLoading ? <PageLoader label="Loading CRM analytics..." /> : (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatTile icon={<Users size={16} />} label="Total Leads" value={String(crmDashboardData?.total_leads || 0)} />
+                <StatTile icon={<TrendingUp size={16} />} label="Converted Leads" value={String(crmDashboardData?.converted_leads || 0)} />
+                <StatTile icon={<BarChart3 size={16} />} label="Conversion Rate" value={`${crmDashboardData?.conversion_rate || 0}%`} highlight />
+                <StatTile
+                  icon={<Clock size={16} />}
+                  label="Total Enquiries"
+                  value={String(
+                    Object.values(crmDashboardData?.enquiries_by_status || {}).reduce(
+                      (sum: number, count: any) => sum + Number(count), 0
+                    )
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-[13px] font-semibold text-brand-primary mb-2">Leads by Status</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Count</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {Object.entries(crmDashboardData?.leads_by_status || {}).map(([status, count]: [string, any]) => (
+                        <TableRow key={status}>
+                          <TableCell className="text-[13px] uppercase">{status}</TableCell>
+                          <TableCell className="text-right text-[13px]">{String(count)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <div>
+                  <h3 className="text-[13px] font-semibold text-brand-primary mb-2">Enquiries by Source</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Source</TableHead>
+                        <TableHead className="text-right">Count</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(enquiriesBySourceData || []).map((row: any, idx: number) => (
+                        <TableRow key={row.source ?? idx}>
+                          <TableCell className="text-[13px]">{row.source || 'Unknown'}</TableCell>
+                          <TableCell className="text-right text-[13px]">{row.count}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-[13px] font-semibold text-brand-primary mb-2">Top Customers</h3>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Company</TableHead>
+                      <TableHead className="text-right">Total Invoiced</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(crmDashboardData?.top_customers || []).map((c: any) => (
+                      <TableRow key={c.id}>
+                        <TableCell className="text-[13px] font-medium">{c.name}</TableCell>
+                        <TableCell className="text-[13px]">{c.company || '—'}</TableCell>
+                        <TableCell className="text-right font-mono text-[13px]"><CurrencyAmount amount={c.total_invoiced} currency={currency} /></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <PipelineTable title="Quotations" rows={pipelineSummaryData?.quotations} currency={currency} showTotal />
+                <PipelineTable title="Sales Orders" rows={pipelineSummaryData?.sales_orders} currency={currency} showTotal />
+                <PipelineTable title="Deliveries" rows={pipelineSummaryData?.deliveries} currency={currency} showTotal={false} />
+                <PipelineTable title="Invoices" rows={pipelineSummaryData?.invoices} currency={currency} showTotal />
+              </div>
+            </div>
+          )
+        )}
       </div>
     </div>
   );
@@ -207,5 +321,43 @@ const StatTile = ({ icon, label, value, highlight }: { icon: React.ReactNode; la
       {icon} {label}
     </div>
     <p className="text-[18px] font-bold text-brand-primary font-mono">{value}</p>
+  </div>
+);
+
+const PipelineTable = ({
+  title,
+  rows,
+  currency,
+  showTotal,
+}: {
+  title: string;
+  rows: any[] | undefined;
+  currency: CurrencyCode;
+  showTotal: boolean;
+}) => (
+  <div>
+    <h3 className="text-[13px] font-semibold text-brand-primary mb-2">{title}</h3>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Status</TableHead>
+          <TableHead className="text-center">Count</TableHead>
+          {showTotal && <TableHead className="text-right">Total</TableHead>}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {(rows || []).map((row: any) => (
+          <TableRow key={row.status}>
+            <TableCell className="text-[13px] uppercase">{row.status}</TableCell>
+            <TableCell className="text-center text-[13px]">{row.count}</TableCell>
+            {showTotal && (
+              <TableCell className="text-right font-mono text-[13px]">
+                <CurrencyAmount amount={row.total} currency={currency} />
+              </TableCell>
+            )}
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   </div>
 );

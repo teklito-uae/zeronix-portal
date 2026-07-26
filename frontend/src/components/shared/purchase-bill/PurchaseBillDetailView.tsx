@@ -49,6 +49,7 @@ import {
   Mail,
   Building2,
   Hash,
+  Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -62,6 +63,7 @@ const config = TRANSACTION_CONFIGS['purchase-bill'];
 const detailTabs = [
   { id: 'items', label: 'Items', icon: List },
   { id: 'details', label: 'Details', icon: Info },
+  { id: 'payments', label: 'Payments', icon: Wallet },
   { id: 'terms', label: 'Terms', icon: FileText },
   { id: 'notes', label: 'Notes', icon: MessageSquare },
   { id: 'history', label: 'History', icon: History },
@@ -394,6 +396,44 @@ export const PurchaseBillDetailView = ({ id, onDeleted }: PurchaseBillDetailView
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1">Balance</p>
                   <p className="text-[13px] font-medium text-brand-primary"><CurrencyAmount amount={data.balance} currency={currency} /></p>
                 </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="payments" className="mt-5 outline-none">
+              <div className="bg-brand-white border border-brand-border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-brand-border hover:bg-transparent">
+                      <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle">Receipt #</TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle">Date</TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle">Method</TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle">Reference</TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle">Notes</TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle text-right">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(!data.receipts || data.receipts.length === 0) && (
+                      <TableRow className="border-brand-border">
+                        <TableCell colSpan={6} className="text-center text-[12px] text-brand-subtle italic py-6">
+                          No payments recorded yet.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {data.receipts?.map((receipt : any) => (
+                      <TableRow key={receipt.id} className="border-brand-border">
+                        <TableCell className="text-[12px] font-mono font-medium text-brand-accent">{receipt.receipt_number}</TableCell>
+                        <TableCell className="text-[12px] text-brand-subtle">{formatDate(receipt.payment_date)}</TableCell>
+                        <TableCell className="text-[12px] text-brand-secondary capitalize">{receipt.payment_method}</TableCell>
+                        <TableCell className="text-[12px] text-brand-subtle">{receipt.reference_id || '—'}</TableCell>
+                        <TableCell className="text-[12px] text-brand-subtle truncate max-w-[200px]">{receipt.notes || '—'}</TableCell>
+                        <TableCell className="text-[12px] text-brand-primary font-medium text-right">
+                          <CurrencyAmount amount={receipt.amount} currency={currency} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             </TabsContent>
 

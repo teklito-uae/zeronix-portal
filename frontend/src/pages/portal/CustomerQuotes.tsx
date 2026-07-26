@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { SEO } from '@/components/shared/SEO';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
 import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
+import { Pagination } from '@/components/shared/Pagination';
 
 const QUOTE_STATUSES = [
   { label: 'Draft', value: 'draft' },
@@ -31,13 +32,14 @@ export const CustomerQuotes = () => {
   const queryClient = useQueryClient();
   const { company } = useParams();
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(15);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
 
   const { data: quotesData, isLoading } = useQuery<PaginatedResponse<Quote>>({
-    queryKey: ['customer-quotes', page, search, status],
+    queryKey: ['customer-quotes', page, perPage, search, status],
     queryFn: async () => {
-      const params: any = { page, search, per_page: 15 };
+      const params: any = { page, search, per_page: perPage };
       if (status !== 'all') params.status = status;
       const res = await api.get('/customer/quotes', { params });
       return res.data;
@@ -226,36 +228,14 @@ export const CustomerQuotes = () => {
 
       {/* Pagination Control */}
       {!isLoading && quotesData?.data && quotesData.data.length > 0 && (
-        <div className="sticky bottom-0 z-10 flex items-center justify-between px-6 py-4 border-t border-admin-border bg-admin-surface/95 backdrop-blur-sm rounded-xl shadow-sm">
-          <p className="text-xs text-admin-text-muted font-medium">
-            Showing {quotesData.data.length} of {quotesData.total} quotes
-          </p>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="h-9 px-4 text-xs font-bold border-admin-border text-admin-text-secondary hover:bg-admin-bg"
-            >
-              Previous
-            </Button>
-            <div className="flex items-center gap-1 px-3 py-1.5 bg-admin-bg rounded-md border border-admin-border">
-              <span className="text-xs font-bold text-admin-text-primary">{page}</span>
-              <span className="text-[10px] text-admin-text-muted font-bold uppercase mx-1">of</span>
-              <span className="text-xs font-bold text-admin-text-muted">{quotesData.last_page}</span>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => p + 1)}
-              disabled={page >= quotesData.last_page}
-              className="h-9 px-4 text-xs font-bold border-admin-border text-admin-text-secondary hover:bg-admin-bg"
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <Pagination
+          page={page}
+          perPage={perPage}
+          total={quotesData.total}
+          lastPage={quotesData.last_page}
+          onPageChange={setPage}
+          onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
+        />
       )}
     </div>
   );

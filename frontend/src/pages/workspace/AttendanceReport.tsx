@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Avatar from 'boring-avatars';
-import { useThemeStore } from '@/store/useThemeStore';
+import { avatarColorsFor } from '@/lib/avatarColors';
 
 function StatBox({ label, count, vsYesterday }: { label: string, count: number, vsYesterday: number }) {
   const isPositive = vsYesterday > 0;
@@ -113,10 +113,6 @@ interface AttendanceRecord {
 }
 
 export const AttendanceReport = () => {
-  const { theme } = useThemeStore();
-  const avatarColors = theme === 'dark' 
-    ? ['#ff4d6d', '#ff758f', '#ffbe0b', '#fdfcdc', '#48cae4']
-    : ['#1d3557', '#457b9d', '#a8dadc', '#f1faee', '#e63946'];
 
   // Filter States
   const [userIdFilter, setUserIdFilter] = useState<string>('all');
@@ -184,7 +180,7 @@ export const AttendanceReport = () => {
             size={36}
             name={row.original.user?.name || 'Unknown'}
             variant="beam"
-            colors={avatarColors}
+            colors={avatarColorsFor(row.original.user)}
           />
           <div className="min-w-0">
             <p className="text-sm font-semibold text-admin-text-primary">

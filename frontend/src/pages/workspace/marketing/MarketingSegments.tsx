@@ -6,6 +6,7 @@ import { useResourceList } from '@/hooks/useApi';
 import { PageLoader } from '@/components/shared/PageLoader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { Pagination } from '@/components/shared/Pagination';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,8 +29,12 @@ const EMPTY_FORM = { name: '', description: '', source: 'customers' as 'customer
 
 export const MarketingSegments = () => {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useResourceList<MarketingSegment>('marketing/segments', { per_page: 50 });
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(25);
+  const { data, isLoading } = useResourceList<MarketingSegment>('marketing/segments', { page, per_page: perPage });
   const segments: MarketingSegment[] = data?.data || [];
+  const total = data?.total || 0;
+  const lastPage = data?.last_page || 1;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<MarketingSegment | null>(null);
@@ -144,6 +149,18 @@ export const MarketingSegments = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {!isLoading && segments.length > 0 && (
+        <Pagination
+          page={page}
+          perPage={perPage}
+          total={total}
+          lastPage={lastPage}
+          onPageChange={setPage}
+          onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
+          className="mt-4 static px-0"
+        />
       )}
 
       <Sheet open={dialogOpen} onOpenChange={setDialogOpen}>

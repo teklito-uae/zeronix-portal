@@ -148,7 +148,7 @@ export const CustomerEnquiries = () => {
               <div className="p-8 border-b border-admin-border bg-admin-bg/30 flex-shrink-0 pr-14">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h2 className="text-2xl font-bold text-admin-text-primary tracking-tight flex items-center gap-3">
+                    <h2 className="text-xl md:text-2xl font-bold text-admin-text-primary tracking-tight flex items-center gap-3">
                       Enquiry Details
                       <span className="text-sm font-mono text-zeronix-blue bg-zeronix-blue/10 px-3 py-1 rounded-full">
                         #ENQ-{String(selectedEnquiry.id).padStart(5, '0')}

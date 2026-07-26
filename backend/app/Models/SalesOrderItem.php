@@ -18,6 +18,8 @@ class SalesOrderItem extends Model
         'unit_price',
         'tax_percent',
         'tax_amount',
+        'discount_percent',
+        'discount_amount',
         'total',
     ];
 
@@ -26,6 +28,8 @@ class SalesOrderItem extends Model
         'unit_price' => 'decimal:2',
         'tax_percent' => 'decimal:2',
         'tax_amount' => 'decimal:2',
+        'discount_percent' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
         'total' => 'decimal:2',
     ];
 

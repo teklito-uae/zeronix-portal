@@ -51,6 +51,8 @@ import {
   Search,
   Sun,
   Moon,
+  Banknote,
+  CalendarClock,
 } from 'lucide-react';
 
 interface NavItem {
@@ -99,13 +101,13 @@ const getTenantAdminNavGroups = (basePath: string): NavGroup[] => [
   },
   {
     label: 'CRM',
-    description: 'Lead → Enquiry → Customer',
+    description: 'Lead → Account → Deal',
     items: [
       { id: 'leads', label: 'Leads', icon: <UserCircle2 size={18} />, path: `${basePath}/leads` },
       { id: 'companies', label: 'Companies', icon: <Building2 size={18} />, path: `${basePath}/companies` },
       { id: 'contacts', label: 'Contacts', icon: <Users size={18} />, path: `${basePath}/contacts` },
-      { id: 'enquiries', label: 'Enquiries', icon: <MessageSquareText size={18} />, path: `${basePath}/enquiries` },
       { id: 'deals', label: 'Deals', icon: <Handshake size={18} />, path: `${basePath}/deals` },
+      { id: 'calendar', label: 'Calendar', icon: <CalendarClock size={18} />, path: `${basePath}/calendar` },
     ],
   },
   {
@@ -125,6 +127,7 @@ const getTenantAdminNavGroups = (basePath: string): NavGroup[] => [
       { id: 'suppliers', label: 'Suppliers', icon: <Truck size={18} />, path: `${basePath}/suppliers` },
       { id: 'purchases', label: 'Purchases', icon: <ShoppingCart size={18} />, path: `${basePath}/purchases` },
       { id: 'expenses', label: 'Expenses', icon: <Wallet size={18} />, path: `${basePath}/expenses` },
+      { id: 'payments-made', label: 'Payments Made', icon: <Banknote size={18} />, path: `${basePath}/payments-made` },
     ],
   },
   {
@@ -169,13 +172,13 @@ const getTenantStaffNavGroups = (basePath: string): NavGroup[] => [
   },
   {
     label: 'CRM',
-    description: 'Lead → Enquiry → Customer',
+    description: 'Lead → Account → Deal',
     items: [
       { id: 'leads', label: 'Leads', icon: <UserCircle2 size={18} />, path: `${basePath}/leads` },
       { id: 'companies', label: 'Companies', icon: <Building2 size={18} />, path: `${basePath}/companies` },
       { id: 'contacts', label: 'Contacts', icon: <Users size={18} />, path: `${basePath}/contacts` },
-      { id: 'enquiries', label: 'Enquiries', icon: <MessageSquareText size={18} />, path: `${basePath}/enquiries` },
       { id: 'deals', label: 'Deals', icon: <Handshake size={18} />, path: `${basePath}/deals` },
+      { id: 'calendar', label: 'Calendar', icon: <CalendarClock size={18} />, path: `${basePath}/calendar` },
     ],
   },
   {
@@ -195,6 +198,7 @@ const getTenantStaffNavGroups = (basePath: string): NavGroup[] => [
       { id: 'suppliers', label: 'Suppliers', icon: <Truck size={18} />, path: `${basePath}/suppliers` },
       { id: 'purchases', label: 'Purchases', icon: <ShoppingCart size={18} />, path: `${basePath}/purchases` },
       { id: 'expenses', label: 'Expenses', icon: <Wallet size={18} />, path: `${basePath}/expenses` },
+      { id: 'payments-made', label: 'Payments Made', icon: <Banknote size={18} />, path: `${basePath}/payments-made` },
     ],
   },
   {

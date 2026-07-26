@@ -211,10 +211,13 @@ export const MobileBottomNav = ({ isVisible = true }: { isVisible?: boolean }) =
   return (
     <>
       {/* Bottom Tab Bar */}
-      <nav className={cn(
-        "md:hidden fixed bottom-4 left-4 right-4 z-50 bg-brand-white/85 backdrop-blur-xl border border-brand-border/60 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-transform duration-300",
-        !isVisible || scrollHidden ? "translate-y-[150%]" : "translate-y-0"
-      )}>
+      <nav
+        className={cn(
+          "md:hidden fixed bottom-0 left-0 right-0 z-50 bg-brand-white/95 backdrop-blur-xl border-t border-brand-border/60 shadow-[0_-4px_20px_rgb(0,0,0,0.06)] transition-transform duration-300",
+          !isVisible || scrollHidden ? "translate-y-full" : "translate-y-0"
+        )}
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
         <div className="flex items-center justify-around h-16 px-1">
           {primaryTabs.map((item) => {
             const active = isActive(item.path);
@@ -232,7 +235,7 @@ export const MobileBottomNav = ({ isVisible = true }: { isVisible?: boolean }) =
                   <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-brand-accent rounded-full" />
                 )}
                 <Icon size={22} className={active ? 'scale-110 transition-transform' : 'transition-transform'} />
-                <span className="text-[10px] font-semibold">{item.label}</span>
+                <span className="text-[11px] font-semibold">{item.label}</span>
               </button>
             );
           })}
@@ -249,7 +252,7 @@ export const MobileBottomNav = ({ isVisible = true }: { isVisible?: boolean }) =
               <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-brand-accent rounded-full" />
             )}
             <Menu size={22} />
-            <span className="text-[10px] font-semibold">More</span>
+            <span className="text-[11px] font-semibold">More</span>
           </button>
         </div>
       </nav>
@@ -277,7 +280,7 @@ export const MobileBottomNav = ({ isVisible = true }: { isVisible?: boolean }) =
             <div className="flex flex-col gap-5 p-4 pb-16">
               {filteredGroups.map((group) => (
                 <div key={group.label}>
-                  <p className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-brand-subtle">
+                  <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-brand-subtle">
                     {group.label}
                   </p>
                   <div className="flex flex-col gap-1">
