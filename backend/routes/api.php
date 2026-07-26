@@ -11,7 +11,6 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SupplierProductController;
 use App\Http\Controllers\CustomerController;
-use App\Http\Controllers\EnquiryController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ActivityController;
@@ -132,14 +131,6 @@ foreach (['admin', 'staff'] as $prefix) {
     Route::prefix($prefix)->middleware('auth:sanctum')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index']);
 
-        // Enquiries
-        Route::get('/enquiries', [EnquiryController::class, 'index']);
-        Route::post('/enquiries', [EnquiryController::class, 'store']);
-        Route::get('/enquiries/{enquiry}', [EnquiryController::class, 'show']);
-        Route::put('/enquiries/{enquiry}', [EnquiryController::class, 'update']);
-        Route::delete('/enquiries/{enquiry}', [EnquiryController::class, 'destroy']);
-        Route::put('/enquiries/{enquiry}/assign', [EnquiryController::class, 'assign']);
-
         // Leads
         Route::get('/leads', [LeadController::class, 'index']);
         Route::post('/leads', [LeadController::class, 'store']);
@@ -150,12 +141,22 @@ foreach (['admin', 'staff'] as $prefix) {
 
         // Deals
         Route::get('/deals/pipeline', [DealController::class, 'pipeline']);
+        Route::get('/deals/pipeline/stats', [DealController::class, 'pipelineStats']);
         Route::get('/deals', [DealController::class, 'index']);
         Route::post('/deals', [DealController::class, 'store']);
         Route::get('/deals/{deal}', [DealController::class, 'show']);
         Route::put('/deals/{deal}', [DealController::class, 'update']);
+        Route::patch('/deals/{deal}/move', [DealController::class, 'move']);
         Route::delete('/deals/{deal}', [DealController::class, 'destroy']);
+        Route::put('/deals/{deal}/assign', [DealController::class, 'assign']);
         Route::post('/deals/{deal}/activities', [DealController::class, 'addActivity']);
+        Route::post('/deals/{deal}/attachments', [DealController::class, 'uploadAttachment']);
+        Route::delete('/deals/{deal}/attachments/{index}', [DealController::class, 'removeAttachment']);
+        Route::post('/deals/{deal}/contacts/{contact}', [DealController::class, 'attachContact']);
+        Route::delete('/deals/{deal}/contacts/{contact}', [DealController::class, 'detachContact']);
+        Route::post('/deals/{deal}/tags', [DealController::class, 'attachTag']);
+        Route::delete('/deals/{deal}/tags/{tag}', [DealController::class, 'detachTag']);
+        Route::get('/deals/{deal}/timeline', [DealController::class, 'timeline']);
 
         // Customers
         Route::get('/customers', [CustomerController::class, 'index']);
@@ -166,6 +167,7 @@ foreach (['admin', 'staff'] as $prefix) {
         Route::delete('/customers/{customer}', [CustomerController::class, 'destroy']);
         Route::post('/customers/{customer}/register-portal', [CustomerController::class, 'registerPortal']);
         Route::get('/customers/{customer}/activities', [CustomerController::class, 'activities']);
+        Route::get('/customers/{customer}/timeline', [CustomerController::class, 'timeline']);
 
         // Customer Contacts
         Route::get('/customers/{customer}/contacts', [CustomerContactController::class, 'index']);
@@ -202,6 +204,7 @@ foreach (['admin', 'staff'] as $prefix) {
         Route::put('/quotes/{quote}', [QuoteController::class, 'update']);
         Route::delete('/quotes/{quote}', [QuoteController::class, 'destroy']);
         Route::post('/quotes/{quote}/send-email', [QuoteController::class, 'sendEmail']);
+        Route::post('/quotes/{quote}/approve', [QuoteController::class, 'approve']);
         Route::post('/quotes/{quote}/convert-to-sales-order', [QuoteController::class, 'convertToSalesOrder']);
         Route::patch('/quotes/{quote}/quick-update', [QuoteController::class, 'quickUpdate']);
         Route::post('/quotes/{quote}/duplicate', [QuoteController::class, 'duplicate']);

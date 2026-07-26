@@ -26,8 +26,8 @@ import { Contacts } from './pages/workspace/Contacts';
 import { Suppliers } from './pages/workspace/Suppliers';
 import { SupplierProfile } from './pages/workspace/SupplierProfile';
 import { Products } from './pages/workspace/Products';
-import { Enquiries } from './pages/workspace/Enquiries';
-import { Deals } from './pages/workspace/Deals';
+import DealsPage from './pages/workspace/deals/DealsPage';
+import { Calendar as CalendarPage } from './pages/workspace/Calendar';
 import { QuotesSplitView } from './pages/workspace/QuotesSplitView';
 import { QuoteDetail } from './pages/workspace/QuoteDetail';
 import { SalesOrders } from './pages/workspace/SalesOrders';
@@ -100,8 +100,8 @@ const WorkspaceRoutes = () => (
     <Route path="suppliers" element={<Suppliers />} />
     <Route path="suppliers/:id" element={<SupplierProfile />} />
     <Route path="products" element={<Products />} />
-    <Route path="enquiries" element={<Enquiries />} />
-    <Route path="deals" element={<Deals />} />
+    <Route path="deals" element={<DealsPage />} />
+    <Route path="calendar" element={<CalendarPage />} />
     <Route path="quotes" element={<QuotesSplitView />} />
     <Route path="quotes/:id" element={<QuoteDetail />} />
     <Route path="sales-orders" element={<SalesOrders />} />

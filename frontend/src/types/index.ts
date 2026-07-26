@@ -1,9 +1,7 @@
 // ── Enums ──────────────────────────────────────────────
 
-export type EnquiryStatus = 'new' | 'assigned' | 'in_progress' | 'quoted' | 'won' | 'lost' | 'closed' | 'cancelled';
-export type EnquiryPriority = 'normal' | 'high' | 'urgent';
-export type EnquirySource = 'manual' | 'website' | 'email' | 'referral' | 'import' | 'other';
-export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired' | 'converted' | 'invoiced';
+export type QuoteStatus =
+  | 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired' | 'converted' | 'invoiced' | 'approved' | 'superseded';
 export type SalesOrderStatus = 'draft' | 'confirmed' | 'processing' | 'completed' | 'cancelled';
 export type DeliveryStatus = 'pending' | 'processing' | 'delivered' | 'cancelled';
 export type InvoiceStatus = 'draft' | 'sent' | 'accepted' | 'on_hold' | 'cancelled';
@@ -19,6 +17,8 @@ export interface User {
   email: string;
   phone?: string;
   role?: string;
+  manager_id?: number | null;
+  manager?: User;
   designation?: string;
   permissions?: string[];
   is_active?: boolean;
@@ -68,7 +68,6 @@ export interface Customer {
   website?: string;
   description?: string;
   // Computed / relationship counts
-  enquiries_count?: number;
   quotes_count?: number;
   invoices_count?: number;
   outstanding_balance?: number;
@@ -85,6 +84,7 @@ export interface Customer {
   open_quotes_value?: number;
   open_invoices_count?: number;
   open_invoices_value?: number;
+  type?: 'business' | 'individual';
 }
 
 export interface CustomerContact {
@@ -102,6 +102,7 @@ export interface CustomerContact {
   is_primary: boolean;
   is_active: boolean;
   notes?: string;
+  attachments?: QuoteAttachment[] | null;
   created_at?: string;
   updated_at?: string;
   customer?: Customer;
@@ -245,7 +246,7 @@ export interface Lead {
   // Relations
   owner?: User;
   convertedCustomer?: Customer;
-  enquiries_count?: number;
+  deals_count?: number;
 }
 
 export interface GoogleContactConnectionStatus {
@@ -257,20 +258,50 @@ export interface GoogleContactConnectionStatus {
   pending_leads_count: number;
 }
 
-export interface Enquiry {
+export type DealStage =
+  | 'new' | 'qualified' | 'requirement' | 'proposal_sent' | 'negotiation' | 'won' | 'lost' | 'cancelled';
+
+export type DealLostReason =
+  | 'price' | 'competitor' | 'no_budget' | 'requirements_changed' | 'customer_cancelled' | 'no_response'
+  | 'duplicate' | 'other';
+
+export type DealSource = 'manual' | 'website' | 'email' | 'referral' | 'import' | 'other';
+export type DealPriority = 'normal' | 'high' | 'urgent';
+
+/**
+ * The merged Enquiry+Deal entity (backend: `App\Models\Deal`, table
+ * `enquiries`). Release B folded the old Enquiry lifecycle (source,
+ * priority, notes, attachments, cancellation) into this one model, keyed by
+ * `stage` instead of separate enquiry `status` + deal `stage` fields.
+ */
+export interface Deal {
   id: number;
-  customer_id?: number | null;
+  deal_code?: string;
+  title: string;
+  description?: string;
   lead_id?: number | null;
+  customer_id?: number | null;
+  company_id?: number;
   customer_contact_id?: number | null;
-  user_id?: number | null;
-  assigned_to?: number | null;
-  source: EnquirySource;
-  priority: EnquiryPriority;
-  status: EnquiryStatus;
+  value: number;
+  stage: DealStage;
+  position: number;
+  tags?: Tag[];
+  expected_close_date?: string | null;
+  closed_at?: string | null;
+  lost_reason?: DealLostReason | null;
+  lost_notes?: string | null;
+  probability: number;
+  forecast_value?: number;
+  next_action_at?: string | null;
+  next_action_note?: string | null;
+  source: DealSource;
+  priority: DealPriority;
   notes?: string;
-  attachments?: string[];
+  attachments?: QuoteAttachment[] | null;
   cancellation_reason?: string;
   cancelled_at?: string;
+  user_id?: number | null;
   created_at?: string;
   updated_at?: string;
   // Relations
@@ -280,33 +311,11 @@ export interface Enquiry {
   user?: User;
   assigned_users?: User[];
   primary_assignee?: User;
-  items?: EnquiryItem[];
+  additionalContacts?: CustomerContact[];
+  items?: DealItem[];
   items_count?: number;
-}
-
-export type DealStage = 'new' | 'qualified' | 'proposal' | 'negotiation' | 'won' | 'lost';
-
-export interface Deal {
-  id: number;
-  deal_code?: string;
-  title: string;
-  description?: string;
-  lead_id?: number | null;
-  customer_id?: number | null;
-  customer_contact_id?: number | null;
-  value: number;
-  stage: DealStage;
-  expected_close_date?: string | null;
-  closed_at?: string | null;
-  lost_reason?: string | null;
-  user_id?: number | null;
-  created_at?: string;
-  updated_at?: string;
-  // Relations
-  lead?: Lead;
-  customer?: Customer;
-  customerContact?: CustomerContact;
-  user?: User;
+  quotes?: Quote[];
+  activities?: DealActivity[];
 }
 
 export interface DealActivity {
@@ -322,16 +331,23 @@ export interface DealActivity {
   user?: User;
 }
 
-export interface EnquiryItem {
+export interface DealItem {
   id: number;
+  // Physical column is still `enquiry_id` (Release B did not rename the
+  // `enquiry_items` table/column), so that's the real JSON key.
   enquiry_id: number;
   product_id?: number | null;
+  product?: Product;
   quantity: number;
   description?: string;
+  unit_price: number;
+  tax_percent?: number;
+  tax_amount?: number;
+  discount_percent?: number;
+  discount_amount?: number;
+  total: number;
   created_at?: string;
   updated_at?: string;
-  // Relations
-  product?: Product;
 }
 
 export interface QuoteAttachment {
@@ -344,7 +360,6 @@ export interface QuoteAttachment {
 export interface Quote {
   id: number;
   quote_number?: string;
-  enquiry_id?: number | null;
   deal_id?: number | null;
   customer_id?: number | null;
   customer_contact_id?: number | null;
@@ -374,7 +389,6 @@ export interface Quote {
   // Relations
   customer?: Customer;
   customerContact?: CustomerContact;
-  enquiry?: Enquiry;
   deal?: Deal;
   items?: QuoteItem[];
   user?: User;
@@ -416,6 +430,7 @@ export interface SalesOrder {
   customer_id: number;
   customer_contact_id?: number | null;
   enquiry_id?: number | null;
+  deal_id?: number | null;
   quote_id?: number | null;
   user_id?: number | null;
   date?: string;
@@ -590,6 +605,7 @@ export interface PurchaseBill {
   items?: PurchaseBillItem[];
   items_count?: number;
   activities?: ActivityLogEntry[];
+  receipts?: SupplierPaymentReceipt[];
 }
 
 export interface PurchaseBillItem {
