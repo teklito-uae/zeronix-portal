@@ -18,7 +18,6 @@ class Quote extends Model
 
     protected $fillable = [
         'quote_number',
-        'enquiry_id',
         'deal_id',
         'customer_id',
         'customer_contact_id',
@@ -59,11 +58,6 @@ class Quote extends Model
         return $this->belongsTo(CustomerContact::class);
     }
 
-    public function salesOrder(): BelongsTo
-    {
-        return $this->belongsTo(SalesOrder::class);
-    }
-
     public function items(): HasMany
     {
         return $this->hasMany(QuoteItem::class);
@@ -74,23 +68,34 @@ class Quote extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function enquiry(): BelongsTo
-    {
-        return $this->belongsTo(Enquiry::class);
-    }
-
     public function deal(): BelongsTo
     {
         return $this->belongsTo(Deal::class);
     }
 
-    public function invoice(): BelongsTo
-    {
-        return $this->belongsTo(Invoice::class);
-    }
-
     public function activities(): MorphMany
     {
         return $this->morphMany(ActivityLog::class, 'subject')->latest();
+    }
+
+    /**
+     * Approve this quote. If it belongs to a Deal, any other quote on that
+     * same Deal currently marked 'approved' is superseded first, so a Deal
+     * only ever has one approved quote at a time. Note: this database is
+     * MyISAM, so DB::transaction() here doesn't give true atomicity — it's
+     * kept for portability/documentation, not relied on for isolation.
+     */
+    public function approve(): void
+    {
+        \DB::transaction(function () {
+            if ($this->deal_id) {
+                static::where('deal_id', $this->deal_id)
+                    ->where('status', 'approved')
+                    ->where('id', '!=', $this->id)
+                    ->update(['status' => 'superseded']);
+            }
+            $this->status = 'approved';
+            $this->save();
+        });
     }
 }

@@ -3,10 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
+use App\Models\ContactActivity;
 use App\Models\Customer;
 use App\Models\CustomerContact;
 use App\Models\Deal;
-use App\Models\Enquiry;
+use App\Models\DealActivity;
 use App\Models\Invoice;
 use App\Models\Quote;
 use Illuminate\Http\Request;
@@ -18,7 +19,7 @@ class CustomerController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Customer::with(['assigned_users', 'labels'])->withCount(['quotes', 'invoices', 'enquiries', 'deals', 'contacts']);
+        $query = Customer::with(['assigned_users', 'labels'])->withCount(['quotes', 'invoices', 'deals', 'contacts']);
 
         // Outstanding balance: sum of (invoice total - amount already received) across
         // this customer's unsettled invoices, computed in one correlated subquery per
@@ -167,7 +168,7 @@ class CustomerController extends Controller
     {
         $this->authorize('view', $customer);
 
-        $customer->loadCount(['quotes', 'invoices', 'enquiries', 'deals', 'contacts']);
+        $customer->loadCount(['quotes', 'invoices', 'deals', 'contacts', 'salesOrders']);
         $customer->load(['labels', 'assigned_users']);
         $customer->total_volume = (float) $customer->invoices()->sum('total');
 
@@ -191,10 +192,11 @@ class CustomerController extends Controller
 
         return response()->json([
             'customer' => $customer,
-            'enquiries' => $customer->enquiries()->with('items')->latest()->limit(10)->get(),
+            'enquiries' => $customer->deals()->with('items')->latest()->limit(10)->get(),
             'quotes' => $customer->quotes()->with('items')->latest()->limit(10)->get(),
             'invoices' => $customer->invoices()->with('items')->latest()->limit(10)->get(),
             'deals' => $customer->deals()->with('user')->latest()->limit(10)->get(),
+            'sales_orders' => $customer->salesOrders()->with('items')->latest()->limit(10)->get(),
         ]);
     }
 
@@ -208,18 +210,19 @@ class CustomerController extends Controller
 
         $quoteIds = $customer->quotes()->pluck('id');
         $invoiceIds = $customer->invoices()->pluck('id');
+        // Deal and Enquiry are now literally the same class/table (post
+        // Release C rename), so their id sets are collapsed into one clause
+        // instead of two separate subject_type branches.
         $dealIds = $customer->deals()->pluck('id');
-        $enquiryIds = $customer->enquiries()->pluck('id');
         $contactIds = $customer->contacts()->pluck('id');
 
         $activities = ActivityLog::with('user')
-            ->where(function ($q) use ($customer, $quoteIds, $invoiceIds, $dealIds, $enquiryIds, $contactIds) {
+            ->where(function ($q) use ($customer, $quoteIds, $invoiceIds, $dealIds, $contactIds) {
                 $q->where(fn ($q2) => $q2->where('subject_type', Customer::class)->where('subject_id', $customer->id))
                   ->orWhere('customer_id', $customer->id)
                   ->orWhere(fn ($q2) => $q2->where('subject_type', Quote::class)->whereIn('subject_id', $quoteIds))
                   ->orWhere(fn ($q2) => $q2->where('subject_type', Invoice::class)->whereIn('subject_id', $invoiceIds))
                   ->orWhere(fn ($q2) => $q2->where('subject_type', Deal::class)->whereIn('subject_id', $dealIds))
-                  ->orWhere(fn ($q2) => $q2->where('subject_type', Enquiry::class)->whereIn('subject_id', $enquiryIds))
                   ->orWhere(fn ($q2) => $q2->where('subject_type', CustomerContact::class)->whereIn('subject_id', $contactIds));
             })
             ->latest()
@@ -227,6 +230,64 @@ class CustomerController extends Controller
             ->get();
 
         return response()->json($activities);
+    }
+
+    /**
+     * Read-only merged timeline for everything under this Customer: its
+     * Deals' DealActivity entries, its CustomerContacts' ContactActivity
+     * entries, and matching ActivityLog rows — normalized into a common
+     * {type, description, user, at} shape and sorted newest-first. Reuses
+     * the same id-collection approach as activities() above.
+     */
+    public function timeline(Request $request, Customer $customer)
+    {
+        $this->authorize('view', $customer);
+
+        $quoteIds = $customer->quotes()->pluck('id');
+        $invoiceIds = $customer->invoices()->pluck('id');
+        $dealIds = $customer->deals()->pluck('id');
+        $contactIds = $customer->contacts()->pluck('id');
+
+        $dealActivities = DealActivity::whereIn('deal_id', $dealIds)
+            ->with('user')
+            ->get()
+            ->map(fn ($a) => [
+                'type' => $a->type,
+                'description' => $a->notes,
+                'user' => $a->user,
+                'at' => $a->created_at,
+            ]);
+
+        $contactActivities = ContactActivity::whereIn('customer_contact_id', $contactIds)
+            ->with('user')
+            ->get()
+            ->map(fn ($a) => [
+                'type' => $a->type,
+                'description' => $a->notes,
+                'user' => $a->user,
+                'at' => $a->created_at,
+            ]);
+
+        $activityLogs = ActivityLog::with('user')
+            ->where(function ($q) use ($customer, $quoteIds, $invoiceIds, $dealIds, $contactIds) {
+                $q->where(fn ($q2) => $q2->where('subject_type', Customer::class)->where('subject_id', $customer->id))
+                  ->orWhere('customer_id', $customer->id)
+                  ->orWhere(fn ($q2) => $q2->where('subject_type', Quote::class)->whereIn('subject_id', $quoteIds))
+                  ->orWhere(fn ($q2) => $q2->where('subject_type', Invoice::class)->whereIn('subject_id', $invoiceIds))
+                  ->orWhere(fn ($q2) => $q2->where('subject_type', Deal::class)->whereIn('subject_id', $dealIds))
+                  ->orWhere(fn ($q2) => $q2->where('subject_type', CustomerContact::class)->whereIn('subject_id', $contactIds));
+            })
+            ->get()
+            ->map(fn ($log) => [
+                'type' => $log->action,
+                'description' => $log->description,
+                'user' => $log->user,
+                'at' => $log->created_at,
+            ]);
+
+        $timeline = $dealActivities->concat($contactActivities)->concat($activityLogs)->sortByDesc('at')->values();
+
+        return response()->json($timeline);
     }
 
     public function update(Request $request, Customer $customer)

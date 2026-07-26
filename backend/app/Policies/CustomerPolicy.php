@@ -17,11 +17,12 @@ class CustomerPolicy
 
     public function view(User $user, Customer $customer)
     {
-        if ($user->role === 'admin') {
+        if (in_array($user->role, ['admin', 'super_admin'], true)) {
             return true;
         }
 
-        return $customer->user_id === $user->id;
+        // customers.user_id was dropped in favor of the customer_user pivot.
+        return $customer->assigned_users()->where('users.id', $user->id)->exists();
     }
 
     public function create(User $user)
@@ -31,15 +32,16 @@ class CustomerPolicy
 
     public function update(User $user, Customer $customer)
     {
-        if ($user->role === 'admin') {
+        if (in_array($user->role, ['admin', 'super_admin'], true)) {
             return true;
         }
 
-        return $customer->user_id === $user->id;
+        // customers.user_id was dropped in favor of the customer_user pivot.
+        return $customer->assigned_users()->where('users.id', $user->id)->exists();
     }
 
     public function delete(User $user, Customer $customer)
     {
-        return $user->role === 'admin';
+        return in_array($user->role, ['admin', 'super_admin'], true);
     }
 }

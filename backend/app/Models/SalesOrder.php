@@ -20,6 +20,7 @@ class SalesOrder extends Model
         'customer_id',
         'customer_contact_id',
         'enquiry_id',
+        'deal_id',
         'quote_id',
         'user_id',
         'date',
@@ -39,9 +40,19 @@ class SalesOrder extends Model
         return $this->belongsTo(CustomerContact::class);
     }
 
+    /**
+     * Legacy alias — `sales_orders.enquiry_id` is a real, physical column
+     * distinct from `deal_id` (both exist on this table). Explicit FK
+     * because the target class is now `Deal`, not `Enquiry`.
+     */
     public function enquiry(): BelongsTo
     {
-        return $this->belongsTo(Enquiry::class);
+        return $this->belongsTo(Deal::class, 'enquiry_id');
+    }
+
+    public function deal(): BelongsTo
+    {
+        return $this->belongsTo(Deal::class);
     }
 
     public function quote(): BelongsTo

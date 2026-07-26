@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Enquiry;
+use App\Models\Deal;
 use App\Models\Quote;
 use App\Models\Invoice;
 use App\Models\ActivityLog;
@@ -17,7 +17,7 @@ class DashboardController extends Controller
         $customerId = $request->user()->id;
 
         $stats = [
-            'enquiries_count' => Enquiry::where('customer_id', $customerId)->count(),
+            'enquiries_count' => Deal::where('customer_id', $customerId)->count(),
             'quotes_count' => Quote::where('customer_id', $customerId)->count(),
             'invoices_count' => Invoice::where('customer_id', $customerId)->count(),
             // Actual amount received, not invoice totals flagged "paid" — status
@@ -46,7 +46,7 @@ class DashboardController extends Controller
                 'enquiries' => $chartData,
                 'quotes' => $quoteData
             ],
-            'recent_enquiries' => Enquiry::where('customer_id', $customerId)
+            'recent_enquiries' => Deal::where('customer_id', $customerId)
                 ->latest()
                 ->limit(5)
                 ->get(),

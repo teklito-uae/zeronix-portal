@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Enquiry;
+use App\Models\Deal;
 use App\Models\Invoice;
 use App\Models\Lead;
 use App\Models\PaymentReceipt;
@@ -170,7 +170,7 @@ class ReportController extends Controller
         $totalLeads = (clone $leadQuery)->count();
         $convertedLeads = (clone $leadQuery)->whereNotNull('converted_at')->count();
 
-        $enquiryQuery = Enquiry::forUser($request->user());
+        $enquiryQuery = Deal::forUser($request->user());
         if ($from) $enquiryQuery->whereDate('created_at', '>=', $from);
         if ($to) $enquiryQuery->whereDate('created_at', '<=', $to);
 
@@ -194,7 +194,7 @@ class ReportController extends Controller
 
     public function enquiriesBySource(Request $request)
     {
-        $rows = Enquiry::forUser($request->user())
+        $rows = Deal::forUser($request->user())
             ->selectRaw('source, COUNT(*) as count')
             ->groupBy('source')
             ->get();

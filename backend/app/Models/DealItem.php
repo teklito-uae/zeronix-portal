@@ -5,16 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class SalesOrderItem extends Model
+class DealItem extends Model
 {
-    // No stock-mutating boot() hook here: inventory only moves when a Delivery
-    // linked to this order is marked delivered (see DeliveryController::markDelivered).
+    protected $table = 'enquiry_items';
+
     protected $fillable = [
-        'sales_order_id',
+        'enquiry_id',
         'product_id',
-        'product_name',
-        'description',
         'quantity',
+        'description',
         'unit_price',
         'tax_percent',
         'tax_amount',
@@ -24,7 +23,6 @@ class SalesOrderItem extends Model
     ];
 
     protected $casts = [
-        'quantity' => 'decimal:2',
         'unit_price' => 'decimal:2',
         'tax_percent' => 'decimal:2',
         'tax_amount' => 'decimal:2',
@@ -33,13 +31,18 @@ class SalesOrderItem extends Model
         'total' => 'decimal:2',
     ];
 
-    public function salesOrder(): BelongsTo
-    {
-        return $this->belongsTo(SalesOrder::class);
-    }
-
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * Navigate from an item back to its parent Deal. Explicit FK: the
+     * physical column is `enquiry_id` (unchanged by Release B), not
+     * `deal_id`.
+     */
+    public function deal(): BelongsTo
+    {
+        return $this->belongsTo(Deal::class, 'enquiry_id');
     }
 }

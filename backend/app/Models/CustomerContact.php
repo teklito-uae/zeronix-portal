@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -29,11 +30,13 @@ class CustomerContact extends Model
         'is_primary',
         'is_active',
         'notes',
+        'attachments',
     ];
 
     protected $casts = [
         'is_primary' => 'boolean',
         'is_active' => 'boolean',
+        'attachments' => 'array',
     ];
 
     protected static function boot()
@@ -68,9 +71,22 @@ class CustomerContact extends Model
         return $this->hasMany(ContactActivity::class);
     }
 
-    public function deals(): HasMany
+    /**
+     * Deals where this contact is the primary contact.
+     */
+    public function primaryDeals(): HasMany
     {
         return $this->hasMany(Deal::class, 'customer_contact_id');
+    }
+
+    /**
+     * Deals where this contact is an additional (non-primary) contact, via
+     * the `deal_contacts` pivot (columns already physically named
+     * `deal_id`/`customer_contact_id`, no FK override needed).
+     */
+    public function deals(): BelongsToMany
+    {
+        return $this->belongsToMany(Deal::class, 'deal_contacts');
     }
 
     public function quotes(): HasMany

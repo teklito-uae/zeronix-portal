@@ -2,11 +2,11 @@
 
 namespace App\Policies;
 
-use App\Models\Deal;
+use App\Models\Lead;
 use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
-class DealPolicy
+class LeadPolicy
 {
     use HandlesAuthorization;
 
@@ -15,13 +15,13 @@ class DealPolicy
         return true;
     }
 
-    public function view(User $user, Deal $deal): bool
+    public function view(User $user, Lead $lead): bool
     {
         if (in_array($user->role, ['admin', 'super_admin'], true)) {
             return true;
         }
 
-        return $deal->assigned_users()->where('users.id', $user->id)->exists() || $deal->user_id === $user->id;
+        return $lead->assigned_users()->where('users.id', $user->id)->exists() || $lead->user_id === $user->id;
     }
 
     public function create(User $user)
@@ -29,19 +29,16 @@ class DealPolicy
         return true;
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
-    public function update(User $user, Deal $deal): bool
+    public function update(User $user, Lead $lead): bool
     {
         if (in_array($user->role, ['admin', 'super_admin'], true)) {
             return true;
         }
 
-        return $deal->assigned_users()->where('users.id', $user->id)->exists() || $deal->user_id === $user->id;
+        return $lead->assigned_users()->where('users.id', $user->id)->exists() || $lead->user_id === $user->id;
     }
 
-    public function delete(User $user, Deal $deal)
+    public function delete(User $user, Lead $lead)
     {
         return in_array($user->role, ['admin', 'super_admin'], true);
     }

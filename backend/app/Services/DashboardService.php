@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Enquiry;
+use App\Models\Deal;
 use App\Models\Quote;
 use App\Models\Invoice;
 use App\Models\Customer;
@@ -19,7 +19,7 @@ class DashboardService
     public function getStats(User $user): array
     {
         return [
-            'total_enquiries' => Enquiry::forUser($user)->count(),
+            'total_enquiries' => Deal::forUser($user)->count(),
             'pending_quotes' => Quote::forUser($user)->whereIn('status', ['draft', 'sent'])->count(),
             'active_customers' => Customer::forUser($user)->count(),
             'total_products' => Product::count(),
@@ -35,7 +35,7 @@ class DashboardService
                 ->where('status', '!=', 'cancelled')
                 ->whereRaw('total <= COALESCE((SELECT SUM(amount) FROM payment_receipts WHERE payment_receipts.invoice_id = invoices.id), 0)')
                 ->count(),
-            'converted_leads_count' => Enquiry::forUser($user)->has('quotes')->count(),
+            'converted_leads_count' => Deal::forUser($user)->has('quotes')->count(),
         ];
     }
 
@@ -49,7 +49,7 @@ class DashboardService
 
             $chartData[] = [
                 'name' => $date->format('M'),
-                'enquiries' => Enquiry::forUser($user)->whereBetween('created_at', [$start, $end])->count(),
+                'enquiries' => Deal::forUser($user)->whereBetween('created_at', [$start, $end])->count(),
                 'quotes' => Quote::forUser($user)->whereBetween('created_at', [$start, $end])->count(),
                 'invoices' => Invoice::forUser($user)->whereBetween('created_at', [$start, $end])->count(),
                 'revenue' => $this->getTotalPaid($user, $start, $end),
@@ -87,7 +87,7 @@ class DashboardService
             $dailyActivity[] = [
                 'day' => $i,
                 'name' => $date->format('d M'),
-                'enquiries' => Enquiry::forUser($user)->whereBetween('created_at', [$start, $end])->count(),
+                'enquiries' => Deal::forUser($user)->whereBetween('created_at', [$start, $end])->count(),
                 'quotes' => Quote::forUser($user)->whereBetween('created_at', [$start, $end])->count(),
                 'invoices' => Invoice::forUser($user)->whereBetween('created_at', [$start, $end])->count(),
             ];
@@ -97,7 +97,7 @@ class DashboardService
 
     public function getRecentEnquiries(User $user, int $limit = 5): Collection
     {
-        return Enquiry::forUser($user)
+        return Deal::forUser($user)
             ->with(['customer', 'user'])
             ->latest()
             ->take($limit)
@@ -144,7 +144,7 @@ class DashboardService
         }
 
         return User::select('id', 'name', 'email', 'role')
-            ->withCount(['enquiries', 'quotes', 'invoices'])
+            ->withCount(['deals as enquiries_count', 'quotes', 'invoices'])
             ->where('is_active', true)
             ->take($limit)
             ->get();
