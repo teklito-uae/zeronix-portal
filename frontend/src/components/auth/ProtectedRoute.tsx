@@ -27,7 +27,7 @@ export const AdminRoute = () => {
   if (isWorkspacePath && admin.role !== 'admin' && admin.role !== 'super_admin') {
     const path = location.pathname.split('/')[2]; // /workspace/companies -> companies
 
-    const publicModules = ['dashboard', 'settings', 'profile', 'notifications'];
+    const publicModules = ['dashboard', 'settings', 'profile', 'notifications', 'documentation'];
     const adminOnlyModules = ['users', 'activities', 'system-docs'];
 
     if (path && !publicModules.includes(path)) {

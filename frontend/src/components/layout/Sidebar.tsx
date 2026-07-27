@@ -159,6 +159,7 @@ const getTenantAdminNavGroups = (basePath: string): NavGroup[] => [
     label: 'System',
     items: [
       { id: 'settings', label: 'Settings', icon: <Settings size={18} />, path: `${basePath}/settings` },
+      { id: 'documentation', label: 'Documentation', icon: <BookOpen size={18} />, path: `${basePath}/documentation` },
     ],
   },
 ];
@@ -217,6 +218,12 @@ const getTenantStaffNavGroups = (basePath: string): NavGroup[] => [
     label: 'Insights',
     items: [
       { id: 'reports', label: 'Reports', icon: <BarChart3 size={18} />, path: `${basePath}/reports` },
+    ],
+  },
+  {
+    label: 'Help',
+    items: [
+      { id: 'documentation', label: 'Documentation', icon: <BookOpen size={18} />, path: `${basePath}/documentation` },
     ],
   },
 ];
@@ -306,7 +313,7 @@ export const Sidebar = () => {
     return groups.map(group => ({
       ...group,
       items: group.items.filter(item => {
-        if (item.id === 'dashboard') return true; // Everyone sees dashboard
+        if (item.id === 'dashboard' || item.id === 'documentation') return true; // Everyone sees these
         return adminUser.permissions?.includes(item.id);
       })
     })).filter(group => group.items.length > 0);

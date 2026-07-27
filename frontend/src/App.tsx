@@ -47,6 +47,7 @@ import { Notifications } from './pages/workspace/Notifications';
 import { CompanyImport } from './pages/workspace/CompanyImport';
 import { LeadImport } from './pages/workspace/LeadImport';
 import { AttendanceReport } from './pages/workspace/AttendanceReport';
+import { Documentation } from './pages/workspace/Documentation';
 
 // --- MARKETING IMPORTS (Workspace module) ---
 import { MarketingDashboard } from './pages/workspace/marketing/MarketingDashboard';
@@ -122,6 +123,7 @@ const WorkspaceRoutes = () => (
     <Route path="leads/import" element={<LeadImport />} />
     <Route path="customers/import" element={<Navigate to="/workspace/companies/import" replace />} />
     <Route path="attendance" element={<AttendanceReport />} />
+    <Route path="documentation" element={<Documentation />} />
     <Route path="marketing" element={<Navigate to="dashboard" replace />} />
     <Route path="marketing/dashboard" element={<MarketingDashboard />} />
     <Route path="marketing/campaigns" element={<MarketingCampaigns />} />
