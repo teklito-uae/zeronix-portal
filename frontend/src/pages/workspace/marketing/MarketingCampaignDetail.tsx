@@ -8,6 +8,7 @@ import { PageLoader } from '@/components/shared/PageLoader';
 import { StatCard } from '@/components/shared/StatCard';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { Avatar } from '@/components/shared/Avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -137,6 +138,12 @@ export const MarketingCampaignDetail = () => {
         <span className="text-[12px] text-brand-subtle">
           {campaign.launched_at ? `Launched ${new Date(campaign.launched_at).toLocaleString()}` : 'Not launched yet'}
         </span>
+        {campaign.user?.name && (
+          <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-brand-border">
+            <Avatar name={campaign.user.name} className="h-5 w-5 text-[9px]" />
+            <span className="text-[12px] text-brand-secondary">{campaign.user.name}</span>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">

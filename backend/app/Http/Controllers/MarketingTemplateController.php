@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Mail\MarketingCampaignMail;
 use App\Models\MarketingTemplate;
 use App\Models\MarketingTemplateVersion;
-use App\Services\MarketingMailerService;
+use App\Services\MailConfigService;
 use App\Services\MarketingTemplateRenderService;
 use App\Services\MarketingTemplateSeederService;
 use Illuminate\Http\Request;
@@ -192,30 +192,27 @@ class MarketingTemplateController extends Controller
             'to' => 'required|email',
         ]);
 
-        $account = MarketingMailerService::pickAccount($request->user()->company_id);
-        if (!$account) {
-            return response()->json(['message' => 'No active SMTP account available. Add one in Marketing Settings.'], 422);
+        $user = $request->user();
+        if (!$user->smtp_host) {
+            return response()->json(['message' => 'Set up your email account under Settings > Email before sending a test.'], 422);
         }
 
         $rendered = MarketingTemplateRenderService::render(
             $marketingTemplate->body_html,
             $marketingTemplate->subject,
-            MarketingTemplateRenderService::sampleMergeData($request->user()->company_id)
+            MarketingTemplateRenderService::sampleMergeData($user->company_id)
         );
 
         try {
-            MarketingMailerService::applyMarketingSmtp($account);
+            MailConfigService::applyUserSmtp($user);
 
             Mail::to($validated['to'])->send(new MarketingCampaignMail(
                 '[TEST] ' . $rendered['subject'],
                 $rendered['html']
             ));
 
-            MarketingMailerService::recordSuccess($account);
-
             return response()->json(['message' => 'Test email sent to ' . $validated['to']]);
         } catch (\Exception $e) {
-            MarketingMailerService::recordFailure($account, $e->getMessage());
             return response()->json(['message' => 'Failed to send test email: ' . $e->getMessage()], 500);
         }
     }

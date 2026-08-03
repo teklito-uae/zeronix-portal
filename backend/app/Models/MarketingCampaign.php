@@ -27,7 +27,6 @@ class MarketingCampaign extends Model
         'schedule_type',
         'scheduled_at',
         'timezone',
-        'smtp_account_id',
         'settings_snapshot',
         'total_recipients',
         'pending_count',
@@ -68,11 +67,6 @@ class MarketingCampaign extends Model
     public function template(): BelongsTo
     {
         return $this->belongsTo(MarketingTemplate::class, 'template_id');
-    }
-
-    public function smtpAccount(): BelongsTo
-    {
-        return $this->belongsTo(MarketingSmtpAccount::class, 'smtp_account_id');
     }
 
     public function recipients(): HasMany

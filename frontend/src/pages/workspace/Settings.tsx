@@ -90,6 +90,7 @@ export const Settings = () => {
       setBrandForm(prev => ({ ...prev, logo_path: res.data.settings.logo_path || prev.logo_path }));
       useCurrencyStore.getState().setFromSettings(res.data.settings);
       queryClient.invalidateQueries({ queryKey: ['brand_settings'] });
+      queryClient.invalidateQueries({ queryKey: ['workspace-settings-currency'] });
     },
     onError: (err: any) => {
       const data = err.response?.data;

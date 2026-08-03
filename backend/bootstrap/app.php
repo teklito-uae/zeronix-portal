@@ -21,7 +21,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // --stop-when-empty exits once the queue is empty rather than
         // idling, and --max-time bounds it well under the 1-minute cadence
         // so it can't overlap the next scheduler run.
-        $schedule->command('queue:work --stop-when-empty --max-time=50 --tries=3')
+        // --queue must list every named queue jobs dispatch onto (marketing
+        // campaigns, Google contacts sync) plus "default" — without it,
+        // queue:work only drains the implicit "default" queue and jobs sent
+        // to other queues (onQueue('marketing'), etc.) sit unprocessed forever.
+        $schedule->command('queue:work --queue=marketing,google-sync,default --stop-when-empty --max-time=50 --tries=3')
             ->everyMinute()
             ->withoutOverlapping();
     })

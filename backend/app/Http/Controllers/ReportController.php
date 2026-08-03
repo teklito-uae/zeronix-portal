@@ -159,24 +159,48 @@ class ReportController extends Controller
 
     public function crmDashboard(Request $request)
     {
+        $user = $request->user();
         $from = $request->date_from;
         $to = $request->date_to;
 
-        $leadQuery = Lead::query();
+        $leadQuery = Lead::forUser($user);
         if ($from) $leadQuery->whereDate('created_at', '>=', $from);
         if ($to) $leadQuery->whereDate('created_at', '<=', $to);
 
         $leadsByStatus = (clone $leadQuery)->selectRaw('status, COUNT(*) as count')->groupBy('status')->pluck('count', 'status');
+        $leadsBySource = (clone $leadQuery)->selectRaw("COALESCE(NULLIF(source, ''), 'Unknown') as source, COUNT(*) as count")->groupBy('source')->pluck('count', 'source');
         $totalLeads = (clone $leadQuery)->count();
         $convertedLeads = (clone $leadQuery)->whereNotNull('converted_at')->count();
 
-        $enquiryQuery = Deal::forUser($request->user());
+        $enquiryQuery = Deal::forUser($user);
         if ($from) $enquiryQuery->whereDate('created_at', '>=', $from);
         if ($to) $enquiryQuery->whereDate('created_at', '<=', $to);
 
         $enquiriesByStatus = (clone $enquiryQuery)->selectRaw('status, COUNT(*) as count')->groupBy('status')->pluck('count', 'status');
+        $wonDeals = (int) ($enquiriesByStatus['won'] ?? 0);
+        $lostDeals = (int) ($enquiriesByStatus['lost'] ?? 0);
+        $decidedDeals = $wonDeals + $lostDeals;
 
-        $topCustomers = \App\Models\Customer::query()
+        $wonInvoiceQuery = Invoice::forUser($user)->whereHas('deal', fn($q) => $q->where('status', 'won'));
+        if ($from) $wonInvoiceQuery->whereDate('invoices.created_at', '>=', $from);
+        if ($to) $wonInvoiceQuery->whereDate('invoices.created_at', '<=', $to);
+        $avgDealValue = (float) $wonInvoiceQuery->avg('total');
+
+        $monthlyTrend = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $date = now()->subMonths($i);
+            $start = $date->copy()->startOfMonth();
+            $end = $date->copy()->endOfMonth();
+
+            $monthlyTrend[] = [
+                'month' => $date->format('M'),
+                'leads' => Lead::forUser($user)->whereBetween('created_at', [$start, $end])->count(),
+                'deals' => Deal::forUser($user)->whereBetween('created_at', [$start, $end])->count(),
+                'won' => Deal::forUser($user)->where('status', 'won')->whereBetween('created_at', [$start, $end])->count(),
+            ];
+        }
+
+        $topCustomers = \App\Models\Customer::forUser($user)
             ->withSum(['invoices as total_invoiced'], 'total')
             ->orderByDesc('total_invoiced')
             ->limit(5)
@@ -184,10 +208,16 @@ class ReportController extends Controller
 
         return response()->json([
             'leads_by_status' => $leadsByStatus,
+            'leads_by_source' => $leadsBySource,
             'total_leads' => $totalLeads,
             'converted_leads' => $convertedLeads,
             'conversion_rate' => $totalLeads > 0 ? round($convertedLeads / $totalLeads * 100, 1) : 0,
             'enquiries_by_status' => $enquiriesByStatus,
+            'won_deals' => $wonDeals,
+            'lost_deals' => $lostDeals,
+            'win_rate' => $decidedDeals > 0 ? round($wonDeals / $decidedDeals * 100, 1) : 0,
+            'avg_deal_value' => $avgDealValue,
+            'monthly_trend' => $monthlyTrend,
             'top_customers' => $topCustomers,
         ]);
     }

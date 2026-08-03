@@ -6,6 +6,7 @@ import { MarketingLayout } from '@/components/marketing/MarketingLayout';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { ActionGroup } from '@/components/shared/ActionGroup';
+import { Avatar } from '@/components/shared/Avatar';
 import { Send } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/axios';
@@ -59,6 +60,16 @@ export const MarketingCampaigns = () => {
       ),
     },
     { accessorKey: 'status', header: 'Status', cell: ({ row }) => <StatusBadge status={row.original.status} /> },
+    {
+      id: 'owner',
+      header: 'Owner',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Avatar name={row.original.user?.name} className="h-6 w-6 text-[10px]" />
+          <span className="text-[12px] text-brand-secondary">{row.original.user?.name || '—'}</span>
+        </div>
+      ),
+    },
     { accessorKey: 'total_recipients', header: 'Recipients', cell: ({ row }) => <span className="text-[12px]">{row.original.total_recipients}</span> },
     { accessorKey: 'sent_count', header: 'Sent', cell: ({ row }) => <span className="text-[12px]">{row.original.sent_count}</span> },
     {

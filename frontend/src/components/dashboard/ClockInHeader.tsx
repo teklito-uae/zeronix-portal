@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { LogIn, LogOut } from 'lucide-react';
 import Avatar from 'boring-avatars';
 import {
@@ -13,16 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/shared/Spinner';
-
-const PRODUCTIVITY_QUOTES = [
-  "Success is not final; failure is not fatal. It is the courage to continue that counts.",
-  "Your most unhappy customers are your greatest source of learning.",
-  "Don't watch the clock; do what it does. Keep going.",
-  "Quality means doing it right when no one is looking.",
-  "Opportunities don't happen. You create them.",
-  "The secret of getting ahead is getting started.",
-  "Well done is better than well said.",
-];
+import { toTitleCase } from '@/lib/utils';
 
 // Staff-only clock in/out widget, extracted from the former standalone
 // StaffDashboard so it can be embedded inside the merged Dashboard instead
@@ -30,8 +21,6 @@ const PRODUCTIVITY_QUOTES = [
 export const ClockInHeader = () => {
   const queryClient = useQueryClient();
   const admin = useAuthStore(state => state.admin);
-
-  const randomQuote = useMemo(() => PRODUCTIVITY_QUOTES[Math.floor(Math.random() * PRODUCTIVITY_QUOTES.length)], []);
 
   const [now, setNow] = useState(new Date());
   const [isClockOutOpen, setIsClockOutOpen] = useState(false);
@@ -80,83 +69,53 @@ export const ClockInHeader = () => {
 
   return (
     <>
-      <div
-        className="w-full relative rounded-xl border border-brand-border overflow-hidden px-4 md:px-8 pt-8 md:pt-10 pb-8 md:pb-10 shadow-sm"
-        style={{
-          background: 'linear-gradient(to bottom, #059669 0%, #10B981 30%, rgba(16,185,129,0.12) 80%, transparent 100%)',
-        }}
-      >
-        <div
-          className="absolute top-0 left-0 w-full h-full pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse 70% 90% at 15% 10%, rgba(255,255,255,0.15) 0%, transparent 65%)' }}
-        />
-        <div
-          className="absolute inset-0 pointer-events-none opacity-80"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1.5' fill='%23ffffff' fill-opacity='0.25'/%3E%3C/svg%3E")`,
-            maskImage: 'linear-gradient(to bottom, black 10%, transparent 70%)',
-            WebkitMaskImage: 'linear-gradient(to bottom, black 10%, transparent 70%)'
-          }}
-        />
+      <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-brand-border bg-brand-white px-4 sm:px-5 py-4 shadow-sm">
+        <div className="flex items-center gap-3 min-w-0">
+          <Avatar size={44} name={admin?.name || 'User'} variant="beam" colors={['#fdfcdc', '#fed9b7', '#f07167', '#00afb9', '#0081a7']} />
+          <div className="min-w-0">
+            <h1 className="text-[16px] font-bold text-brand-primary leading-tight truncate">
+              Welcome back, {admin?.name || 'there'}
+            </h1>
+            <p className="text-[12px] text-brand-subtle mt-0.5 truncate">
+              {admin?.designation ? `${toTitleCase(admin.designation)} · ` : ''}
+              {now.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'short' })}
+            </p>
+          </div>
+        </div>
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-start md:justify-between gap-6 md:gap-8">
-          <div className="flex items-center gap-4 md:gap-5">
-            <div className="shrink-0 scale-90 md:scale-100 origin-left">
-              <Avatar size={64} name={admin?.name || 'User'} variant="beam" colors={['#fdfcdc', '#fed9b7', '#f07167', '#00afb9', '#0081a7']} />
-            </div>
-            <div>
-              <p className="text-emerald-100/70 text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.12em] mb-1">Welcome back</p>
-              <h1 className="text-[22px] md:text-[26px] font-bold text-white leading-tight tracking-tight drop-shadow-sm">
-                {admin?.name}
-              </h1>
-              <p className="text-white/65 text-[11px] md:text-[12px] mt-1 md:mt-2 max-w-[360px] italic leading-relaxed">
-                &ldquo;{randomQuote}&rdquo;
-              </p>
-            </div>
+        <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0">
+          <div className="text-right">
+            <p className="text-[10px] uppercase tracking-wide text-brand-subtle font-semibold">
+              {isClockedIn ? 'Session Active' : 'Not Clocked In'}
+            </p>
+            <p className="text-[20px] font-bold leading-none text-brand-primary font-mono mt-0.5">
+              {isClockedIn
+                ? formatTimer(clockInTime)
+                : now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+            </p>
           </div>
 
-          <div className="flex flex-col items-center md:items-end gap-3 md:gap-4 w-full md:w-auto bg-black/10 md:bg-transparent rounded-2xl md:rounded-none p-5 md:p-0 border border-white/5 md:border-none backdrop-blur-sm md:backdrop-blur-none">
-            <div className="text-center md:text-right w-full">
-              <p className="text-[10px] md:text-[11px] uppercase tracking-[0.15em] text-white/60 font-semibold mb-1">
-                {isClockedIn ? 'Session Active' : now.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'short' })}
-              </p>
-              <p
-                className="text-[32px] md:text-[42px] font-bold leading-none text-white tracking-tighter"
-                style={{ fontFamily: '"JetBrains Mono", "Fira Code", "Courier New", monospace', textShadow: '0 2px 20px rgba(0,0,0,0.2)' }}
-              >
-                {isClockedIn
-                  ? formatTimer(clockInTime)
-                  : now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
-              </p>
-              {isClockedIn && (
-                <p className="text-[10px] md:text-[11px] text-white/50 mt-1.5 font-mono">
-                  {now.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })}
-                </p>
-              )}
-            </div>
-
-            {isClockedIn ? (
-              <button
-                onClick={() => setIsClockOutOpen(true)}
-                disabled={clockOutMutation.isPending}
-                className="w-full md:w-auto justify-center group flex items-center gap-2 bg-red-500 hover:bg-red-400 text-white font-semibold text-[13px] px-6 py-3 md:py-2.5 rounded-xl transition-all duration-150 disabled:opacity-60 shadow-lg shadow-red-900/30"
-              >
-                <LogOut size={16} className="group-hover:translate-x-0.5 transition-transform" />
-                Clock Out
-              </button>
-            ) : (
-              <button
-                onClick={() => clockInMutation.mutate()}
-                disabled={clockInMutation.isPending}
-                className="w-full md:w-auto justify-center group flex items-center gap-2 bg-white text-emerald-700 font-semibold text-[13px] px-6 py-3 md:py-2.5 rounded-xl hover:bg-emerald-50 transition-all duration-150 disabled:opacity-60 shadow-lg shadow-emerald-900/20"
-              >
-                {clockInMutation.isPending
-                  ? <Spinner size={16} />
-                  : <LogIn size={16} className="group-hover:-translate-x-0.5 transition-transform" />}
-                Clock In
-              </button>
-            )}
-          </div>
+          {isClockedIn ? (
+            <button
+              onClick={() => setIsClockOutOpen(true)}
+              disabled={clockOutMutation.isPending}
+              className="shrink-0 group flex items-center gap-2 bg-brand-danger hover:bg-red-600 text-white font-semibold text-[13px] px-4 py-2 rounded-lg transition-colors disabled:opacity-60"
+            >
+              <LogOut size={15} className="group-hover:translate-x-0.5 transition-transform" />
+              Clock Out
+            </button>
+          ) : (
+            <button
+              onClick={() => clockInMutation.mutate()}
+              disabled={clockInMutation.isPending}
+              className="shrink-0 group flex items-center gap-2 bg-brand-success hover:opacity-90 text-white font-semibold text-[13px] px-4 py-2 rounded-lg transition-opacity disabled:opacity-60"
+            >
+              {clockInMutation.isPending
+                ? <Spinner size={15} />
+                : <LogIn size={15} className="group-hover:-translate-x-0.5 transition-transform" />}
+              Clock In
+            </button>
+          )}
         </div>
       </div>
 

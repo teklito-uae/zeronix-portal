@@ -89,7 +89,7 @@ export const MarketingQueue = () => {
                 <TableHead className="text-[12px]">Recipient</TableHead>
                 <TableHead className="text-[12px]">Campaign</TableHead>
                 <TableHead className="text-[12px]">Status</TableHead>
-                <TableHead className="text-[12px]">SMTP Account</TableHead>
+                <TableHead className="text-[12px]">Sender</TableHead>
                 <TableHead className="text-[12px]">Attempts</TableHead>
                 <TableHead className="text-[12px]">Updated</TableHead>
                 <TableHead className="text-[12px] text-right">Actions</TableHead>
@@ -112,7 +112,7 @@ export const MarketingQueue = () => {
                     </button>
                   </TableCell>
                   <TableCell><StatusBadge status={r.status} /></TableCell>
-                  <TableCell className="text-[12px] text-brand-subtle">{r.smtp_account?.label || '—'}</TableCell>
+                  <TableCell className="text-[12px] text-brand-subtle">{r.campaign?.user?.name || '—'}</TableCell>
                   <TableCell className="text-[12px]">{r.attempts}</TableCell>
                   <TableCell className="text-[12px] text-brand-subtle">{new Date(r.updated_at).toLocaleString()}</TableCell>
                   <TableCell className="text-right">

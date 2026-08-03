@@ -91,6 +91,7 @@ const getAdminDrawerGroups = (basePath: string): NavGroup[] => [
       { id: 'suppliers', label: 'Suppliers', icon: Truck, path: `${basePath}/suppliers` },
       { id: 'purchases', label: 'Purchases', icon: ShoppingCart, path: `${basePath}/purchases` },
       { id: 'expenses', label: 'Expenses', icon: Wallet, path: `${basePath}/expenses` },
+      { id: 'supplier-broadcast.view', label: 'Supplier Broadcast', icon: MessageSquareText, path: `${basePath}/supplier-broadcast` },
     ],
   },
   {

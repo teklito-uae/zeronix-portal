@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Check, ChevronsUpDown, Building2, Truck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Avatar } from '@/components/shared/Avatar';
 import {
   Command,
   CommandEmpty,
@@ -17,6 +18,8 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import api from '@/lib/axios';
+import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 
 export interface PartyOption {
   id: number;
@@ -44,6 +47,7 @@ interface PartySearchProps {
  * so they fall back to a capped list filtered client-side.
  */
 export const PartySearch = ({ kind, endpoint, searchMode, value, selected, onSelect, disabled, placeholder, className }: PartySearchProps) => {
+  const currency = useCurrencyStore((s) => s.currency);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -75,6 +79,10 @@ export const PartySearch = ({ kind, endpoint, searchMode, value, selected, onSel
   }, [options, value, selected]);
 
   const Icon = kind === 'customer' ? Building2 : Truck;
+  // Customers are companies first — show a letter avatar + company name only,
+  // no secondary contact-person line (the person is already covered by the Contacts module).
+  const isCompanyStyle = kind === 'customer';
+  const labelFor = (opt: PartyOption) => (isCompanyStyle ? (opt.company || opt.name) : opt.name);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -88,11 +96,19 @@ export const PartySearch = ({ kind, endpoint, searchMode, value, selected, onSel
           className={cn("w-full justify-between h-11 bg-admin-bg border-admin-border text-sm text-left rounded-xl shadow-sm font-normal", className)}
         >
           <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
-            <Icon className={cn("shrink-0", activeOption ? "text-zeronix-blue" : "text-admin-text-muted")} size={15} />
+            {isCompanyStyle ? (
+              activeOption ? (
+                <Avatar name={labelFor(activeOption)} className="h-6 w-6 text-[10px] shrink-0" />
+              ) : (
+                <Icon className="shrink-0 text-admin-text-muted" size={15} />
+              )
+            ) : (
+              <Icon className={cn("shrink-0", activeOption ? "text-zeronix-blue" : "text-admin-text-muted")} size={15} />
+            )}
             <span className="flex-1 truncate text-sm text-admin-text-primary">
-              {activeOption ? activeOption.name : (placeholder || `Search ${kind}s…`)}
+              {activeOption ? labelFor(activeOption) : (placeholder || `Search ${kind}s…`)}
             </span>
-            {activeOption?.company && (
+            {!isCompanyStyle && activeOption?.company && (
               <span className="text-[11px] text-admin-text-muted opacity-60 truncate hidden sm:inline">{activeOption.company}</span>
             )}
           </div>
@@ -119,15 +135,21 @@ export const PartySearch = ({ kind, endpoint, searchMode, value, selected, onSel
                   onSelect={() => { onSelect(opt); setOpen(false); setSearch(''); }}
                   className="flex items-center gap-2 px-2 py-2 rounded cursor-pointer text-sm"
                 >
-                  <Icon size={13} className={cn(value === opt.id ? "text-zeronix-blue" : "text-admin-text-muted")} />
+                  {isCompanyStyle ? (
+                    <Avatar name={labelFor(opt)} className="h-7 w-7 text-[11px] shrink-0" />
+                  ) : (
+                    <Icon size={13} className={cn(value === opt.id ? "text-zeronix-blue" : "text-admin-text-muted")} />
+                  )}
                   <div className="flex flex-col flex-1 min-w-0">
-                    <span className="font-medium text-admin-text-primary truncate">{opt.name}</span>
-                    {(opt.company || opt.contact_person) && (
+                    <span className="font-medium text-admin-text-primary truncate">{labelFor(opt)}</span>
+                    {!isCompanyStyle && (opt.company || opt.contact_person) && (
                       <span className="text-[11px] text-admin-text-muted mt-0.5 truncate">{opt.company || opt.contact_person}</span>
                     )}
                   </div>
                   {!!opt.outstanding_balance && Number(opt.outstanding_balance) > 0 && (
-                    <span className="text-[10px] font-mono text-amber-600 shrink-0">{Number(opt.outstanding_balance).toLocaleString()} due</span>
+                    <span className="text-[10px] font-mono text-amber-600 shrink-0 inline-flex items-center gap-0.5">
+                      <CurrencyAmount amount={opt.outstanding_balance} currency={currency} /> due
+                    </span>
                   )}
                   <Check className={cn("h-3.5 w-3.5 shrink-0", value === opt.id ? "opacity-100" : "opacity-0")} />
                 </CommandItem>

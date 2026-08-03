@@ -61,7 +61,7 @@ export const Purchases = () => {
           </p>
           {row.original.amount_paid > 0 && (
             <p className="text-[11px] font-medium text-brand-success bg-brand-success-bg px-1.5 py-0.5 rounded inline-block mt-1">
-              PAID: {row.original.amount_paid.toLocaleString()}
+              PAID: <CurrencyAmount amount={row.original.amount_paid} currency={currency} />
             </p>
           )}
         </div>

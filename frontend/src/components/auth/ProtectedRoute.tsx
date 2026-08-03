@@ -1,6 +1,17 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 
+// Every other module's URL segment is identical to its permission string
+// (e.g. `deals` route -> `deals` permission). Supplier Broadcast is the
+// first module with a namespaced/granular permission scheme
+// (`supplier-broadcast.view`, `.edit`, ...), so its route segment
+// (`supplier-broadcast`) doesn't match its gating permission string
+// (`supplier-broadcast.view`) 1:1 — this map bridges that gap without
+// touching the generic path-based check used by every other route.
+const ROUTE_PERMISSION_OVERRIDES: Record<string, string> = {
+  'supplier-broadcast': 'supplier-broadcast.view',
+};
+
 export const AdminRoute = () => {
   const { admin, isLoading } = useAuthStore();
   const location = useLocation();
@@ -34,7 +45,8 @@ export const AdminRoute = () => {
         if (adminOnlyModules.includes(path)) {
             return <Navigate to="/workspace/dashboard" replace />;
         }
-        if (admin.permissions && !admin.permissions.includes(path)) {
+        const requiredPermission = ROUTE_PERMISSION_OVERRIDES[path] ?? path;
+        if (admin.permissions && !admin.permissions.includes(requiredPermission)) {
             return <Navigate to="/workspace/dashboard" replace />;
         }
     }

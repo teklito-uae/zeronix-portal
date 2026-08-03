@@ -654,6 +654,80 @@ export interface Expense {
   user?: User;
 }
 
+// ── Supplier Broadcast ─────────────────────────────────
+
+export interface SbCategory {
+  id: number;
+  company_id: number;
+  name: string;
+  slug?: string | null;
+  description?: string | null;
+  sort_order: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SbVendor {
+  id: number;
+  company_id: number;
+  name: string;
+  company_name?: string | null;
+  phone_raw: string;
+  phone_e164?: string | null;
+  whatsapp_chat_name?: string | null;
+  email?: string | null;
+  address?: string | null;
+  category_id?: number | null;
+  category?: SbCategory;
+  notes?: string | null;
+  is_active: boolean;
+  source: 'manual' | 'extension';
+  created_by_user_id?: number | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SbBroadcast {
+  id: number;
+  company_id: number;
+  vendor_id?: number | null;
+  vendor?: SbVendor;
+  category_id?: number | null;
+  category?: SbCategory;
+  source: 'manual_paste' | 'extension';
+  raw_text: string;
+  parsed_row_count: number;
+  parse_warnings: string[] | null;
+  imported_by_user_id?: number | null;
+  whatsapp_message_ts?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  products?: SbProduct[];
+}
+
+export interface SbProduct {
+  id: number;
+  company_id: number;
+  broadcast_id: number;
+  vendor_id?: number | null;
+  vendor?: SbVendor;
+  category_id?: number | null;
+  category?: SbCategory;
+  raw_line: string;
+  product_name?: string | null;
+  specs_text?: string | null;
+  spec_ram?: string | null;
+  spec_storage?: string | null;
+  spec_cpu?: string | null;
+  price: number | null;
+  currency: string | null;
+  quantity_note?: string | null;
+  parse_confidence: 'high' | 'medium' | 'low';
+  is_reviewed: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 // ── Pagination ─────────────────────────────────────────
 
 export interface PaginatedResponse<T> {
@@ -710,28 +784,6 @@ export interface MarketingSettings {
   append_unsubscribe_footer: boolean;
   unsubscribe_footer_html?: string | null;
   default_test_email?: string | null;
-}
-
-export interface MarketingSmtpAccount {
-  id: number;
-  label: string;
-  host: string;
-  port: number;
-  encryption: 'tls' | 'ssl' | 'none';
-  username: string;
-  from_email: string;
-  from_name: string;
-  reply_to?: string | null;
-  per_minute_limit?: number | null;
-  hourly_limit?: number | null;
-  daily_limit?: number | null;
-  priority: number;
-  is_active: boolean;
-  health_status: 'healthy' | 'warning' | 'failed';
-  consecutive_failures: number;
-  last_error?: string | null;
-  last_used_at?: string | null;
-  total_sent: number;
 }
 
 export interface MarketingTemplate {
@@ -792,7 +844,6 @@ export interface MarketingCampaign {
   schedule_type: 'immediate' | 'scheduled';
   scheduled_at?: string | null;
   timezone?: string | null;
-  smtp_account_id?: number | null;
   total_recipients: number;
   pending_count: number;
   sent_count: number;
@@ -811,9 +862,8 @@ export interface MarketingCampaign {
   started_at?: string | null;
   completed_at?: string | null;
   cancelled_at?: string | null;
-  user?: { id: number; name: string } | null;
+  user?: { id: number; name: string; smtp_host?: string | null } | null;
   template?: { id: number; name: string } | null;
-  smtp_account?: { id: number; label: string } | null;
   created_at?: string;
 }
 
@@ -833,8 +883,7 @@ export interface MarketingRecipient {
   clicked_at?: string | null;
   click_count: number;
   unsubscribed_at?: string | null;
-  campaign?: { id: number; name: string; status: string } | null;
-  smtp_account?: { id: number; label: string } | null;
+  campaign?: { id: number; name: string; status: string; user?: { id: number; name: string } | null } | null;
   updated_at?: string;
 }
 

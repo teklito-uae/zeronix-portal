@@ -20,7 +20,8 @@ import {
   Shield, Mail, Phone, UserCog, CheckCircle2, Lock, Download,
   LayoutDashboard, Users as UsersIcon, FileText,
   Receipt, Package, Truck, Clock, Activity, Banknote, Megaphone,
-  UserCircle2, ClipboardList, PackageCheck, ShoppingCart, Wallet, BarChart3, Handshake
+  UserCircle2, ClipboardList, PackageCheck, ShoppingCart, Wallet, BarChart3, Handshake,
+  MessageSquareText
 } from 'lucide-react';
 import { Spinner } from '@/components/shared/Spinner';
 import type { User } from '@/types';
@@ -45,12 +46,25 @@ const AVAILABLE_MODULES = [
   { id: 'products', label: 'Inventory Management', icon: Package, desc: 'Manage product catalog' },
   { id: 'suppliers', label: 'Supplier Network', icon: Truck, desc: 'Manage vendor relationships' },
   { id: 'purchases', label: 'Purchasing', icon: ShoppingCart, desc: 'Purchase bills from suppliers' },
+  { id: 'supplier-broadcast.view', label: 'Supplier Broadcast', icon: MessageSquareText, desc: 'Manage supplier price broadcasts' },
   { id: 'expenses', label: 'Expenses', icon: Wallet, desc: 'Log and track business expenses' },
   { id: 'reports', label: 'Reports', icon: BarChart3, desc: 'P&L, aging, and pipeline reports' },
   { id: 'marketing', label: 'Marketing', icon: Megaphone, desc: 'Email campaigns & audiences' },
   { id: 'attendance', label: 'Attendance', icon: Clock, desc: 'Timesheets & clock-in' },
   { id: 'activities', label: 'Activities Log', icon: Activity, desc: 'System audit trails' },
   { id: 'users', label: 'Team Management', icon: UsersIcon, desc: 'Manage staff accounts' },
+];
+
+// Supplier Broadcast is the first module gated by fine-grained
+// sub-permissions instead of a single coarse module flag. This list is
+// intentionally self-contained (not a generalization of AVAILABLE_MODULES)
+// — it only renders when `supplier-broadcast.view` is checked above.
+const SUPPLIER_BROADCAST_SUB_PERMISSIONS = [
+  { id: 'supplier-broadcast.create', label: 'Create products/broadcasts' },
+  { id: 'supplier-broadcast.edit', label: 'Edit products' },
+  { id: 'supplier-broadcast.delete', label: 'Delete products, broadcasts, vendors, categories' },
+  { id: 'supplier-broadcast.manage-vendors', label: 'Manage vendors & categories' },
+  { id: 'supplier-broadcast.import', label: 'Import broadcasts (paste)' },
 ];
 
 /**
@@ -418,6 +432,39 @@ export const Users = () => {
                       </div>
                     );
                   })}
+
+                  {(form.permissions?.includes('supplier-broadcast.view') ?? false) && (
+                    <div className="ml-3 pl-3 border-l-2 border-brand-accent/20 space-y-2">
+                      <p className="text-[11px] font-semibold text-brand-subtle uppercase tracking-wide">
+                        Supplier Broadcast permissions
+                      </p>
+                      {SUPPLIER_BROADCAST_SUB_PERMISSIONS.map(sub => {
+                        const isSubChecked = form.permissions?.includes(sub.id) ?? false;
+                        return (
+                          <div
+                            key={sub.id}
+                            onClick={() => togglePermission(sub.id)}
+                            className={`flex items-center justify-between gap-3 p-2.5 border rounded-lg cursor-pointer transition-all ${
+                              isSubChecked
+                                ? "bg-brand-white border-brand-accent/40"
+                                : "bg-brand-surface border-brand-border/50 hover:border-brand-border"
+                            }`}
+                          >
+                            <span className={`text-[12px] font-medium ${isSubChecked ? "text-brand-primary" : "text-brand-secondary"}`}>
+                              {sub.label}
+                            </span>
+                            <Switch
+                              id={`perm-${sub.id}`}
+                              checked={isSubChecked}
+                              onCheckedChange={() => togglePermission(sub.id)}
+                              className="flex-shrink-0"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -9,7 +9,7 @@ class MarketingQueueController extends Controller
 {
     public function index(Request $request)
     {
-        $query = MarketingCampaignRecipient::with(['campaign:id,name,status', 'smtpAccount:id,label']);
+        $query = MarketingCampaignRecipient::with(['campaign:id,name,status,user_id', 'campaign.user:id,name']);
 
         if ($request->filled('search')) {
             $s = $request->search;

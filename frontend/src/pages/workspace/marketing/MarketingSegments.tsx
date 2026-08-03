@@ -20,6 +20,7 @@ import {
   SheetDescription,
   SheetFooter,
 } from '@/components/ui/sheet';
+import { Avatar } from '@/components/shared/Avatar';
 import { Plus, Filter, Pencil, Trash2, RefreshCw, Users2 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/axios';
@@ -146,6 +147,12 @@ export const MarketingSegments = () => {
                 <Users2 size={13} />
                 {s.cached_count ?? '—'} recipients
               </div>
+              {s.user?.name && (
+                <div className="flex items-center gap-1.5 pt-2 mt-1 border-t border-brand-border/60">
+                  <Avatar name={s.user.name} className="h-5 w-5 text-[9px]" />
+                  <span className="text-[11px] text-brand-subtle">{s.user.name}</span>
+                </div>
+              )}
             </div>
           ))}
         </div>

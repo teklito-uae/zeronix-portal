@@ -103,9 +103,9 @@ export const Topbar = () => {
 
   return (
     <header className="flex flex-col md:flex-row md:items-center justify-between mb-2 flex-shrink-0 md:h-11 gap-2 md:gap-0">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4 flex-1 min-w-0">
       {/* Left: Logo (mobile) / Breadcrumbs (desktop) */}
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
         {/* Mobile: Show logo */}
         <Link to={homePath} className="md:hidden">
           <Logo size="sm" showText />

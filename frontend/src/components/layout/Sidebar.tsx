@@ -128,6 +128,7 @@ const getTenantAdminNavGroups = (basePath: string): NavGroup[] => [
       { id: 'purchases', label: 'Purchases', icon: <ShoppingCart size={18} />, path: `${basePath}/purchases` },
       { id: 'expenses', label: 'Expenses', icon: <Wallet size={18} />, path: `${basePath}/expenses` },
       { id: 'payments-made', label: 'Payments Made', icon: <Banknote size={18} />, path: `${basePath}/payments-made` },
+      { id: 'supplier-broadcast.view', label: 'Supplier Broadcast', icon: <MessageSquareText size={18} />, path: `${basePath}/supplier-broadcast` },
     ],
   },
   {
@@ -200,6 +201,7 @@ const getTenantStaffNavGroups = (basePath: string): NavGroup[] => [
       { id: 'purchases', label: 'Purchases', icon: <ShoppingCart size={18} />, path: `${basePath}/purchases` },
       { id: 'expenses', label: 'Expenses', icon: <Wallet size={18} />, path: `${basePath}/expenses` },
       { id: 'payments-made', label: 'Payments Made', icon: <Banknote size={18} />, path: `${basePath}/payments-made` },
+      { id: 'supplier-broadcast.view', label: 'Supplier Broadcast', icon: <MessageSquareText size={18} />, path: `${basePath}/supplier-broadcast` },
     ],
   },
   {

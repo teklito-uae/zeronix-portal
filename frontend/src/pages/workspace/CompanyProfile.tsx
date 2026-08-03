@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
+import { ContactFormSheet } from '@/components/shared/ContactFormSheet';
 import { PageLoader } from '@/components/shared/PageLoader';
 import { useResourceMutation } from '@/hooks/useApi';
 import Avatar from 'boring-avatars';
@@ -40,9 +41,6 @@ const CustomerContactsPanel = ({ customerId }: { customerId: number }) => {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<CustomerContact | null>(null);
-  const [form, setForm] = useState({
-    first_name: '', last_name: '', designation: '', department: '', email: '', phone: '', mobile: '', is_active: true,
-  });
 
   const { data: contacts = [], isLoading } = useQuery({
     queryKey: ['customers', customerId, 'contacts'],
@@ -50,18 +48,6 @@ const CustomerContactsPanel = ({ customerId }: { customerId: number }) => {
   });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['customers', customerId, 'contacts'] });
-
-  const createMutation = useMutation({
-    mutationFn: async () => api.post(`/admin/customers/${customerId}/contacts`, form),
-    onSuccess: () => { invalidate(); setDialogOpen(false); toast.success('Contact added'); },
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to add contact'),
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async () => api.put(`/admin/customers/${customerId}/contacts/${editing!.id}`, form),
-    onSuccess: () => { invalidate(); setDialogOpen(false); toast.success('Contact updated'); },
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to update contact'),
-  });
 
   const deleteMutation = useMutation({
     mutationFn: async (contactId: number) => api.delete(`/admin/customers/${customerId}/contacts/${contactId}`),
@@ -80,16 +66,11 @@ const CustomerContactsPanel = ({ customerId }: { customerId: number }) => {
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ first_name: '', last_name: '', designation: '', department: '', email: '', phone: '', mobile: '', is_active: true });
     setDialogOpen(true);
   };
 
   const openEdit = (c: CustomerContact) => {
     setEditing(c);
-    setForm({
-      first_name: c.first_name, last_name: c.last_name || '', designation: c.designation || '',
-      department: c.department || '', email: c.email || '', phone: c.phone || '', mobile: c.mobile || '', is_active: c.is_active,
-    });
     setDialogOpen(true);
   };
 
@@ -146,58 +127,7 @@ const CustomerContactsPanel = ({ customerId }: { customerId: number }) => {
         ))}
       </div>
 
-      <Sheet open={dialogOpen} onOpenChange={setDialogOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-lg bg-brand-white border-brand-border/50 p-0 flex flex-col gap-0">
-          <div className="p-6 border-b border-brand-border/50 flex-shrink-0">
-            <SheetHeader className="space-y-0 text-left">
-              <SheetTitle className="text-[16px] font-semibold text-brand-primary pr-6">{editing ? 'Update Contact' : 'Add Contact Person'}</SheetTitle>
-            </SheetHeader>
-          </div>
-          <div className="flex-1 overflow-y-auto grid grid-cols-2 gap-4 p-6">
-            <div className="space-y-1.5 col-span-2 md:col-span-1">
-              <Label className="text-[12px] font-medium text-brand-secondary ml-1">First Name *</Label>
-              <Input value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} className="h-[36px] text-[13px] rounded-lg" />
-            </div>
-            <div className="space-y-1.5 col-span-2 md:col-span-1">
-              <Label className="text-[12px] font-medium text-brand-secondary ml-1">Last Name</Label>
-              <Input value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} className="h-[36px] text-[13px] rounded-lg" />
-            </div>
-            <div className="space-y-1.5 col-span-2 md:col-span-1">
-              <Label className="text-[12px] font-medium text-brand-secondary ml-1">Designation</Label>
-              <Input value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} className="h-[36px] text-[13px] rounded-lg" placeholder="e.g. Sales Manager" />
-            </div>
-            <div className="space-y-1.5 col-span-2 md:col-span-1">
-              <Label className="text-[12px] font-medium text-brand-secondary ml-1">Department</Label>
-              <Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} className="h-[36px] text-[13px] rounded-lg" />
-            </div>
-            <div className="space-y-1.5 col-span-2 md:col-span-1">
-              <Label className="text-[12px] font-medium text-brand-secondary ml-1">Email</Label>
-              <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-[36px] text-[13px] rounded-lg" />
-            </div>
-            <div className="space-y-1.5 col-span-2 md:col-span-1">
-              <Label className="text-[12px] font-medium text-brand-secondary ml-1">Phone</Label>
-              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-[36px] text-[13px] rounded-lg" />
-            </div>
-            <div className="space-y-1.5 col-span-2 md:col-span-1">
-              <Label className="text-[12px] font-medium text-brand-secondary ml-1">Mobile</Label>
-              <Input value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} className="h-[36px] text-[13px] rounded-lg" />
-            </div>
-          </div>
-          <div className="p-6 pt-4 border-t border-brand-border/50 flex-shrink-0">
-            <SheetFooter className="sm:justify-end">
-              <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-[13px] font-medium">Cancel</Button>
-              <Button
-                onClick={() => editing ? updateMutation.mutate() : createMutation.mutate()}
-                disabled={!form.first_name || createMutation.isPending || updateMutation.isPending}
-                className="bg-brand-primary text-brand-white hover:opacity-90 rounded-lg text-[13px] font-medium px-6"
-              >
-                {(createMutation.isPending || updateMutation.isPending) ? <Spinner className="mr-2" size={14} /> : null}
-                {editing ? 'Update' : 'Add Contact'}
-              </Button>
-            </SheetFooter>
-          </div>
-        </SheetContent>
-      </Sheet>
+      <ContactFormSheet open={dialogOpen} onOpenChange={setDialogOpen} editing={editing} customerId={customerId} />
     </div>
   );
 };
@@ -317,12 +247,6 @@ export const CompanyProfile = () => {
     enabled: !!id,
   });
 
-  const { data: contacts = [] } = useQuery({
-    queryKey: ['customers', Number(id), 'contacts'],
-    queryFn: async () => (await api.get(`/admin/customers/${id}/contacts`)).data as CustomerContact[],
-    enabled: !!id,
-  });
-
   useEffect(() => {
     if (data?.customer) {
       const c = data.customer;
@@ -344,7 +268,7 @@ export const CompanyProfile = () => {
 
   useBreadcrumb([
     { label: 'Account Registry', href: `${getBasePath()}/companies` },
-    { label: data?.customer?.name || 'Identity Profile' },
+    { label: data?.customer?.company || data?.customer?.name || 'Identity Profile' },
   ]);
 
   const { update } = useResourceMutation('customers');
@@ -527,10 +451,10 @@ export const CompanyProfile = () => {
           <div className="bg-brand-white border-b border-brand-border/50 p-6 sm:p-8">
             <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
               <div className="flex items-start gap-4">
-                <Avatar size={56} name={customer.name || 'User'} variant="marble" colors={avatarColors} />
+                <Avatar size={56} name={customer.company || customer.name || 'User'} variant="marble" colors={avatarColors} />
                 <div>
                   <div className="flex items-center gap-2.5 flex-wrap">
-                    <h1 className="text-xl font-bold text-brand-primary tracking-tight">{toTitleCase(customer.name)}</h1>
+                    <h1 className="text-xl font-bold text-brand-primary tracking-tight">{toTitleCase(customer.company || customer.name)}</h1>
                     {customer.is_portal_active ? (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
                         ACTIVE
@@ -542,7 +466,6 @@ export const CompanyProfile = () => {
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-3 mt-1.5 text-[12px] font-medium text-brand-secondary">
-                    <span className="flex items-center gap-1.5"><Building2 size={13} className="text-brand-accent" />{toTitleCase(customer.company || 'Private Entity')}</span>
                     {customer.industry && <span className="flex items-center gap-1.5"><Briefcase size={13} className="text-brand-info" />{customer.industry}</span>}
                     {customer.website && <span className="flex items-center gap-1.5"><Globe size={13} className="text-brand-accent" />{customer.website}</span>}
                   </div>
@@ -589,7 +512,7 @@ export const CompanyProfile = () => {
           {/* Quick stats */}
           <div className="px-6 py-6 border-b border-brand-border/50">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard title="Account Owner" value={customer.assigned_users?.[0]?.name || 'Unassigned'} icon={<UserIcon size={16} className="text-brand-info" />} iconBg="bg-brand-info-bg" />
+              <StatCard title="Account Owner" value={customer.assigned_users?.[0]?.name ? toTitleCase(customer.assigned_users[0].name) : 'Unassigned'} icon={<UserIcon size={16} className="text-brand-info" />} iconBg="bg-brand-info-bg" />
               <StatCard title="Total Deals" value={customer.deals_count || 0} icon={<Handshake size={16} className="text-brand-accent" />} iconBg="bg-brand-accent-light dark:bg-brand-accent/20" />
               <StatCard title="Total Revenue" value={<CurrencyAmount amount={customer.total_volume || 0} currency={currency} />} icon={<Wallet size={16} className="text-brand-success" />} iconBg="bg-brand-success-bg" />
               <StatCard title="Customer Since" value={customer.created_at ? new Date(customer.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—'} icon={<Calendar size={16} className="text-brand-warning" />} iconBg="bg-brand-warning-bg" />
@@ -603,7 +526,7 @@ export const CompanyProfile = () => {
 
             {activeTab === 'overview' && (
               <div className="p-6 flex-1 overflow-auto space-y-5">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
                   {/* About Account */}
                   <div className="bg-brand-white border border-brand-border/50 rounded-xl shadow-sm overflow-hidden">
                     <div className="px-5 py-4 border-b border-brand-border/50 flex items-center gap-2 text-[14px] font-semibold text-brand-primary">
@@ -639,34 +562,6 @@ export const CompanyProfile = () => {
                       ) : (
                         <span className="text-[12px] text-brand-subtle italic">No tags assigned</span>
                       )}
-                    </div>
-                  </div>
-
-                  {/* Key Contacts */}
-                  <div className="bg-brand-white border border-brand-border/50 rounded-xl shadow-sm flex flex-col overflow-hidden">
-                    <div className="px-5 py-4 border-b border-brand-border/50 flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-[14px] font-semibold text-brand-primary">
-                        <Users size={16} className="text-brand-accent" /> Key Contacts{contacts.length > 0 && <span className="text-brand-subtle font-normal">({contacts.length})</span>}
-                      </div>
-                      {contacts.length > 0 && (
-                        <button type="button" onClick={() => setActiveTab('contacts')} className="text-[11px] font-semibold text-brand-accent hover:underline">View all</button>
-                      )}
-                    </div>
-                    <div className="divide-y divide-brand-border/50 flex-1">
-                      {contacts.length === 0 ? (
-                        <p className="p-5 text-[12px] text-brand-subtle">No contact persons yet.</p>
-                      ) : contacts.slice(0, 5).map((c) => (
-                        <div key={c.id} className="flex items-center gap-3 px-5 py-3">
-                          <Avatar size={32} name={c.full_name} variant="beam" colors={avatarColors} />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <p className="text-[13px] font-semibold text-brand-primary truncate">{toTitleCase(c.full_name)}</p>
-                              {c.is_primary && <Star size={11} className="text-brand-accent flex-shrink-0" fill="currentColor" />}
-                            </div>
-                            <p className="text-[11px] text-brand-subtle truncate">{c.designation || 'No designation'}</p>
-                          </div>
-                        </div>
-                      ))}
                     </div>
                   </div>
 

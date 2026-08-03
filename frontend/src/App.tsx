@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/useAuthStore';
 import { useCurrencyStore } from './store/useCurrencyStore';
@@ -25,6 +26,7 @@ import { CompanyProfile as AdminCompanyProfile } from './pages/workspace/Company
 import { Contacts } from './pages/workspace/Contacts';
 import { Suppliers } from './pages/workspace/Suppliers';
 import { SupplierProfile } from './pages/workspace/SupplierProfile';
+import SupplierBroadcastPage from './pages/workspace/supplierBroadcast/SupplierBroadcastPage';
 import { Products } from './pages/workspace/Products';
 import DealsPage from './pages/workspace/deals/DealsPage';
 import { Calendar as CalendarPage } from './pages/workspace/Calendar';
@@ -100,6 +102,7 @@ const WorkspaceRoutes = () => (
     <Route path="customers/:id" element={<Navigate to="/workspace/companies" replace />} />
     <Route path="suppliers" element={<Suppliers />} />
     <Route path="suppliers/:id" element={<SupplierProfile />} />
+    <Route path="supplier-broadcast" element={<SupplierBroadcastPage />} />
     <Route path="products" element={<Products />} />
     <Route path="deals" element={<DealsPage />} />
     <Route path="calendar" element={<CalendarPage />} />
@@ -182,26 +185,6 @@ function App() {
         })());
       }
 
-      if (adminToken) {
-        tasks.push((async () => {
-          try {
-            const res = await api.get('/admin/settings/workspace');
-            useCurrencyStore.getState().setFromSettings(res.data?.settings);
-          } catch {
-            // Non-fatal: fall back to default currency
-          }
-        })());
-      } else if (customerToken) {
-        tasks.push((async () => {
-          try {
-            const res = await api.get('/customer/settings/workspace');
-            useCurrencyStore.getState().setFromSettings(res.data?.settings);
-          } catch {
-            // Non-fatal: fall back to default currency
-          }
-        })());
-      }
-
       if (tasks.length > 0) {
         await Promise.all(tasks);
       }
@@ -211,6 +194,28 @@ function App() {
 
     initAuth();
   }, [adminToken, customerToken, setAdmin, setCustomer, setIsLoading]);
+
+  // Company-wide currency is set by the tenant owner in Settings. Poll it (and
+  // refetch on tab focus) so other team members' already-open sessions pick up
+  // a change without needing a full reload.
+  const { data: workspaceSettings } = useQuery({
+    queryKey: ['workspace-settings-currency', adminToken ? 'admin' : customerToken ? 'customer' : null],
+    queryFn: async () => {
+      const endpoint = adminToken ? '/admin/settings/workspace' : '/customer/settings/workspace';
+      const res = await api.get(endpoint);
+      return res.data?.settings ?? null;
+    },
+    enabled: Boolean(adminToken || customerToken),
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+
+  useEffect(() => {
+    if (workspaceSettings) {
+      useCurrencyStore.getState().setFromSettings(workspaceSettings);
+    }
+  }, [workspaceSettings]);
 
   if (isLoading) {
     return (

@@ -1,35 +1,17 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
 import { MarketingLayout } from '@/components/marketing/MarketingLayout';
 import { PageLoader } from '@/components/shared/PageLoader';
-import { StatusBadge } from '@/components/shared/StatusBadge';
-import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetFooter,
-} from '@/components/ui/sheet';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Pencil, Trash2, Send, Save } from 'lucide-react';
-import type { MarketingSettings as MarketingSettingsType, MarketingSmtpAccount } from '@/types';
+import { Save } from 'lucide-react';
+import type { MarketingSettings as MarketingSettingsType } from '@/types';
 
 const DAYS = [
   { value: 1, label: 'Mon' },
@@ -41,34 +23,15 @@ const DAYS = [
   { value: 7, label: 'Sun' },
 ];
 
-const EMPTY_SMTP_FORM = {
-  label: '',
-  host: '',
-  port: 587,
-  encryption: 'tls' as 'tls' | 'ssl' | 'none',
-  username: '',
-  password: '',
-  from_email: '',
-  from_name: '',
-  reply_to: '',
-  per_minute_limit: '',
-  hourly_limit: '',
-  daily_limit: '',
-  priority: 0,
-  is_active: true,
-};
-
 export const MarketingSettings = () => {
   return (
     <MarketingLayout title="Settings">
       <Tabs defaultValue="sending" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="sending" className="text-[13px]">Sending Rules</TabsTrigger>
-          <TabsTrigger value="smtp" className="text-[13px]">SMTP Accounts</TabsTrigger>
           <TabsTrigger value="tracking" className="text-[13px]">Tracking &amp; Unsubscribe</TabsTrigger>
         </TabsList>
         <TabsContent value="sending"><SendingRulesTab /></TabsContent>
-        <TabsContent value="smtp"><SmtpAccountsTab /></TabsContent>
         <TabsContent value="tracking"><TrackingTab /></TabsContent>
       </Tabs>
     </MarketingLayout>
@@ -127,6 +90,13 @@ const SendingRulesTab = () => {
 
   return (
     <div className="space-y-6 max-w-3xl">
+      <div className="bg-brand-accent/5 border border-brand-accent/20 rounded-xl p-4">
+        <p className="text-[12px] text-brand-secondary">
+          Campaigns send from each team member's own email account, configured under
+          <span className="font-medium"> Settings &gt; Email</span>. A campaign can only be launched once its
+          creator has SMTP details saved there.
+        </p>
+      </div>
       <div className="bg-brand-white border border-brand-border rounded-xl p-5 space-y-4">
         <h3 className="text-[13px] font-semibold text-brand-primary">Business Hours &amp; Window</h3>
         <div className="flex items-center justify-between">
@@ -285,233 +255,3 @@ const TrackingTab = () => {
   );
 };
 
-const SmtpAccountsTab = () => {
-  const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({
-    queryKey: ['marketing-smtp-accounts'],
-    queryFn: async () => {
-      const res = await api.get('/admin/marketing/smtp-accounts');
-      return res.data;
-    },
-  });
-
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<MarketingSmtpAccount | null>(null);
-  const [form, setForm] = useState<any>(EMPTY_SMTP_FORM);
-  const [saving, setSaving] = useState(false);
-  const [testDialog, setTestDialog] = useState<MarketingSmtpAccount | null>(null);
-  const [testTo, setTestTo] = useState('');
-  const [testing, setTesting] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<MarketingSmtpAccount | null>(null);
-
-  const accounts: MarketingSmtpAccount[] = data?.data || [];
-
-  const openCreate = () => {
-    setEditing(null);
-    setForm(EMPTY_SMTP_FORM);
-    setDialogOpen(true);
-  };
-
-  const openEdit = (account: MarketingSmtpAccount) => {
-    setEditing(account);
-    setForm({ ...EMPTY_SMTP_FORM, ...account, password: '' });
-    setDialogOpen(true);
-  };
-
-  const save = async () => {
-    setSaving(true);
-    try {
-      const payload = { ...form };
-      if (editing && !payload.password) delete payload.password;
-      if (editing) {
-        await api.put(`/admin/marketing/smtp-accounts/${editing.id}`, payload);
-        toast.success('SMTP account updated');
-      } else {
-        await api.post('/admin/marketing/smtp-accounts', payload);
-        toast.success('SMTP account added');
-      }
-      queryClient.invalidateQueries({ queryKey: ['marketing-smtp-accounts'] });
-      setDialogOpen(false);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to save SMTP account');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const remove = async () => {
-    if (!deleteTarget) return;
-    try {
-      await api.delete(`/admin/marketing/smtp-accounts/${deleteTarget.id}`);
-      queryClient.invalidateQueries({ queryKey: ['marketing-smtp-accounts'] });
-      toast.success('SMTP account deleted');
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to delete SMTP account');
-    } finally {
-      setDeleteTarget(null);
-    }
-  };
-
-  const sendTest = async () => {
-    if (!testDialog || !testTo) return;
-    setTesting(true);
-    try {
-      const res = await api.post(`/admin/marketing/smtp-accounts/${testDialog.id}/test`, { to: testTo });
-      toast.success(res.data.message);
-      queryClient.invalidateQueries({ queryKey: ['marketing-smtp-accounts'] });
-      setTestDialog(null);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Test email failed');
-    } finally {
-      setTesting(false);
-    }
-  };
-
-  if (isLoading) return <PageLoader label="Loading SMTP accounts..." />;
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <p className="text-[12px] text-brand-subtle">Accounts rotate by priority, then least-recently-used. Failing accounts are automatically deprioritized.</p>
-        <Button onClick={openCreate} className="h-9 text-[13px] gap-1.5 bg-brand-primary">
-          <Plus size={14} /> Add SMTP Account
-        </Button>
-      </div>
-
-      <div className="bg-brand-white border border-brand-border rounded-xl overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-[12px]">Label</TableHead>
-              <TableHead className="text-[12px]">Host</TableHead>
-              <TableHead className="text-[12px]">From</TableHead>
-              <TableHead className="text-[12px]">Priority</TableHead>
-              <TableHead className="text-[12px]">Sent</TableHead>
-              <TableHead className="text-[12px]">Status</TableHead>
-              <TableHead className="text-[12px] text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {accounts.length === 0 && (
-              <TableRow><TableCell colSpan={7} className="text-center text-[13px] text-brand-subtle py-8">No SMTP accounts configured yet.</TableCell></TableRow>
-            )}
-            {accounts.map((account) => (
-              <TableRow key={account.id}>
-                <TableCell className="text-[13px] font-medium">{account.label}</TableCell>
-                <TableCell className="text-[12px] text-brand-subtle">{account.host}:{account.port}</TableCell>
-                <TableCell className="text-[12px] text-brand-subtle">{account.from_email}</TableCell>
-                <TableCell className="text-[12px]">{account.priority}</TableCell>
-                <TableCell className="text-[12px]">{account.total_sent}</TableCell>
-                <TableCell><StatusBadge status={account.is_active ? account.health_status : 'cancelled'} /></TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setTestDialog(account); setTestTo(''); }}>
-                      <Send size={14} />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(account)}>
-                      <Pencil size={14} />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-brand-danger" onClick={() => setDeleteTarget(account)}>
-                      <Trash2 size={14} />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      <Sheet open={dialogOpen} onOpenChange={setDialogOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-lg p-0 flex flex-col gap-0">
-          <div className="p-6 border-b border-brand-border/50 flex-shrink-0">
-            <SheetHeader className="space-y-1 text-left">
-              <SheetTitle className="text-[15px] pr-6">{editing ? 'Edit SMTP Account' : 'Add SMTP Account'}</SheetTitle>
-              <SheetDescription className="text-[12px]">Used for outgoing marketing campaign emails.</SheetDescription>
-            </SheetHeader>
-          </div>
-          <div className="flex-1 overflow-y-auto space-y-3 p-6">
-            <Field label="Label">
-              <Input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} className="h-9 text-[13px]" />
-            </Field>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2">
-                <Field label="Host">
-                  <Input value={form.host} onChange={(e) => setForm({ ...form, host: e.target.value })} className="h-9 text-[13px]" />
-                </Field>
-              </div>
-              <Field label="Port">
-                <Input type="number" value={form.port} onChange={(e) => setForm({ ...form, port: Number(e.target.value) })} className="h-9 text-[13px]" />
-              </Field>
-            </div>
-            <Field label="Username">
-              <Input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} className="h-9 text-[13px]" />
-            </Field>
-            <Field label={editing ? 'Password (leave blank to keep existing)' : 'Password'}>
-              <Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="h-9 text-[13px]" />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="From email">
-                <Input type="email" value={form.from_email} onChange={(e) => setForm({ ...form, from_email: e.target.value })} className="h-9 text-[13px]" />
-              </Field>
-              <Field label="From name">
-                <Input value={form.from_name} onChange={(e) => setForm({ ...form, from_name: e.target.value })} className="h-9 text-[13px]" />
-              </Field>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <Field label="Per minute limit">
-                <Input type="number" value={form.per_minute_limit} onChange={(e) => setForm({ ...form, per_minute_limit: e.target.value })} className="h-9 text-[13px]" />
-              </Field>
-              <Field label="Hourly limit">
-                <Input type="number" value={form.hourly_limit} onChange={(e) => setForm({ ...form, hourly_limit: e.target.value })} className="h-9 text-[13px]" />
-              </Field>
-              <Field label="Daily limit">
-                <Input type="number" value={form.daily_limit} onChange={(e) => setForm({ ...form, daily_limit: e.target.value })} className="h-9 text-[13px]" />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3 items-end">
-              <Field label="Priority (higher = preferred)">
-                <Input type="number" value={form.priority} onChange={(e) => setForm({ ...form, priority: Number(e.target.value) })} className="h-9 text-[13px]" />
-              </Field>
-              <div className="flex items-center justify-between pb-2">
-                <Label className="text-[12px]">Active</Label>
-                <Switch checked={!!form.is_active} onCheckedChange={(v) => setForm({ ...form, is_active: v })} />
-              </div>
-            </div>
-          </div>
-          <div className="p-6 pt-4 border-t border-brand-border/50 flex-shrink-0">
-            <SheetFooter className="sm:justify-end">
-              <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-[13px]">Cancel</Button>
-              <Button onClick={save} disabled={saving} className="text-[13px] bg-brand-primary">{saving ? 'Saving…' : 'Save'}</Button>
-            </SheetFooter>
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      <Dialog open={!!testDialog} onOpenChange={(v) => !v && setTestDialog(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-[15px]">Test "{testDialog?.label}"</DialogTitle>
-          </DialogHeader>
-          <Field label="Send test to">
-            <Input type="email" value={testTo} onChange={(e) => setTestTo(e.target.value)} className="h-9 text-[13px]" />
-          </Field>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setTestDialog(null)} className="text-[13px]">Cancel</Button>
-            <Button onClick={sendTest} disabled={testing || !testTo} className="text-[13px] bg-brand-primary">{testing ? 'Sending…' : 'Send Test'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <ConfirmDialog
-        open={!!deleteTarget}
-        onOpenChange={(v) => !v && setDeleteTarget(null)}
-        title="Delete SMTP account?"
-        description={`"${deleteTarget?.label}" will be removed from the sending pool.`}
-        confirmLabel="Delete"
-        variant="destructive"
-        onConfirm={remove}
-      />
-    </div>
-  );
-};

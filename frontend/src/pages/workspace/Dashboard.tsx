@@ -9,16 +9,16 @@ import { PageLoader } from '@/components/shared/PageLoader';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 import { ClockInHeader } from '@/components/dashboard/ClockInHeader';
-import { ModuleShortcuts } from '@/components/dashboard/ModuleShortcuts';
 import { PipelinePanel } from '@/components/dashboard/PipelinePanel';
 import { ProductivitySuite } from '@/components/dashboard/ProductivitySuite';
 import {
   FileText, MessageSquare, TrendingUp, Building2, Banknote,
   Package, Receipt, Users, Activity,
   AlertCircle, ArrowRight, User, CreditCard,
-  Search, Mail, Calendar, Bell, Sun, Moon, Star
+  Wallet, UserPlus, UserCheck, Trophy, Medal,
 } from 'lucide-react';
 import { useThemeStore } from '@/store/useThemeStore';
+import { useTopbarActions } from '@/hooks/useTopbarActions';
 import {
   XAxis, CartesianGrid, BarChart, Bar, PieChart, Pie, Cell,
 } from 'recharts';
@@ -77,11 +77,28 @@ const AdminDashboard = () => {
   const [view, setView] = useState<'overview' | 'pipeline'>('overview');
   const [activeChart, setActiveChart] = useState<"bank" | "cash">("bank");
   const [activityTab, setActivityTab] = useState<'chart'|'log'>('chart');
-  const { theme, toggle } = useThemeStore();
+  const { theme } = useThemeStore();
 
-  const avatarColors = theme === 'dark' 
+  const avatarColors = theme === 'dark'
     ? ['#ff4d6d', '#ff758f', '#ffbe0b', '#fdfcdc', '#48cae4']
     : ['#1d3557', '#457b9d', '#a8dadc', '#f1faee', '#e63946'];
+
+  useTopbarActions(
+    <div className="flex bg-brand-surface rounded-md p-1 border border-brand-border">
+      <button
+        onClick={() => setView('overview')}
+        className={`px-3 py-1 text-[12px] font-semibold rounded transition-colors ${view === 'overview' ? 'bg-brand-white shadow-sm text-brand-primary border border-brand-border/50' : 'text-brand-subtle hover:text-brand-primary'}`}
+      >
+        Overview
+      </button>
+      <button
+        onClick={() => setView('pipeline')}
+        className={`px-3 py-1 text-[12px] font-semibold rounded transition-colors ${view === 'pipeline' ? 'bg-brand-white shadow-sm text-brand-primary border border-brand-border/50' : 'text-brand-subtle hover:text-brand-primary'}`}
+      >
+        Pipeline
+      </button>
+    </div>
+  );
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin-dashboard'],
@@ -114,163 +131,115 @@ const AdminDashboard = () => {
     );
   }
 
-  const { stats, daily_activity = [], recent_enquiries, recent_invoices, recent_activities, user_stats, points } = data;
+  const { stats, daily_activity = [], recent_enquiries, recent_invoices, recent_activities, user_stats, sales_stats, leaderboard } = data;
 
   const pct = stats.total_invoiced > 0 ? Math.round((stats.total_paid / stats.total_invoiced) * 100) : 0;
 
-  const isSalesman = admin?.role === 'salesman';
-  const pointsData = isSalesman && points && !Array.isArray(points) ? points : null;
+  // Non-admin/manager roles only ever see figures scoped to their own
+  // records (enforced server-side too) — label them "My ..." so it's clear
+  // these aren't company-wide numbers.
+  const isTeamScope = admin?.role === 'admin' || admin?.role === 'manager';
+  const scopedLabel = (label: string) => isTeamScope ? label : `My ${label}`;
 
   return (
-    <div className="bg-brand-white md:border border-brand-border md:rounded-xl shadow-sm flex flex-col h-full overflow-hidden animate-in fade-in duration-200">
+    <div className="flex flex-col h-full overflow-hidden animate-in fade-in duration-200">
       <SEO title="Dashboard" description="Zeronix Administration" />
 
-      {/* Header Inside Card */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between px-4 md:px-5 py-3 md:py-4 gap-3 md:gap-0 border-b border-brand-border bg-brand-white flex-shrink-0">
-        
-        {/* Top Row on Mobile: Title + Notification Icons */}
-        <div className="flex items-center justify-between w-full md:w-auto">
-          {/* Left Section: Title */}
-          <div className="flex items-center gap-4 md:gap-6">
-            <h1 className="text-[16px] md:text-[18px] font-bold text-brand-primary">Dashboard</h1>
-            <div className="flex bg-brand-surface rounded-md p-1 border border-brand-border">
-              <button
-                onClick={() => setView('overview')}
-                className={`px-3 py-1 text-[12px] font-semibold rounded transition-colors ${view === 'overview' ? 'bg-brand-white shadow-sm text-brand-primary border border-brand-border/50' : 'text-brand-subtle hover:text-brand-primary'}`}
-              >
-                Overview
-              </button>
-              <button
-                onClick={() => setView('pipeline')}
-                className={`px-3 py-1 text-[12px] font-semibold rounded transition-colors ${view === 'pipeline' ? 'bg-brand-white shadow-sm text-brand-primary border border-brand-border/50' : 'text-brand-subtle hover:text-brand-primary'}`}
-              >
-                Pipeline
-              </button>
-            </div>
-          </div>
-
-          {/* Mobile Right: Notification Icons */}
-          <div className="flex md:hidden items-center gap-3 text-brand-secondary">
-            <button className="hover:text-brand-primary transition-colors" onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { 'key': 'k', 'metaKey': true }))}>
-              <Search size={18} />
-            </button>
-            <button onClick={() => toggle()} className="hover:text-brand-primary transition-colors relative">
-              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-            <button className="hover:text-brand-primary transition-colors relative">
-              <Bell size={18} />
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-brand-danger rounded-full border border-brand-white"></span>
-            </button>
-          </div>
-        </div>
-
-        {/* Desktop Search */}
-        <div className="hidden md:flex relative w-80 items-center mx-4">
-          <div className="w-full h-[34px] bg-brand-surface border border-brand-border rounded-lg flex items-center pl-3 pr-3 text-[13px] text-brand-subtle cursor-pointer hover:bg-brand-bg transition-colors" onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { 'key': 'k', 'metaKey': true }))}>
-            <Search size={14} className="mr-2 text-brand-subtle" />
-            <span className="flex-1 truncate min-w-0">Search globally...</span>
-            <kbd className="ml-2 hidden sm:inline-block text-[10px] bg-brand-white border border-brand-border rounded px-1.5 py-0.5 font-mono text-brand-muted shadow-sm flex-shrink-0">⌘K</kbd>
-          </div>
-        </div>
-
-        {/* Right Section: Desktop Icons */}
-        <div className="hidden md:flex items-center gap-4 text-brand-secondary">
-          <button className="hover:text-brand-primary transition-colors" onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { 'key': 'k', 'metaKey': true }))}>
-            <Search size={18} />
-          </button>
-          <button onClick={() => toggle()} className="hover:text-brand-primary transition-colors relative">
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-          <button className="hover:text-brand-primary transition-colors relative">
-            <Mail size={18} />
-            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-brand-danger rounded-full border border-brand-white"></span>
-          </button>
-          <button className="hover:text-brand-primary transition-colors relative">
-            <Calendar size={18} />
-          </button>
-          <button className="hover:text-brand-primary transition-colors relative">
-            <Bell size={18} />
-            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-brand-danger rounded-full border border-brand-white"></span>
-          </button>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-auto p-5 flex flex-col gap-4 bg-brand-surface/30">
+      <div className="flex-1 overflow-auto p-5 flex flex-col gap-4">
         {view === 'pipeline' ? (
           <PipelinePanel />
         ) : (
         <>
       {isStaff && <ClockInHeader />}
-      {isStaff && <ModuleShortcuts permissions={admin?.permissions || []} />}
 
-      {/* Your Points — salesman only */}
-      {pointsData && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-          <div className="lg:col-span-1 grid grid-cols-3 gap-3">
-            <StatCard title="Today" value={pointsData.points_today} icon={<Star size={16} />} className="p-3" />
-            <StatCard title="This Week" value={pointsData.points_this_week} icon={<Star size={16} />} className="p-3" />
-            <StatCard title="This Month" value={pointsData.points_this_month} icon={<Star size={16} />} className="p-3" />
-          </div>
-
-          {Array.isArray(pointsData.points_chart_data) && pointsData.points_chart_data.length > 0 && (
-            <Card className="lg:col-span-2 bg-brand-white border border-brand-border rounded-xl overflow-hidden shadow-sm flex flex-col">
-              <CardHeader className="px-4 py-3">
-                <CardTitle className="text-[14px] font-semibold text-brand-primary flex items-center gap-2">
-                  <Star size={16} className="text-brand-subtle" />
-                  Your Points
-                </CardTitle>
-                <CardDescription className="text-[12px] text-brand-subtle mt-0.5">
-                  Last 15 days
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <ChartContainer config={chartConfig} className="aspect-auto h-[140px] w-full">
-                  <BarChart accessibilityLayer data={pointsData.points_chart_data} margin={{ top: 10 }}>
-                    <CartesianGrid vertical={false} stroke="#E2E8F0" strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="date"
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={8}
-                      minTickGap={20}
-                      tick={{ fill: '#94A3B8', fontSize: 9 }}
-                      tickFormatter={(value: string) => value.split(' ')[0]}
-                    />
-                    <ChartTooltip content={<ChartTooltipContent indicator="line" nameKey="points" />} cursor={false} />
-                    <Bar dataKey="points" fill="var(--color-points)" radius={[2, 2, 0, 0]} />
-                  </BarChart>
-                </ChartContainer>
-              </CardContent>
-            </Card>
-          )}
+      {isTeamScope ? (
+        /* Row 1 — company-wide financial KPIs (admin/manager only; these are
+           the business owner's own money, not something a rep should see). */
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatCard title="Bank Received" value={<CurrencyAmount amount={stats.total_bank_received} currency={currency} />} icon={<Building2 size={16} />} href={`${getBasePath()}/payment-receipts`} />
+          <StatCard title="Cash Received" value={<CurrencyAmount amount={stats.total_cash_received} currency={currency} />} icon={<Banknote size={16} />} href={`${getBasePath()}/payment-receipts`} />
+          <StatCard title="Total Invoiced" value={<CurrencyAmount amount={stats.total_invoiced} currency={currency} />} subtitle={`${pct}% collected`} icon={<Receipt size={16} />} href={`${getBasePath()}/invoices`} />
+          <StatCard title="Pending Quotes" value={stats.pending_quotes} subtitle="Awaiting action" icon={<FileText size={16} />} href={`${getBasePath()}/quotes`} />
+        </div>
+      ) : (
+        /* Row 1 — a team member's own daily/monthly activity: what they
+           closed today and how their pipeline is moving this month. No
+           company-wide revenue figures here, just their own numbers. */
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <StatCard title="Invoices Today" value={sales_stats?.invoices_today ?? 0} icon={<Receipt size={16} />} href={`${getBasePath()}/invoices`} />
+          <StatCard title="Invoice Value Today" value={<CurrencyAmount amount={sales_stats?.invoice_value_today ?? 0} currency={currency} />} icon={<Wallet size={16} />} href={`${getBasePath()}/invoices`} />
+          <StatCard title="Quotes This Month" value={sales_stats?.quotes_this_month ?? 0} icon={<FileText size={16} />} href={`${getBasePath()}/quotes`} />
+          <StatCard title="New Leads Today" value={sales_stats?.new_leads_today ?? 0} icon={<UserPlus size={16} />} href={`${getBasePath()}/leads`} />
+          <StatCard title="Leads Converted" value={sales_stats?.leads_converted_this_month ?? 0} subtitle="This month" icon={<UserCheck size={16} />} href={`${getBasePath()}/leads`} />
+          <StatCard title="Pending Quotes" value={stats.pending_quotes} subtitle="Awaiting action" icon={<FileText size={16} />} href={`${getBasePath()}/quotes`} />
         </div>
       )}
 
-      {/* Row 1 — Financial KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard title="Bank Received" value={<CurrencyAmount amount={stats.total_bank_received} currency={currency} />} icon={<Building2 size={16} />} href={`${getBasePath()}/payment-receipts`} />
-        <StatCard title="Cash Received" value={<CurrencyAmount amount={stats.total_cash_received} currency={currency} />} icon={<Banknote size={16} />} href={`${getBasePath()}/payment-receipts`} />
-        <StatCard title="Total Invoiced" value={<CurrencyAmount amount={stats.total_invoiced} currency={currency} />} subtitle={`${pct}% collected`} icon={<Receipt size={16} />} href={`${getBasePath()}/invoices`} />
-        <StatCard title="Pending Quotes" value={stats.pending_quotes} subtitle="Awaiting action" icon={<FileText size={16} />} href={`${getBasePath()}/quotes`} />
-      </div>
+      {/* Leaderboard — team members only, ranks the tenant's reps by invoice
+          value this month so everyone can see where they stand and stay
+          motivated relative to their peers. */}
+      {!isTeamScope && leaderboard && leaderboard.length > 0 && (
+        <div className="bg-brand-white border border-brand-border rounded-xl shadow-sm overflow-hidden">
+          <SectionHeader icon={<Trophy size={16} />} title="Team Leaderboard — This Month" />
+          <div className="divide-y divide-brand-border/50">
+            {leaderboard.map((row: any) => (
+              <div
+                key={row.user_id}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3",
+                  row.is_current_user && "bg-brand-accent-light/40"
+                )}
+              >
+                <div className="w-6 shrink-0 flex items-center justify-center">
+                  {row.rank <= 3 ? (
+                    <Medal size={16} className={row.rank === 1 ? "text-amber-500" : row.rank === 2 ? "text-slate-400" : "text-amber-700"} />
+                  ) : (
+                    <span className="text-[12px] font-semibold text-brand-subtle">{row.rank}</span>
+                  )}
+                </div>
+                <Avatar size={28} name={row.name} variant="beam" colors={avatarColors} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-medium text-brand-primary truncate">
+                    {row.name}{row.is_current_user && <span className="text-brand-subtle font-normal"> (You)</span>}
+                  </p>
+                  <p className="text-[11px] text-brand-subtle">{row.invoice_count} invoice{row.invoice_count === 1 ? '' : 's'}</p>
+                </div>
+                <span className="text-[13px] font-mono font-semibold text-brand-primary">
+                  <CurrencyAmount amount={row.total_value} currency={currency} />
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-      {/* Row 2 — People & Ops KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard title="Enquiries" value={stats.total_enquiries} icon={<MessageSquare size={16} />} href={`${getBasePath()}/enquiries`} />
-        <StatCard title="Companies" value={stats.active_customers} icon={<Users size={16} />} href={`${getBasePath()}/companies`} />
-        <StatCard title="Team Members" value={`${stats.active_users ?? 0} / ${stats.total_users ?? 0}`} subtitle="Active users" icon={<User size={16} />} href={`${getBasePath()}/users`} />
-        <StatCard title="Products" value={stats.total_products} icon={<Package size={16} />} href={`${getBasePath()}/products`} />
-      </div>
+      {/* Row 2 — People & Ops KPIs. Admin/manager only: enquiry/company
+          counts and team-wide/catalog figures aren't actionable for a
+          salesman/staff member working their own pipeline (they already
+          have Enquiries/Companies context via Row 1 and the Pipeline tab). */}
+      {isTeamScope && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatCard title="Enquiries" value={stats.total_enquiries} icon={<MessageSquare size={16} />} href={`${getBasePath()}/enquiries`} />
+          <StatCard title="Companies" value={stats.active_customers} icon={<Users size={16} />} href={`${getBasePath()}/companies`} />
+          {stats.total_users != null && (
+            <StatCard title="Team Members" value={`${stats.active_users ?? 0} / ${stats.total_users ?? 0}`} subtitle="Active users" icon={<User size={16} />} href={`${getBasePath()}/users`} />
+          )}
+          <StatCard title="Products" value={stats.total_products} icon={<Package size={16} />} href={`${getBasePath()}/products`} />
+        </div>
+      )}
 
-      {/* Row 3 — Financial Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      {/* Row 3 — Financial Analytics. The bank-vs-cash split is already
+          broken out in the Collection Summary below, so the pie chart here
+          is only kept for admin/manager where it's the sole place to see it
+          at a glance company-wide. */}
+      <div className={cn("grid grid-cols-1 gap-3", isTeamScope ? "lg:grid-cols-3" : "lg:grid-cols-2")}>
         {/* Revenue Analytics */}
         <Card className="lg:col-span-1 bg-brand-white border border-brand-border rounded-xl overflow-hidden shadow-sm flex flex-col">
           <CardHeader className="flex flex-col items-stretch p-0">
             <div className="flex flex-col justify-center gap-0.5 px-4 py-4">
               <CardTitle className="text-[14px] font-semibold text-brand-primary flex items-center gap-2">
                 <TrendingUp size={16} className="text-brand-subtle" />
-                Revenue
+                {scopedLabel('Revenue')}
               </CardTitle>
               <CardDescription className="text-[12px] text-brand-subtle">
                 Daily collection (30d)
@@ -293,7 +262,7 @@ const AdminDashboard = () => {
                       {chartConfig[chart].label}
                     </span>
                     <span className="text-[14px] font-bold text-brand-primary">
-                      {totals[key as keyof typeof totals].toLocaleString()}
+                      <CurrencyAmount amount={totals[key as keyof typeof totals]} currency={currency} />
                     </span>
                   </button>
                 );
@@ -320,38 +289,40 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Payment Distribution Pie */}
-        <Card className="lg:col-span-1 bg-brand-white border border-brand-border rounded-xl overflow-hidden shadow-sm flex flex-col">
-          <CardHeader className="px-4 py-4">
-            <CardTitle className="text-[14px] font-semibold text-brand-primary flex items-center gap-2">
-              <CreditCard size={16} className="text-brand-subtle" />
-              Distribution
-            </CardTitle>
-            <CardDescription className="text-[12px] text-brand-subtle mt-0.5">
-              Bank vs Cash Ratio
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 flex-1 flex flex-col items-center justify-center">
-            <ChartContainer config={chartConfig} className="aspect-square h-[200px] w-full">
-              <PieChart>
-                <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                <Pie
-                  data={pieData}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={60}
-                  outerRadius={80}
-                  strokeWidth={5}
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <ChartLegend content={<ChartLegendContent />} className="mt-2" />
-              </PieChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
+        {/* Payment Distribution Pie — admin/manager only, see comment above */}
+        {isTeamScope && (
+          <Card className="lg:col-span-1 bg-brand-white border border-brand-border rounded-xl overflow-hidden shadow-sm flex flex-col">
+            <CardHeader className="px-4 py-4">
+              <CardTitle className="text-[14px] font-semibold text-brand-primary flex items-center gap-2">
+                <CreditCard size={16} className="text-brand-subtle" />
+                Distribution
+              </CardTitle>
+              <CardDescription className="text-[12px] text-brand-subtle mt-0.5">
+                Bank vs Cash Ratio
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-4 flex-1 flex flex-col items-center justify-center">
+              <ChartContainer config={chartConfig} className="aspect-square h-[200px] w-full">
+                <PieChart>
+                  <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                  <Pie
+                    data={pieData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={60}
+                    outerRadius={80}
+                    strokeWidth={5}
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <ChartLegend content={<ChartLegendContent />} className="mt-2" />
+                </PieChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Activity Volume */}
         <Card className="lg:col-span-1 bg-brand-white border border-brand-border rounded-xl overflow-hidden shadow-sm flex flex-col">
@@ -453,16 +424,21 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-brand-border">
-              <div className="bg-brand-bg rounded-lg p-3 text-center border border-brand-border/50">
-                <p className="text-[14px] font-semibold text-brand-primary"><CurrencyAmount amount={stats.total_bank_received} currency={currency} /></p>
-                <p className="text-[11px] text-brand-subtle mt-0.5 ">Bank</p>
+            {/* Bank/Cash split — only shown for admin/manager; team members
+                already see these as their own "My Bank/Cash Received" cards
+                in Row 1, so repeating them here would be redundant. */}
+            {isTeamScope && (
+              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-brand-border">
+                <div className="bg-brand-bg rounded-lg p-3 text-center border border-brand-border/50">
+                  <p className="text-[14px] font-semibold text-brand-primary"><CurrencyAmount amount={stats.total_bank_received} currency={currency} /></p>
+                  <p className="text-[11px] text-brand-subtle mt-0.5 ">Bank</p>
+                </div>
+                <div className="bg-brand-bg rounded-lg p-3 text-center border border-brand-border/50">
+                  <p className="text-[14px] font-semibold text-brand-primary"><CurrencyAmount amount={stats.total_cash_received} currency={currency} /></p>
+                  <p className="text-[11px] text-brand-subtle mt-0.5 ">Cash</p>
+                </div>
               </div>
-              <div className="bg-brand-bg rounded-lg p-3 text-center border border-brand-border/50">
-                <p className="text-[14px] font-semibold text-brand-primary"><CurrencyAmount amount={stats.total_cash_received} currency={currency} /></p>
-                <p className="text-[11px] text-brand-subtle mt-0.5 ">Cash</p>
-              </div>
-            </div>
+            )}
 
             {/* User performance */}
             {user_stats && user_stats.length > 0 && (

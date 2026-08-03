@@ -7,21 +7,12 @@ import { getBasePath } from '@/hooks/useBasePath';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import { MultiSelectFilter } from '@/components/shared/MultiSelectFilter';
 import { ActionGroup } from '@/components/shared/ActionGroup';
-import { PartySearch, type PartyOption } from '@/components/shared/PartySearch';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { PhoneInput } from '@/components/shared/PhoneInput';
-import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
-} from '@/components/ui/sheet';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
-import { Spinner } from '@/components/shared/Spinner';
 import { Avatar } from '@/components/shared/Avatar';
 import { ContactDetailPanel } from '@/components/shared/ContactDetailPanel';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Users, Star, Building2, UserCircle2, Phone as PhoneIcon, StickyNote, Tag as TagIcon, ShieldCheck, Layers } from 'lucide-react';
+import { ContactFormSheet } from '@/components/shared/ContactFormSheet';
+import { Users, Star, Building2, UserCircle2, ShieldCheck, Layers, Tag as TagIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useResourceList } from '@/hooks/useApi';
 import type { CustomerContact, Customer, Tag } from '@/types';
@@ -45,14 +36,7 @@ export const Contacts = () => {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editing, setEditing] = useState<CustomerContact | null>(null);
   const [deletingContact, setDeletingContact] = useState<CustomerContact | null>(null);
-  const [selectedCompany, setSelectedCompany] = useState<PartyOption | null>(null);
   const [selectedContactId, setSelectedContactId] = useState<number | null>(null);
-
-  const [form, setForm] = useState({
-    customer_id: undefined as number | undefined,
-    first_name: '', last_name: '', designation: '', department: '',
-    email: '', phone: '', mobile: '', extension: '', notes: '', is_active: true,
-  });
 
   // Companies for the Company filter dropdown
   const { data: companiesData } = useResourceList<Customer>('customers', { per_page: 100 });
@@ -89,18 +73,6 @@ export const Contacts = () => {
     }
   };
 
-  const createMutation = useMutation({
-    mutationFn: async () => api.post(`/admin/customers/${form.customer_id}/contacts`, form),
-    onSuccess: () => { invalidateAll(form.customer_id); setDialogOpen(false); toast.success('Contact added'); },
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to add contact'),
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async () => api.put(`/admin/customers/${editing!.customer_id}/contacts/${editing!.id}`, form),
-    onSuccess: () => { invalidateAll(editing?.customer_id); setDialogOpen(false); toast.success('Contact updated'); },
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to update contact'),
-  });
-
   const deleteMutation = useMutation({
     mutationFn: async (contact: CustomerContact) => api.delete(`/admin/customers/${contact.customer_id}/contacts/${contact.id}`),
     onSuccess: (_res, contact) => { invalidateAll(contact.customer_id); toast.success('Contact deleted'); },
@@ -115,40 +87,12 @@ export const Contacts = () => {
 
   const openAdd = () => {
     setEditing(null);
-    setSelectedCompany(null);
-    setForm({
-      customer_id: undefined, first_name: '', last_name: '', designation: '', department: '',
-      email: '', phone: '', mobile: '', extension: '', notes: '', is_active: true,
-    });
     setDialogOpen(true);
   };
 
   const openEdit = (contact: CustomerContact) => {
     setEditing(contact);
-    setSelectedCompany(contact.customer ? {
-      id: contact.customer.id,
-      name: contact.customer.name,
-      company: contact.customer.company,
-    } : null);
-    setForm({
-      customer_id: contact.customer_id,
-      first_name: contact.first_name,
-      last_name: contact.last_name || '',
-      designation: contact.designation || '',
-      department: contact.department || '',
-      email: contact.email || '',
-      phone: contact.phone || '',
-      mobile: contact.mobile || '',
-      extension: contact.extension || '',
-      notes: contact.notes || '',
-      is_active: contact.is_active ?? true,
-    });
     setDialogOpen(true);
-  };
-
-  const handleSave = () => {
-    if (editing) updateMutation.mutate();
-    else createMutation.mutate();
   };
 
   const columns: ColumnDef<CustomerContact>[] = [
@@ -311,156 +255,8 @@ export const Contacts = () => {
         baseFilters={filterParams}
       />
 
-      {/* Add / Edit Sheet */}
-      <Sheet open={dialogOpen} onOpenChange={setDialogOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-xl bg-admin-surface border-admin-border p-0 flex flex-col gap-0">
-          <div className="p-6 border-b border-admin-border flex-shrink-0">
-            <SheetHeader className="space-y-1 text-left">
-              <SheetTitle className="text-xl font-bold text-admin-text-primary pr-6">
-                {editing ? 'Update Contact' : 'Add Contact Person'}
-              </SheetTitle>
-              <SheetDescription className="text-sm text-admin-text-secondary">
-                Select the company this contact belongs to, then fill in their details.
-              </SheetDescription>
-            </SheetHeader>
-          </div>
-
-          <div className="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-5 p-6">
-            <div className="md:col-span-2 space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Company *</Label>
-              <PartySearch
-                kind="customer"
-                endpoint="/admin/customers"
-                searchMode="server"
-                value={form.customer_id}
-                selected={selectedCompany || undefined}
-                onSelect={(party) => { setSelectedCompany(party); setForm({ ...form, customer_id: party.id }); }}
-                placeholder="Select company…"
-                disabled={!!editing}
-              />
-            </div>
-
-            <div className="md:col-span-2 flex items-center gap-2 pt-2">
-              <UserCircle2 size={14} className="text-zeronix-blue flex-shrink-0" />
-              <span className="text-xs font-bold uppercase tracking-wider text-admin-text-primary">Personal Details</span>
-              <div className="flex-1 h-px bg-admin-border" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">First Name *</Label>
-              <Input
-                value={form.first_name}
-                onChange={e => setForm({ ...form, first_name: e.target.value })}
-                className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Last Name</Label>
-              <Input
-                value={form.last_name}
-                onChange={e => setForm({ ...form, last_name: e.target.value })}
-                className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Designation</Label>
-              <Input
-                value={form.designation}
-                onChange={e => setForm({ ...form, designation: e.target.value })}
-                className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl"
-                placeholder="e.g. Sales Manager"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Department</Label>
-              <Input
-                value={form.department}
-                onChange={e => setForm({ ...form, department: e.target.value })}
-                className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl"
-                placeholder="e.g. Procurement"
-              />
-            </div>
-
-            <div className="md:col-span-2 flex items-center gap-2 pt-2">
-              <PhoneIcon size={14} className="text-zeronix-blue flex-shrink-0" />
-              <span className="text-xs font-bold uppercase tracking-wider text-admin-text-primary">Contact Information</span>
-              <div className="flex-1 h-px bg-admin-border" />
-            </div>
-            <div className="md:col-span-2 space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Email</Label>
-              <Input
-                type="email"
-                value={form.email}
-                onChange={e => setForm({ ...form, email: e.target.value })}
-                className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl"
-                placeholder="name@company.com"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Phone</Label>
-              <PhoneInput
-                value={form.phone}
-                onChange={val => setForm({ ...form, phone: val || '' })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Mobile</Label>
-              <PhoneInput
-                value={form.mobile}
-                onChange={val => setForm({ ...form, mobile: val || '' })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Extension</Label>
-              <Input
-                value={form.extension}
-                onChange={e => setForm({ ...form, extension: e.target.value })}
-                className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl"
-                placeholder="e.g. 204"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Status</Label>
-              <div className="flex items-center gap-3 h-11 px-3 bg-admin-bg border border-admin-border rounded-xl">
-                <Switch
-                  checked={form.is_active}
-                  onCheckedChange={checked => setForm({ ...form, is_active: checked })}
-                />
-                <span className="text-xs text-admin-text-primary font-bold">
-                  {form.is_active ? 'ACTIVE' : 'INACTIVE'}
-                </span>
-              </div>
-            </div>
-
-            <div className="md:col-span-2 flex items-center gap-2 pt-2">
-              <StickyNote size={14} className="text-zeronix-blue flex-shrink-0" />
-              <span className="text-xs font-bold uppercase tracking-wider text-admin-text-primary">Additional Notes</span>
-              <div className="flex-1 h-px bg-admin-border" />
-            </div>
-            <div className="md:col-span-2 space-y-2">
-              <Textarea
-                value={form.notes}
-                onChange={e => setForm({ ...form, notes: e.target.value })}
-                className="bg-admin-bg border-admin-border text-admin-text-primary rounded-xl resize-none"
-                placeholder="Any relevant notes about this contact…"
-                rows={3}
-              />
-            </div>
-          </div>
-
-          <div className="p-6 pt-4 border-t border-admin-border flex-shrink-0">
-            <SheetFooter className="gap-2 sm:justify-end">
-              <Button variant="ghost" onClick={() => setDialogOpen(false)} className="rounded-xl">Cancel</Button>
-              <Button
-                onClick={handleSave}
-                disabled={!form.first_name || !form.customer_id || createMutation.isPending || updateMutation.isPending}
-                className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover min-w-[140px] rounded-xl font-bold shadow-lg shadow-zeronix-blue/20"
-              >
-                {(createMutation.isPending || updateMutation.isPending) ? <Spinner size={16} /> : (editing ? 'Update Contact' : 'Add Contact')}
-              </Button>
-            </SheetFooter>
-          </div>
-        </SheetContent>
-      </Sheet>
+      {/* Add / Edit Sheet — shared with the company profile's own Contacts tab */}
+      <ContactFormSheet open={dialogOpen} onOpenChange={setDialogOpen} editing={editing} />
 
       <ConfirmDialog
         open={deleteOpen}

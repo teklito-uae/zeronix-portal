@@ -53,9 +53,12 @@ use App\Http\Controllers\MarketingSuppressionController;
 use App\Http\Controllers\MarketingQueueController;
 use App\Http\Controllers\MarketingReportController;
 use App\Http\Controllers\MarketingActivityController;
-use App\Http\Controllers\MarketingSmtpAccountController;
 use App\Http\Controllers\MarketingSettingsController;
 use App\Http\Controllers\MarketingTrackingController;
+use App\Http\Controllers\SbCategoryController;
+use App\Http\Controllers\SbVendorController;
+use App\Http\Controllers\SbBroadcastController;
+use App\Http\Controllers\SbProductController;
 
 // Customer Auth Routes (Moved to top for priority)
 Route::prefix('customer')->group(function () {
@@ -368,6 +371,28 @@ foreach (['admin', 'staff'] as $prefix) {
         Route::get('/marketing/reports/campaigns/{marketingCampaign}', [MarketingReportController::class, 'campaign']);
 
         Route::get('/marketing/activity', [MarketingActivityController::class, 'index']);
+
+        // Supplier Broadcast
+        Route::get('/sb/vendors', [SbVendorController::class, 'index']);
+        Route::post('/sb/vendors', [SbVendorController::class, 'store']);
+        Route::get('/sb/vendors/{vendor}', [SbVendorController::class, 'show']);
+        Route::put('/sb/vendors/{vendor}', [SbVendorController::class, 'update']);
+        Route::delete('/sb/vendors/{vendor}', [SbVendorController::class, 'destroy']);
+
+        Route::get('/sb/categories', [SbCategoryController::class, 'index']);
+        Route::post('/sb/categories', [SbCategoryController::class, 'store']);
+        Route::put('/sb/categories/{category}', [SbCategoryController::class, 'update']);
+        Route::delete('/sb/categories/{category}', [SbCategoryController::class, 'destroy']);
+
+        Route::get('/sb/broadcasts', [SbBroadcastController::class, 'index']);
+        Route::post('/sb/broadcasts', [SbBroadcastController::class, 'store']);
+        Route::get('/sb/broadcasts/{broadcast}', [SbBroadcastController::class, 'show']);
+        Route::delete('/sb/broadcasts/{broadcast}', [SbBroadcastController::class, 'destroy']);
+
+        Route::get('/sb/products/search', [SbProductController::class, 'search']);
+        Route::get('/sb/products', [SbProductController::class, 'index']);
+        Route::put('/sb/products/{product}', [SbProductController::class, 'update']);
+        Route::delete('/sb/products/{product}', [SbProductController::class, 'destroy']);
     });
 }
 
@@ -456,13 +481,7 @@ Route::prefix('admin')->group(function () {
         // Notifications
         // Moved to shared loop
 
-        // Marketing administration (SMTP pool + module settings)
-        Route::get('/marketing/smtp-accounts', [MarketingSmtpAccountController::class, 'index']);
-        Route::post('/marketing/smtp-accounts', [MarketingSmtpAccountController::class, 'store']);
-        Route::get('/marketing/smtp-accounts/{smtpAccount}', [MarketingSmtpAccountController::class, 'show']);
-        Route::put('/marketing/smtp-accounts/{smtpAccount}', [MarketingSmtpAccountController::class, 'update']);
-        Route::delete('/marketing/smtp-accounts/{smtpAccount}', [MarketingSmtpAccountController::class, 'destroy']);
-        Route::post('/marketing/smtp-accounts/{smtpAccount}/test', [MarketingSmtpAccountController::class, 'test']);
+        // Marketing administration (module settings)
         Route::get('/marketing/settings', [MarketingSettingsController::class, 'show']);
         Route::put('/marketing/settings', [MarketingSettingsController::class, 'update']);
 
