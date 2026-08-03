@@ -24,7 +24,6 @@ class MarketingCampaignRecipient extends Model
         'skipped_reason',
         'attempts',
         'last_error',
-        'smtp_account_id',
         'message_id',
         'bounce_type',
         'queued_at',
@@ -61,8 +60,4 @@ class MarketingCampaignRecipient extends Model
         return $this->belongsTo(MarketingCampaign::class, 'campaign_id');
     }
 
-    public function smtpAccount(): BelongsTo
-    {
-        return $this->belongsTo(MarketingSmtpAccount::class, 'smtp_account_id');
-    }
 }

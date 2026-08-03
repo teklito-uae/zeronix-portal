@@ -40,7 +40,8 @@ class MarketingSegmentController extends Controller
             'cached_count' => MarketingAudienceService::count(
                 $request->user()->company_id,
                 $validated['source'],
-                $validated['filters'] ?? []
+                $validated['filters'] ?? [],
+                $request->user()
             ),
             'counted_at' => now(),
         ]));
@@ -61,7 +62,8 @@ class MarketingSegmentController extends Controller
             'cached_count' => MarketingAudienceService::count(
                 $request->user()->company_id,
                 $validated['source'],
-                $validated['filters'] ?? []
+                $validated['filters'] ?? [],
+                $request->user()
             ),
             'counted_at' => now(),
         ]));
@@ -78,9 +80,10 @@ class MarketingSegmentController extends Controller
 
     public function preview(Request $request, MarketingSegment $marketingSegment)
     {
-        $companyId = $request->user()->company_id;
-        $count = MarketingAudienceService::count($companyId, $marketingSegment->source, $marketingSegment->filters ?? []);
-        $sample = MarketingAudienceService::sample($companyId, $marketingSegment->source, $marketingSegment->filters ?? []);
+        $user = $request->user();
+        $companyId = $user->company_id;
+        $count = MarketingAudienceService::count($companyId, $marketingSegment->source, $marketingSegment->filters ?? [], $user);
+        $sample = MarketingAudienceService::sample($companyId, $marketingSegment->source, $marketingSegment->filters ?? [], $user);
 
         $marketingSegment->update(['cached_count' => $count, 'counted_at' => now()]);
 

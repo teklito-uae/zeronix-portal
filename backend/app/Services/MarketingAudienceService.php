@@ -8,23 +8,30 @@ use App\Models\CustomerContact;
 use App\Models\Lead;
 use App\Models\MarketingCampaign;
 use App\Models\MarketingSegment;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 /**
  * Compiles audience filter JSON into Eloquent queries and resolves campaign
  * recipients with their merge data. All queries are built scope-independent
  * (explicit company_id) so they behave identically in HTTP and queue contexts.
+ *
+ * Every entry point also takes the acting $user and applies the same
+ * forUser() ownership/assignment restriction (HasUserScope) that Leads,
+ * Customers, Deals etc. enforce elsewhere — a non-admin/non-manager team
+ * member can only build a campaign out of leads/customers/contacts they
+ * own or are assigned to, never the whole company's data.
  */
 class MarketingAudienceService
 {
-    public static function count(int $companyId, string $source, array $filters): int
+    public static function count(int $companyId, string $source, array $filters, ?User $user = null): int
     {
-        return self::query($companyId, $source, $filters)->count();
+        return self::query($companyId, $source, $filters, $user)->count();
     }
 
-    public static function sample(int $companyId, string $source, array $filters, int $limit = 10): array
+    public static function sample(int $companyId, string $source, array $filters, ?User $user = null, int $limit = 10): array
     {
-        return self::query($companyId, $source, $filters)
+        return self::query($companyId, $source, $filters, $user)
             ->limit($limit)
             ->get()
             ->map(function ($row) use ($source) {
@@ -39,25 +46,29 @@ class MarketingAudienceService
     /**
      * Build the base query for a source + filters. Only rows with an email.
      */
-    public static function query(int $companyId, string $source, array $filters)
+    public static function query(int $companyId, string $source, array $filters, ?User $user = null)
     {
         switch ($source) {
             case 'leads':
-                return self::leadQuery($companyId, $filters);
+                return self::leadQuery($companyId, $filters, $user);
             case 'contacts':
-                return self::contactQuery($companyId, $filters);
+                return self::contactQuery($companyId, $filters, $user);
             case 'customers':
             default:
-                return self::customerQuery($companyId, $filters);
+                return self::customerQuery($companyId, $filters, $user);
         }
     }
 
-    private static function customerQuery(int $companyId, array $filters)
+    private static function customerQuery(int $companyId, array $filters, ?User $user = null)
     {
         $query = Customer::withoutGlobalScope('company')
             ->where('customers.company_id', $companyId)
             ->whereNotNull('customers.email')
             ->where('customers.email', '!=', '');
+
+        if ($user) {
+            $query->forUser($user);
+        }
 
         if (!empty($filters['salesperson_id'])) {
             $query->where(function ($q) use ($filters) {
@@ -124,12 +135,16 @@ class MarketingAudienceService
         return $query;
     }
 
-    private static function leadQuery(int $companyId, array $filters)
+    private static function leadQuery(int $companyId, array $filters, ?User $user = null)
     {
         $query = Lead::withoutGlobalScope('company')
             ->where('leads.company_id', $companyId)
             ->whereNotNull('leads.email')
             ->where('leads.email', '!=', '');
+
+        if ($user) {
+            $query->forUser($user);
+        }
 
         if (!empty($filters['status']) && $filters['status'] !== 'all') {
             $query->whereIn('leads.status', (array) $filters['status']);
@@ -153,13 +168,17 @@ class MarketingAudienceService
         return $query;
     }
 
-    private static function contactQuery(int $companyId, array $filters)
+    private static function contactQuery(int $companyId, array $filters, ?User $user = null)
     {
         $query = CustomerContact::withoutGlobalScope('company')
             ->where('customer_contacts.company_id', $companyId)
             ->whereNotNull('customer_contacts.email')
             ->where('customer_contacts.email', '!=', '')
             ->where('customer_contacts.is_active', true);
+
+        if ($user) {
+            $query->whereHas('customer', fn ($q) => $q->forUser($user));
+        }
 
         if (!empty($filters['primary_only'])) {
             $query->where('customer_contacts.is_primary', true);
@@ -212,6 +231,10 @@ class MarketingAudienceService
         $companyId = $campaign->company_id;
         $companyData = self::companyMergeData($companyId);
         $sources = $campaign->audience_config['sources'] ?? [];
+        // Restrict to what the campaign's creator is allowed to see — same
+        // ownership/assignment rule as everywhere else, applied at the
+        // acting-user's identity rather than whoever authored a shared segment.
+        $user = $campaign->user;
 
         foreach ($sources as $sourceConfig) {
             $type = $sourceConfig['type'] ?? null;
@@ -223,9 +246,9 @@ class MarketingAudienceService
                 if (!$segment) {
                     continue;
                 }
-                yield from self::resolveSource($companyId, $segment->source, $segment->filters ?? [], $companyData);
+                yield from self::resolveSource($companyId, $segment->source, $segment->filters ?? [], $companyData, $user);
             } elseif (in_array($type, ['customers', 'leads', 'contacts'], true)) {
-                yield from self::resolveSource($companyId, $type, $sourceConfig['filters'] ?? [], $companyData);
+                yield from self::resolveSource($companyId, $type, $sourceConfig['filters'] ?? [], $companyData, $user);
             } elseif ($type === 'manual') {
                 foreach ($sourceConfig['recipients'] ?? [] as $manual) {
                     $email = strtolower(trim($manual['email'] ?? ''));
@@ -250,9 +273,9 @@ class MarketingAudienceService
         }
     }
 
-    private static function resolveSource(int $companyId, string $source, array $filters, array $companyData): \Generator
+    private static function resolveSource(int $companyId, string $source, array $filters, array $companyData, ?User $user = null): \Generator
     {
-        $query = self::query($companyId, $source, $filters);
+        $query = self::query($companyId, $source, $filters, $user);
 
         if ($source === 'customers') {
             $query->with(['user:id,name,email,phone']);

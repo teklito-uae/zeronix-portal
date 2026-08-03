@@ -8,7 +8,7 @@ use App\Models\MarketingCampaignRecipient;
 use App\Models\MarketingEvent;
 use App\Models\MarketingSetting;
 use App\Models\MarketingSuppression;
-use App\Services\MarketingMailerService;
+use App\Services\MailConfigService;
 use App\Services\MarketingTemplateRenderService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -89,15 +89,15 @@ class SendMarketingEmailJob implements ShouldQueue
             }
         }
 
-        $account = MarketingMailerService::pickAccount($campaign->company_id, $campaign->smtp_account_id);
-        if (!$account) {
-            // No account currently available (all failed or rate-capped) — retry later
-            $this->markDeferred($recipient, $campaign, 'No SMTP account available');
+        $sender = $campaign->user;
+        if (!$sender?->smtp_host) {
+            // Sender's SMTP settings are missing (removed after launch) — retry later
+            $this->markDeferred($recipient, $campaign, "Sender's email account is not configured");
             $this->release(120);
             return;
         }
 
-        $this->updateRecipient($recipient, ['status' => 'sending', 'smtp_account_id' => $account->id]);
+        $this->updateRecipient($recipient, ['status' => 'sending']);
 
         $settings = new MarketingSetting($snapshot);
 
@@ -113,12 +113,10 @@ class SendMarketingEmailJob implements ShouldQueue
         $unsubscribeUrl = MarketingTemplateRenderService::unsubscribeUrl($recipient);
 
         try {
-            MarketingMailerService::applyMarketingSmtp($account);
+            MailConfigService::applyUserSmtp($sender);
 
             Mail::to($recipient->email, $recipient->name)
                 ->send(new MarketingCampaignMail($rendered['subject'], $html, $unsubscribeUrl));
-
-            MarketingMailerService::recordSuccess($account);
 
             $this->updateRecipient($recipient, [
                 'status' => 'sent',
@@ -132,17 +130,16 @@ class SendMarketingEmailJob implements ShouldQueue
                 'campaign_id' => $campaign->id,
                 'recipient_id' => $recipient->id,
                 'type' => 'sent',
-                'meta' => ['smtp_account_id' => $account->id],
                 'created_at' => now(),
             ]);
         } catch (TransportExceptionInterface $e) {
-            $this->handleTransportFailure($recipient, $campaign, $account, $e);
+            $this->handleTransportFailure($recipient, $campaign, $e);
         } catch (\Exception $e) {
-            $this->handleTransportFailure($recipient, $campaign, $account, $e);
+            $this->handleTransportFailure($recipient, $campaign, $e);
         }
     }
 
-    private function handleTransportFailure(MarketingCampaignRecipient $recipient, MarketingCampaign $campaign, $account, \Throwable $e): void
+    private function handleTransportFailure(MarketingCampaignRecipient $recipient, MarketingCampaign $campaign, \Throwable $e): void
     {
         $message = $e->getMessage();
 
@@ -171,11 +168,6 @@ class SendMarketingEmailJob implements ShouldQueue
                 'created_at' => now(),
             ]);
             return;
-        }
-
-        // Connection/auth style failure → degrade the account's health
-        if (stripos($message, 'connection') !== false || stripos($message, 'authent') !== false || preg_match('/\b535\b/', $message)) {
-            MarketingMailerService::recordFailure($account, $message);
         }
 
         MarketingEvent::create([

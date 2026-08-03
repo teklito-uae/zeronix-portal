@@ -10,7 +10,7 @@ use App\Models\Product;
 use App\Models\PaymentReceipt;
 use App\Models\User;
 use App\Models\ActivityLog;
-use App\Models\StaffPoint;
+use App\Models\Lead;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -18,13 +18,15 @@ class DashboardService
 {
     public function getStats(User $user): array
     {
+        $canSeeTeamStats = in_array($user->role, ['admin', 'super_admin', 'manager'], true);
+
         return [
             'total_enquiries' => Deal::forUser($user)->count(),
             'pending_quotes' => Quote::forUser($user)->whereIn('status', ['draft', 'sent'])->count(),
             'active_customers' => Customer::forUser($user)->count(),
             'total_products' => Product::count(),
-            'total_users' => User::count(),
-            'active_users' => User::where('is_active', true)->count(),
+            'total_users' => $canSeeTeamStats ? User::count() : null,
+            'active_users' => $canSeeTeamStats ? User::where('is_active', true)->count() : null,
             'total_bank_received' => $this->getRevenueByMethod($user, 'bank'),
             'total_cash_received' => $this->getRevenueByMethod($user, 'cash'),
             'total_invoiced' => (float) Invoice::forUser($user)->sum('total'),
@@ -139,7 +141,7 @@ class DashboardService
 
     public function getUserPerformance(User $user, int $limit = 10): Collection
     {
-        if ($user->role === 'salesman') {
+        if (!in_array($user->role, ['admin', 'super_admin', 'manager'], true)) {
             return collect();
         }
 
@@ -153,9 +155,9 @@ class DashboardService
     protected function getRevenueByMethod(User $user, string $method, $start = null, $end = null): float
     {
         $query = PaymentReceipt::where('payment_method', $method);
-        
-        if ($user->role === 'salesman') {
-            $query->whereHas('invoice', fn($iq) => $iq->where('user_id', $user->id));
+
+        if (!in_array($user->role, ['admin', 'super_admin'], true)) {
+            $query->whereHas('invoice', fn($iq) => $iq->forUser($user));
         }
 
         if ($start && $end) {
@@ -168,9 +170,9 @@ class DashboardService
     protected function getTotalPaid(User $user, $start = null, $end = null): float
     {
         $query = PaymentReceipt::query();
-        
-        if ($user->role === 'salesman') {
-            $query->whereHas('invoice', fn($iq) => $iq->where('user_id', $user->id));
+
+        if (!in_array($user->role, ['admin', 'super_admin'], true)) {
+            $query->whereHas('invoice', fn($iq) => $iq->forUser($user));
         }
 
         if ($start && $end) {
@@ -180,48 +182,69 @@ class DashboardService
         return (float) $query->sum('amount');
     }
 
-    public function getPointsStats(User $user): array
+    /**
+     * Day/month-scale activity numbers for an individual salesperson's own
+     * pipeline — what they closed today, and what's moved this month.
+     */
+    public function getSalesmanStats(User $user): array
     {
         $todayStart = Carbon::today();
         $todayEnd = Carbon::tomorrow()->subSecond();
-
-        $weekStart = Carbon::now()->startOfWeek();
-        $weekEnd = Carbon::now()->endOfWeek();
-
         $monthStart = Carbon::now()->startOfMonth();
         $monthEnd = Carbon::now()->endOfMonth();
 
-        $pointsToday = (int) StaffPoint::where('user_id', $user->id)
-            ->whereBetween('created_at', [$todayStart, $todayEnd])
-            ->sum('points');
+        return [
+            'invoices_today' => Invoice::forUser($user)->whereBetween('created_at', [$todayStart, $todayEnd])->count(),
+            'invoice_value_today' => (float) Invoice::forUser($user)->whereBetween('created_at', [$todayStart, $todayEnd])->sum('total'),
+            'quotes_this_month' => Quote::forUser($user)->whereBetween('created_at', [$monthStart, $monthEnd])->count(),
+            'new_leads_today' => Lead::forUser($user)->whereBetween('created_at', [$todayStart, $todayEnd])->count(),
+            'leads_converted_this_month' => Lead::forUser($user)
+                ->whereNotNull('converted_at')
+                ->whereBetween('converted_at', [$monthStart, $monthEnd])
+                ->count(),
+        ];
+    }
 
-        $pointsThisWeek = (int) StaffPoint::where('user_id', $user->id)
-            ->whereBetween('created_at', [$weekStart, $weekEnd])
-            ->sum('points');
+    /**
+     * Ranks active salespeople within the current tenant by invoice value
+     * this month, to give team members a relative sense of standing. Scoped
+     * to the tenant only (via Invoice's BelongsToCompany global scope) —
+     * intentionally not per-user, since comparing to teammates is the point.
+     */
+    public function getLeaderboard(User $user, int $limit = 8): array
+    {
+        $monthStart = Carbon::now()->startOfMonth();
+        $monthEnd = Carbon::now()->endOfMonth();
 
-        $pointsThisMonth = (int) StaffPoint::where('user_id', $user->id)
+        $rows = Invoice::whereNotNull('user_id')
             ->whereBetween('created_at', [$monthStart, $monthEnd])
-            ->sum('points');
+            ->selectRaw('user_id, SUM(total) as total_value, COUNT(*) as invoice_count')
+            ->groupBy('user_id')
+            ->orderByDesc('total_value')
+            ->get();
 
-        $pointsChartData = [];
-        for ($i = 14; $i >= 0; $i--) {
-            $date = Carbon::now()->subDays($i);
-            $start = $date->copy()->startOfDay();
-            $end = $date->copy()->endOfDay();
+        $names = User::whereIn('id', $rows->pluck('user_id'))->pluck('name', 'id');
 
-            $pointsChartData[] = [
-                'date' => $date->format('d M'),
-                'points' => (int) StaffPoint::where('user_id', $user->id)
-                    ->whereBetween('created_at', [$start, $end])
-                    ->sum('points')
+        $ranked = $rows->values()->map(function ($row, $index) use ($user, $names) {
+            return [
+                'rank' => $index + 1,
+                'user_id' => (int) $row->user_id,
+                'name' => $names[$row->user_id] ?? 'Unknown',
+                'total_value' => (float) $row->total_value,
+                'invoice_count' => (int) $row->invoice_count,
+                'is_current_user' => (int) $row->user_id === (int) $user->id,
             ];
+        });
+
+        $top = $ranked->take($limit)->values();
+
+        // Always let the viewer see their own standing, even outside the
+        // top N — otherwise a mid-table rep just sees a list of strangers.
+        $ownRow = $ranked->firstWhere('is_current_user', true);
+        if ($ownRow && !$top->contains('user_id', $ownRow['user_id'])) {
+            $top->push($ownRow);
         }
 
-        return [
-            'points_today' => $pointsToday,
-            'points_this_week' => $pointsThisWeek,
-            'points_this_month' => $pointsThisMonth,
-            'points_chart_data' => $pointsChartData
-        ];
+        return $top->all();
     }
 }

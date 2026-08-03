@@ -6,8 +6,8 @@ use App\Jobs\PrepareMarketingCampaignJob;
 use App\Mail\MarketingCampaignMail;
 use App\Models\MarketingCampaign;
 use App\Models\MarketingCampaignRecipient;
+use App\Services\MailConfigService;
 use App\Services\MarketingAudienceService;
-use App\Services\MarketingMailerService;
 use App\Services\MarketingTemplateRenderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -59,7 +59,7 @@ class MarketingCampaignController extends Controller
     {
         $marketingCampaign->recalcStatusCounters();
 
-        return response()->json($marketingCampaign->fresh()->load(['user:id,name', 'template:id,name', 'smtpAccount:id,label']));
+        return response()->json($marketingCampaign->fresh()->load(['user:id,name,smtp_host', 'template:id,name']));
     }
 
     public function update(Request $request, MarketingCampaign $marketingCampaign)
@@ -103,8 +103,8 @@ class MarketingCampaignController extends Controller
             return response()->json(['message' => 'Select an audience before launching'], 422);
         }
 
-        if (!MarketingMailerService::pickAccount($marketingCampaign->company_id, $marketingCampaign->smtp_account_id)) {
-            return response()->json(['message' => 'No active SMTP account available. Add one in Marketing Settings.'], 422);
+        if (!$marketingCampaign->user?->smtp_host) {
+            return response()->json(['message' => 'The team member who created this campaign hasn\'t set up their email account yet. Add SMTP details under Settings > Email before launching.'], 422);
         }
 
         // Duplicate-campaign protection: same template launched recently
@@ -194,7 +194,6 @@ class MarketingCampaignController extends Controller
             'preheader' => $marketingCampaign->preheader,
             'audience_config' => $marketingCampaign->audience_config,
             'schedule_type' => 'immediate',
-            'smtp_account_id' => $marketingCampaign->smtp_account_id,
         ]);
 
         return response()->json($copy, 201);
@@ -219,9 +218,9 @@ class MarketingCampaignController extends Controller
             return response()->json(['message' => 'Campaign has no content yet'], 422);
         }
 
-        $account = MarketingMailerService::pickAccount($request->user()->company_id, $marketingCampaign->smtp_account_id);
-        if (!$account) {
-            return response()->json(['message' => 'No active SMTP account available. Add one in Marketing Settings.'], 422);
+        $sender = $marketingCampaign->user;
+        if (!$sender?->smtp_host) {
+            return response()->json(['message' => 'The team member who created this campaign hasn\'t set up their email account yet. Add SMTP details under Settings > Email before sending a test.'], 422);
         }
 
         $rendered = MarketingTemplateRenderService::render(
@@ -231,13 +230,11 @@ class MarketingCampaignController extends Controller
         );
 
         try {
-            MarketingMailerService::applyMarketingSmtp($account);
+            MailConfigService::applyUserSmtp($sender);
             Mail::to($validated['to'])->send(new MarketingCampaignMail('[TEST] ' . $rendered['subject'], $rendered['html']));
-            MarketingMailerService::recordSuccess($account);
 
             return response()->json(['message' => 'Test email sent to ' . $validated['to']]);
         } catch (\Exception $e) {
-            MarketingMailerService::recordFailure($account, $e->getMessage());
             return response()->json(['message' => 'Failed to send test email: ' . $e->getMessage()], 500);
         }
     }
@@ -372,7 +369,8 @@ class MarketingCampaignController extends Controller
             'sources.*.type' => 'required|string|in:segment,customers,leads,contacts,manual,csv',
         ]);
 
-        $companyId = $request->user()->company_id;
+        $user = $request->user();
+        $companyId = $user->company_id;
         $total = 0;
         $sample = [];
         $manualCount = 0;
@@ -381,12 +379,12 @@ class MarketingCampaignController extends Controller
             if ($source['type'] === 'segment') {
                 $segment = \App\Models\MarketingSegment::find($source['id'] ?? 0);
                 if ($segment) {
-                    $total += MarketingAudienceService::count($companyId, $segment->source, $segment->filters ?? []);
-                    $sample = array_merge($sample, MarketingAudienceService::sample($companyId, $segment->source, $segment->filters ?? [], 5));
+                    $total += MarketingAudienceService::count($companyId, $segment->source, $segment->filters ?? [], $user);
+                    $sample = array_merge($sample, MarketingAudienceService::sample($companyId, $segment->source, $segment->filters ?? [], $user, 5));
                 }
             } elseif (in_array($source['type'], ['customers', 'leads', 'contacts'], true)) {
-                $total += MarketingAudienceService::count($companyId, $source['type'], $source['filters'] ?? []);
-                $sample = array_merge($sample, MarketingAudienceService::sample($companyId, $source['type'], $source['filters'] ?? [], 5));
+                $total += MarketingAudienceService::count($companyId, $source['type'], $source['filters'] ?? [], $user);
+                $sample = array_merge($sample, MarketingAudienceService::sample($companyId, $source['type'], $source['filters'] ?? [], $user, 5));
             } elseif ($source['type'] === 'manual') {
                 $manualCount += count($source['recipients'] ?? []);
             }
@@ -410,7 +408,6 @@ class MarketingCampaignController extends Controller
             'schedule_type' => 'nullable|string|in:immediate,scheduled',
             'scheduled_at' => 'nullable|date',
             'timezone' => 'nullable|timezone',
-            'smtp_account_id' => 'nullable|exists:marketing_smtp_accounts,id',
         ]);
 
         if (($validated['schedule_type'] ?? 'immediate') === 'scheduled' && empty($validated['scheduled_at'])) {

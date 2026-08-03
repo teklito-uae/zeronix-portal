@@ -6,7 +6,7 @@ use App\Models\User;
 use App\Models\Company;
 use App\Models\Customer;
 use App\Models\Product;
-use App\Models\Enquiry;
+use App\Models\Deal;
 use App\Models\Quote;
 use App\Models\Invoice;
 use App\Models\ActivityLog;
@@ -111,7 +111,7 @@ class DatabaseSeeder extends Seeder
 
         // 7. Dummy Tenant Data (Enquiries & Invoices)
         foreach ($customers as $index => $customer) {
-            $enquiry = Enquiry::create([
+            $enquiry = Deal::create([
                 'customer_id' => $customer->id,
                 'user_id' => $tenantStaff->id,
                 'company_id' => $company->id,

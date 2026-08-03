@@ -216,6 +216,16 @@ class MarketingTick extends Command
 
     private function completeIfDrained(MarketingCampaign $campaign): void
     {
+        // launch() flips status to 'sending' synchronously, before
+        // PrepareMarketingCampaignJob (queued) has resolved the audience into
+        // recipient rows. started_at is only set once that resolution has
+        // actually run, so treat its absence as "still preparing" rather than
+        // "drained" — otherwise a tick that races the prepare job sees zero
+        // recipient rows and completes the campaign before it ever sends.
+        if (!$campaign->started_at) {
+            return;
+        }
+
         $active = MarketingCampaignRecipient::withoutGlobalScope('company')
             ->where('campaign_id', $campaign->id)
             ->whereIn('status', ['pending', 'queued', 'sending', 'deferred'])

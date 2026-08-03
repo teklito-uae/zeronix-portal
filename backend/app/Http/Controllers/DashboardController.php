@@ -22,6 +22,8 @@ class DashboardController extends Controller
                 return response()->json(['message' => 'Unauthenticated'], 401);
             }
 
+            $isTeamScope = in_array($user->role, ['admin', 'super_admin', 'manager'], true);
+
             return response()->json([
                 'stats' => $dashboardService->getStats($user),
                 'chart_data' => $dashboardService->getChartData($user),
@@ -31,7 +33,8 @@ class DashboardController extends Controller
                 'recent_invoices' => $dashboardService->getRecentInvoices($user),
                 'recent_activities' => $dashboardService->getRecentActivities($user),
                 'user_stats' => $dashboardService->getUserPerformance($user),
-                'points' => $user->role === 'salesman' ? $dashboardService->getPointsStats($user) : [],
+                'sales_stats' => $isTeamScope ? null : $dashboardService->getSalesmanStats($user),
+                'leaderboard' => $isTeamScope ? null : $dashboardService->getLeaderboard($user),
             ]);
         } catch (\Exception $e) {
             return response()->json([
