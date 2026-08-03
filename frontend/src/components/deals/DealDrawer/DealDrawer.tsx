@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSelectedDealStore } from '@/store/useSelectedDealStore';
 import { useDeal } from '@/hooks/useDeals';
-import type { DealStage } from '@/types';
+import type { Deal, DealStage } from '@/types';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { SharedStatusSelect } from '@/components/shared/SharedStatusSelect';
@@ -31,17 +31,38 @@ const DEAL_STAGES: DealStage[] = [
 export const DealDrawer = () => {
   const selectedDealId = useSelectedDealStore((s) => s.selectedDealId);
   const setSelectedDealId = useSelectedDealStore((s) => s.setSelectedDealId);
-  const { data: deal, isLoading } = useDeal(selectedDealId ?? undefined);
+  const { data: fetchedDeal, isLoading } = useDeal(selectedDealId ?? undefined);
 
   const [activeTab, setActiveTab] = useState('overview');
   const [pendingStage, setPendingStage] = useState<DealStage | null>(null);
+
+  // Freeze the last-loaded deal locally instead of rendering straight off
+  // `fetchedDeal`. Closing the sheet nulls `selectedDealId` immediately,
+  // which would otherwise flip `fetchedDeal` to undefined mid-close and
+  // swap the content to the loading skeleton while it's still sliding
+  // out — that content swap is what read as "lag" on close, not the slide
+  // animation itself. Keeping the last deal visible during close fixes it
+  // without touching the Sheet's animation.
+  const [deal, setDeal] = useState<Deal | undefined>(undefined);
+  useEffect(() => {
+    if (fetchedDeal) {
+      setDeal(fetchedDeal);
+    } else if (selectedDealId && deal && deal.id !== selectedDealId) {
+      setDeal(undefined);
+      setActiveTab('overview');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchedDeal, selectedDealId]);
 
   const actions = useDealDrawerActions();
 
   const handleClose = () => {
     setSelectedDealId(null);
-    setActiveTab('overview');
     setPendingStage(null);
+    // Tab is intentionally NOT reset here — resetting it immediately would
+    // swap the visible tab content while the sheet is still sliding shut.
+    // It resets on the next open instead (see the effect above's "opening a
+    // different deal" branch).
   };
 
   const handleStageChange = (value: string) => {
@@ -120,6 +141,7 @@ export const DealDrawer = () => {
                         deal={deal}
                         attachContact={actions.attachContact}
                         detachContact={actions.detachContact}
+                        setPrimaryContact={actions.updateDeal}
                       />
                     </TabsContent>
                     <TabsContent value="quotes" className="mt-4 outline-none">

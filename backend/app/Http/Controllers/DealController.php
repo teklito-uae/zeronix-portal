@@ -64,6 +64,7 @@ class DealController extends Controller
         $request->validate([
             'owner_id' => 'nullable|exists:users,id',
             'tag_id' => 'nullable|exists:tags,id',
+            'company_id' => 'nullable|exists:customers,id',
         ]);
 
         $query = Deal::with(['customer', 'lead', 'customerContact', 'user', 'assigned_users', 'tags'])->withCount('items');
@@ -130,6 +131,13 @@ class DealController extends Controller
 
         if ($request->filled('tag_id')) {
             $query->whereHas('tags', fn ($q) => $q->where('tags.id', $request->tag_id));
+        }
+
+        // "Company" in the UI filter means the linked customer/account
+        // (Deal::customer_id) — not the tenant. Tenant scoping is handled
+        // separately by forUser()/BelongsToCompany.
+        if ($request->filled('company_id')) {
+            $query->where('customer_id', $request->company_id);
         }
     }
 

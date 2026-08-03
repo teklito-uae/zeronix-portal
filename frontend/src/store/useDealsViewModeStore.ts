@@ -8,7 +8,7 @@ interface DealsViewModeState {
 }
 
 export const useDealsViewModeStore = create<DealsViewModeState>((set) => ({
-  viewMode: 'kanban',
+  viewMode: 'list',
 
   setViewMode: (m) => set({ viewMode: m }),
 }));

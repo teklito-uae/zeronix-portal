@@ -1,32 +1,32 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { isPast } from 'date-fns';
+import { isPast, format } from 'date-fns';
 import type { ColumnDef } from '@tanstack/react-table';
-import api from '@/lib/axios';
+import Avatar from 'boring-avatars';
+import * as dealsApi from '@/api/dealsApi';
 import type { Deal, DealStage } from '@/types';
 import type { CurrencyCode } from '@/lib/currency';
 import { SEO } from '@/components/shared/SEO';
 import { PageLoader } from '@/components/shared/PageLoader';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { SharedTagBadge } from '@/components/shared/SharedTagBadge';
 import { DataTable } from '@/components/shared/DataTable';
 import { Pagination } from '@/components/shared/Pagination';
 import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
+import { avatarColorsFor } from '@/lib/avatarColors';
+import { toTitleCase } from '@/lib/utils';
+import { KanbanSquare, List, Plus } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 import { useDealsViewModeStore } from '@/store/useDealsViewModeStore';
 import { useDealsFiltersStore } from '@/store/useDealsFiltersStore';
 import { useSelectedDealStore } from '@/store/useSelectedDealStore';
 import { usePipelineStats, useUpdateDeal } from '@/hooks/useDeals';
+import { useTopbarActions } from '@/hooks/useTopbarActions';
 
-import { DealsHeader } from '@/components/deals/DealsHeader';
 import { DealStats } from '@/components/deals/DealStats';
 import { DealFilters } from '@/components/deals/DealFilters';
 import { KanbanBoard } from '@/components/deals/KanbanBoard';
@@ -39,22 +39,8 @@ import {
 
 const CLOSED_STAGES: DealStage[] = ['won', 'lost', 'cancelled'];
 
-const STAGES: { id: DealStage; label: string }[] = [
-  { id: 'new', label: 'New' },
-  { id: 'qualified', label: 'Qualified' },
-  { id: 'requirement', label: 'Requirement' },
-  { id: 'proposal_sent', label: 'Proposal Sent' },
-  { id: 'negotiation', label: 'Negotiation' },
-  { id: 'won', label: 'Won' },
-  { id: 'lost', label: 'Lost' },
-  { id: 'cancelled', label: 'Cancelled' },
-];
-
-type PipelineResponse = Record<DealStage, { deals: Deal[]; count: number; value: number }>;
-
 // ---------------------------------------------------------------------------
-// List view (unchanged, copied verbatim from the retired pages/workspace/Deals.tsx
-// per the approved plan — only the Kanban view was rebuilt).
+// List view columns
 // ---------------------------------------------------------------------------
 const getDealColumns = (currency: CurrencyCode): ColumnDef<Deal>[] => [
   {
@@ -90,6 +76,24 @@ const getDealColumns = (currency: CurrencyCode): ColumnDef<Deal>[] => [
     cell: ({ row }) => <StatusBadge status={row.original.stage} />,
   },
   {
+    id: 'tags',
+    header: 'Tags',
+    cell: ({ row }) => {
+      const tags = row.original.tags ?? [];
+      if (tags.length === 0) return <span className="text-brand-subtle">—</span>;
+      const visible = tags.slice(0, 2);
+      const rest = tags.length - visible.length;
+      return (
+        <div className="flex flex-wrap items-center gap-1 max-w-[160px]">
+          {visible.map((t) => (
+            <SharedTagBadge key={t.id} tag={t.name} color={t.color} className="px-2 py-0.5" />
+          ))}
+          {rest > 0 && <span className="text-[11px] text-brand-subtle font-medium">+{rest}</span>}
+        </div>
+      );
+    },
+  },
+  {
     accessorKey: 'probability',
     header: 'Probability',
     cell: ({ row }) => <span>{row.original.probability ?? 0}%</span>,
@@ -111,7 +115,27 @@ const getDealColumns = (currency: CurrencyCode): ColumnDef<Deal>[] => [
   {
     id: 'owner',
     header: 'Owner',
-    cell: ({ row }) => row.original.user?.name || '—',
+    cell: ({ row }) => {
+      const owner = row.original.user;
+      if (!owner) return <span className="text-brand-subtle">Unassigned</span>;
+      return (
+        <div className="flex items-center gap-1.5" title={owner.name}>
+          <Avatar size={20} name={owner.name} variant="beam" colors={avatarColorsFor(owner)} />
+          <span className="text-[12px] font-medium text-brand-secondary truncate max-w-[110px]">
+            {toTitleCase(owner.name)}
+          </span>
+        </div>
+      );
+    },
+  },
+  {
+    id: 'created_at',
+    header: 'Created',
+    cell: ({ row }) => {
+      const created = row.original.created_at;
+      if (!created) return <span className="text-brand-subtle">—</span>;
+      return <span className="text-brand-subtle">{format(new Date(created), 'dd MMM yyyy')}</span>;
+    },
   },
 ];
 
@@ -154,16 +178,6 @@ export default function DealsPage() {
   useEffect(() => {
     const dealId = searchParams.get('dealId');
     if (dealId) setSelectedDealId(Number(dealId));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Mobile default: Kanban's multi-column layout is cramped on small
-  // screens, so default to List on first mount when below the `md`
-  // breakpoint. Runs once — any explicit toggle afterwards (via
-  // DealsHeader) is never overridden since this effect doesn't re-run.
-  useEffect(() => {
-    const isMobile = !window.matchMedia('(min-width: 768px)').matches;
-    if (isMobile) setViewMode('list');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -210,41 +224,89 @@ export default function DealsPage() {
     );
   };
 
-  // ---- List view data (unchanged from the old Deals.tsx) ----
+  // ---- List view data: server-side filtered + paginated via the same
+  // /admin/deals index endpoint the Kanban columns use, so every filter in
+  // DealFilters (search/owner/company/tag/priority) actually applies here
+  // too — the old version fetched the unfiltered pipeline() endpoint and
+  // only ever filtered by stage, client-side.
   const [stageFilter, setStageFilter] = useState<DealStage | 'all'>('all');
-
-  const { data: pipeline, isLoading: listLoading } = useQuery({
-    queryKey: ['deals', 'pipeline'],
-    queryFn: async () => (await api.get('/admin/deals/pipeline')).data.data as PipelineResponse,
-    enabled: viewMode === 'list',
-  });
-
-  const allDeals = useMemo(() => Object.values(pipeline ?? {}).flatMap((g) => g.deals), [pipeline]);
-  const filteredDeals = useMemo(
-    () => (stageFilter === 'all' ? allDeals : allDeals.filter((d) => d.stage === stageFilter)),
-    [allDeals, stageFilter]
-  );
-
-  // NOTE: /admin/deals/pipeline returns the full unpaginated deal list (it's
-  // shared with the Kanban board, which needs every deal per stage), so the
-  // List view paginates client-side. A true DB-level page/per_page endpoint
-  // would need a backend follow-up if this list grows large.
   const [listPage, setListPage] = useState(1);
   const [listPerPage, setListPerPage] = useState(10);
-  useEffect(() => { setListPage(1); }, [stageFilter]);
-  const pagedDeals = useMemo(
-    () => filteredDeals.slice((listPage - 1) * listPerPage, listPage * listPerPage),
-    [filteredDeals, listPage, listPerPage]
+
+  useEffect(() => {
+    setListPage(1);
+  }, [stageFilter, filters.search, filters.ownerId, filters.companyId, filters.tagId, filters.priority]);
+
+  const { data: listData, isLoading: listLoading } = useQuery({
+    queryKey: ['deals', 'list', stageFilter, listPage, listPerPage, filters],
+    queryFn: () =>
+      dealsApi.getDealsPage({
+        stage: stageFilter === 'all' ? undefined : stageFilter,
+        page: listPage,
+        per_page: listPerPage,
+        owner_id: filters.ownerId,
+        company_id: filters.companyId,
+        tag_id: filters.tagId,
+        search: filters.search || undefined,
+        priority: (filters.priority as Deal['priority']) || undefined,
+      }),
+    enabled: viewMode === 'list',
+    placeholderData: keepPreviousData,
+  });
+
+  const pagedDeals = listData?.data ?? [];
+  const listLastPage = listData?.last_page ?? 1;
+  const listTotal = listData?.total ?? 0;
+
+  // Page actions render in the shared Topbar (top-right), not in a
+  // duplicate page-local header bar.
+  useTopbarActions(
+    <>
+      <div className="flex items-center gap-0.5 bg-brand-surface border border-brand-border rounded-lg p-0.5">
+        <button
+          type="button"
+          onClick={() => setViewMode('list')}
+          className={cn(
+            'flex items-center gap-1.5 px-2.5 h-[26px] rounded-md text-[12px] font-medium transition-colors',
+            viewMode === 'list'
+              ? 'bg-brand-white text-brand-primary shadow-sm'
+              : 'text-brand-subtle hover:text-brand-primary'
+          )}
+        >
+          <List size={13} /> List
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewMode('kanban')}
+          className={cn(
+            'flex items-center gap-1.5 px-2.5 h-[26px] rounded-md text-[12px] font-medium transition-colors',
+            viewMode === 'kanban'
+              ? 'bg-brand-white text-brand-primary shadow-sm'
+              : 'text-brand-subtle hover:text-brand-primary'
+          )}
+        >
+          <KanbanSquare size={13} /> Pipeline
+        </button>
+      </div>
+      <Button onClick={handleNewDeal} size="sm" className="rounded-lg shadow-sm">
+        <Plus size={14} /> <span className="hidden sm:inline">New Deal</span>
+      </Button>
+    </>
   );
-  const listLastPage = Math.max(1, Math.ceil(filteredDeals.length / listPerPage));
 
   return (
     <div className="bg-brand-white flex flex-col h-full overflow-hidden animate-in fade-in duration-200">
       <SEO title="Deals" />
 
-      <DealsHeader viewMode={viewMode} onViewModeChange={setViewMode} onNewDeal={handleNewDeal} />
       <DealStats stats={pipelineStats?.data} isLoading={statsLoading} />
-      <DealFilters filters={filters} onChange={setFilter} onReset={resetFilters} />
+
+      <DealFilters
+        filters={filters}
+        onChange={setFilter}
+        onReset={resetFilters}
+        stageFilter={viewMode === 'list' ? stageFilter : undefined}
+        onStageFilterChange={viewMode === 'list' ? setStageFilter : undefined}
+      />
 
       <div className="flex-1 overflow-auto bg-brand-white px-3 pt-2">
         {viewMode === 'kanban' ? (
@@ -256,40 +318,34 @@ export default function DealsPage() {
             onAddDeal={handleAddDeal}
             onRequireLostReason={handleRequireLostReason}
           />
-        ) : listLoading ? (
+        ) : listLoading && !listData ? (
           <PageLoader label="Loading deals..." iconSize={32} className="h-full min-h-[400px] gap-3" />
         ) : (
-          <div className="pb-3 space-y-3">
-            <div className="flex justify-end">
-              <Select value={stageFilter} onValueChange={(v) => setStageFilter(v as DealStage | 'all')}>
-                <SelectTrigger className="h-[34px] w-40 text-[12px] rounded-lg font-medium">
-                  <SelectValue placeholder="All Stages" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Stages</SelectItem>
-                  {STAGES.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="pb-3">
             <DataTable<Deal, unknown>
               columns={getDealColumns(currency)}
               data={pagedDeals}
               onRowClick={(deal) => setSelectedDealId(deal.id)}
               hidePagination
             />
-            <Pagination
-              page={listPage}
-              perPage={listPerPage}
-              total={filteredDeals.length}
-              lastPage={listLastPage}
-              onPageChange={setListPage}
-              onPerPageChange={(next) => { setListPerPage(next); setListPage(1); }}
-            />
           </div>
         )}
       </div>
+
+      {/* Pagination — kept outside the scrollable content area (like
+          ResourceListingPage's list pages, e.g. Companies) so it stays
+          pinned to the bottom of the page instead of scrolling with the
+          table. */}
+      {viewMode === 'list' && !(listLoading && !listData) && (
+        <Pagination
+          page={listPage}
+          perPage={listPerPage}
+          total={listTotal}
+          lastPage={listLastPage}
+          onPageChange={setListPage}
+          onPerPageChange={(next) => { setListPerPage(next); setListPage(1); }}
+        />
+      )}
 
       <DealDrawer />
       <CreateDealDialog

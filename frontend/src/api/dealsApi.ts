@@ -45,6 +45,7 @@ export interface GetDealsPageParams {
   page?: number;
   per_page?: number;
   owner_id?: number | null;
+  company_id?: number | null;
   tag_id?: number | null;
   search?: string;
   priority?: DealPriority | null;

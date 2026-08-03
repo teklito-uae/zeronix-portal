@@ -23,6 +23,7 @@ export function usePipelineStats(filters: PipelineStatsParams = {}) {
 
 export interface ColumnDealsFilters {
   owner_id?: number | null;
+  company_id?: number | null;
   tag_id?: number | null;
   search?: string;
   priority?: GetDealsPageParams['priority'];
@@ -56,6 +57,7 @@ export function useColumnDeals(stageKey: DealStage | DealStage[], filters: Colum
         page: pageParam,
         per_page: filters.per_page ?? 25,
         owner_id: filters.owner_id,
+        company_id: filters.company_id,
         tag_id: filters.tag_id,
         search: filters.search,
         priority: filters.priority,

@@ -57,6 +57,7 @@ export const KanbanColumn = memo(function KanbanColumn({
     fetchNextPage,
   } = useColumnDeals(config.stageFilter, {
     owner_id: filters.ownerId,
+    company_id: filters.companyId,
     tag_id: filters.tagId,
     search: filters.search || undefined,
     priority: (filters.priority as Deal['priority']) || undefined,

@@ -4,7 +4,7 @@ import { Search, SlidersHorizontal } from 'lucide-react';
 import api from '@/lib/axios';
 import { useAuthStore } from '@/store/useAuthStore';
 import type { DealsFilters } from '@/store/useDealsFiltersStore';
-import type { Customer, Tag, User } from '@/types';
+import type { Customer, DealStage, Tag, User } from '@/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,13 +14,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { StatusBadge } from '@/components/shared/StatusBadge';
 
 interface DealFiltersProps {
   filters: DealsFilters;
   onChange: <K extends keyof DealsFilters>(key: K, value: DealsFilters[K]) => void;
   onReset: () => void;
+  /** Only meaningful in the List view — Kanban already groups by stage as columns. */
+  stageFilter?: DealStage | 'all';
+  onStageFilterChange?: (value: DealStage | 'all') => void;
 }
 
 const PRIORITIES: { id: string; label: string }[] = [
@@ -29,9 +32,13 @@ const PRIORITIES: { id: string; label: string }[] = [
   { id: 'urgent', label: 'Urgent' },
 ];
 
+const STAGES: DealStage[] = [
+  'new', 'qualified', 'requirement', 'proposal_sent', 'negotiation', 'won', 'lost', 'cancelled',
+];
+
 const ALL = 'all';
 
-export const DealFilters = ({ filters, onChange, onReset }: DealFiltersProps) => {
+export const DealFilters = ({ filters, onChange, onReset, stageFilter, onStageFilterChange }: DealFiltersProps) => {
   const admin = useAuthStore((s) => s.admin);
   const isSuperAdmin = admin?.role === 'super_admin';
 
@@ -72,13 +79,46 @@ export const DealFilters = ({ filters, onChange, onReset }: DealFiltersProps) =>
 
   const [filtersSheetOpen, setFiltersSheetOpen] = useState(false);
 
+  // onReset only clears the shared filters store (search/owner/company/tag/
+  // priority) — the stage pill lives in local state on the List view, so it
+  // has to be cleared separately or "Reset" silently leaves it active.
+  const handleReset = () => {
+    onReset();
+    onStageFilterChange?.(ALL);
+  };
+
   const activeFilterCount = useMemo(
-    () => [filters.ownerId, filters.companyId, filters.tagId, filters.priority].filter(Boolean).length,
-    [filters.ownerId, filters.companyId, filters.tagId, filters.priority]
+    () =>
+      [filters.ownerId, filters.companyId, filters.tagId, filters.priority, stageFilter && stageFilter !== ALL ? stageFilter : null].filter(
+        Boolean
+      ).length,
+    [filters.ownerId, filters.companyId, filters.tagId, filters.priority, stageFilter]
   );
 
   // width/size passed in so the same controls can render as fixed-width
   // inline selects (desktop row) or full-width stacked selects (mobile sheet).
+  // Options render as the same colored StatusBadge pills used in the Deals
+  // table's Stage column and the deal drawer's stage select, so "stage"
+  // looks and reads the same everywhere it appears.
+  const stageSelect = (widthClass: string) => (
+    <Select
+      value={stageFilter ?? ALL}
+      onValueChange={(v) => onStageFilterChange?.(v as DealStage | 'all')}
+    >
+      <SelectTrigger className={`h-[34px] ${widthClass} text-[12px] rounded-lg font-medium`}>
+        <SelectValue placeholder="All Stages" />
+      </SelectTrigger>
+      <SelectContent className="max-h-[320px]">
+        <SelectItem value={ALL}>All Stages</SelectItem>
+        {STAGES.map((s) => (
+          <SelectItem key={s} value={s} className="py-1.5">
+            <StatusBadge status={s} />
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+
   const ownerSelect = (widthClass: string) => (
     <Select
       value={filters.ownerId ? String(filters.ownerId) : ALL}
@@ -111,29 +151,6 @@ export const DealFilters = ({ filters, onChange, onReset }: DealFiltersProps) =>
         ))}
       </SelectContent>
     </Select>
-  );
-
-  const pipelineStub = (widthClass: string) => (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          {/* Deliberate stub per the approved plan: multi-pipeline support
-              isn't built yet, but the filter slot is reserved so the row
-              layout doesn't shift once it lands. */}
-          <div className="inline-block">
-            <Select value="default" disabled>
-              <SelectTrigger className={`h-[34px] ${widthClass} text-[12px] rounded-lg font-medium opacity-60 cursor-not-allowed`}>
-                <SelectValue placeholder="Default Pipeline" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="default">Default Pipeline</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>Multiple pipelines coming soon</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
   );
 
   const tagSelect = (widthClass: string) => (
@@ -184,16 +201,16 @@ export const DealFilters = ({ filters, onChange, onReset }: DealFiltersProps) =>
 
       {/* Inline filter row — unchanged, md and up */}
       <div className="hidden md:flex md:flex-wrap md:items-center gap-2">
+        {onStageFilterChange && stageSelect('w-40')}
         {ownerSelect('w-36')}
         {isSuperAdmin && companySelect('w-40')}
-        {pipelineStub('w-40')}
         {tagSelect('w-36')}
         {prioritySelect('w-32')}
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          onClick={onReset}
+          onClick={handleReset}
           className="h-[34px] text-[12px] rounded-lg text-brand-subtle font-medium"
         >
           Reset
@@ -233,9 +250,9 @@ export const DealFilters = ({ filters, onChange, onReset }: DealFiltersProps) =>
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto px-5 py-3 flex flex-col gap-3">
+            {onStageFilterChange && stageSelect('w-full')}
             {ownerSelect('w-full')}
             {isSuperAdmin && companySelect('w-full')}
-            {pipelineStub('w-full')}
             {tagSelect('w-full')}
             {prioritySelect('w-full')}
           </div>
@@ -245,7 +262,7 @@ export const DealFilters = ({ filters, onChange, onReset }: DealFiltersProps) =>
               type="button"
               variant="ghost"
               onClick={() => {
-                onReset();
+                handleReset();
                 setFiltersSheetOpen(false);
               }}
               className="w-full h-10 text-[13px] rounded-lg text-brand-subtle font-medium"
