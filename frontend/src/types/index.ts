@@ -638,7 +638,7 @@ export interface SupplierPaymentReceipt {
   created_at: string;
   updated_at: string;
   supplier?: Supplier;
-  purchaseBill?: PurchaseBill;
+  purchase_bill?: PurchaseBill;
 }
 
 export interface Expense {

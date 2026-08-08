@@ -458,9 +458,14 @@ Route::prefix('admin')->group(function () {
 
         // Payment Receipts
         Route::post('/payment-receipts/{id}/send-email', [PaymentReceiptController::class, 'sendEmail']);
-        Route::apiResource('payment-receipts', PaymentReceiptController::class);
+        // 'show' is handled above ({receipt}, shared by admin+staff) so it can
+        // resolve by receipt_number as well as numeric id.
+        Route::apiResource('payment-receipts', PaymentReceiptController::class)->except(['show']);
 
         // Supplier Payment Receipts
+        Route::get('/supplier-payment-receipts/{receipt}/view', [DocumentController::class, 'previewSupplierReceipt']);
+        Route::get('/supplier-payment-receipts/{receipt}/download', [DocumentController::class, 'downloadSupplierReceipt']);
+        Route::post('/supplier-payment-receipts/{id}/send-email', [SupplierPaymentReceiptController::class, 'sendEmail']);
         Route::apiResource('supplier-payment-receipts', SupplierPaymentReceiptController::class);
 
         // Profit & Loss (Admin only - exposes cost/margin data)

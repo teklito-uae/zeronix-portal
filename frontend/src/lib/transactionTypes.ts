@@ -128,13 +128,6 @@ export const TRANSACTION_CONFIGS: Record<TransactionType, TransactionTypeConfig>
     pdf: true,
     conversions: [
       {
-        label: 'Convert to Sales Order',
-        icon: Receipt,
-        isEligible: (doc) => doc.status === 'accepted' && !doc.sales_order_id,
-        endpoint: (id) => `/admin/invoices/${id}/convert-to-sales-order`,
-        resultRoute: (result) => `/sales-orders/${result.id}`,
-      },
-      {
         label: 'Create Delivery',
         icon: PackageCheck,
         isEligible: (doc) => doc.status === 'accepted' && !doc.linked_delivery,

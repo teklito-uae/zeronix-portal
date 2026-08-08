@@ -248,6 +248,16 @@ class InvoiceController extends Controller
             'shipping_amount' => 'nullable|numeric|min:0',
         ]);
 
+        if (
+            array_key_exists('status', $validated)
+            && $validated['status'] !== $invoice->status
+            && $invoice->amount_paid > 0
+        ) {
+            return response()->json([
+                'message' => 'Status cannot be changed once a payment has been recorded against this invoice — it now follows the payment state (Partially Paid / Paid).',
+            ], 422);
+        }
+
         DB::beginTransaction();
         try {
             $subtotal = 0;
@@ -352,6 +362,12 @@ class InvoiceController extends Controller
             'deal_id' => 'nullable|exists:enquiries,id',
             'payment_terms' => 'nullable|string|max:100',
         ]);
+
+        if ($request->has('status') && $invoice->amount_paid > 0) {
+            return response()->json([
+                'message' => 'Status cannot be changed once a payment has been recorded against this invoice — it now follows the payment state (Partially Paid / Paid).',
+            ], 422);
+        }
 
         $invoice->update(array_filter($validated, fn ($v, $k) => $request->has($k), ARRAY_FILTER_USE_BOTH));
 

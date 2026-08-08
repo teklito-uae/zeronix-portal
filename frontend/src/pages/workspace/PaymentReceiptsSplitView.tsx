@@ -19,12 +19,8 @@ import { cn } from '@/lib/utils';
 
 const paymentreceiptTabs = [
   { id: 'all', label: 'All Payment Receipts' },
-  { id: 'draft', label: 'Drafts' },
-  { id: 'posted', label: 'Posted' },
-  { id: 'partially_paid', label: 'Partially Paid' },
-  { id: 'paid', label: 'Paid' },
-  { id: 'overdue', label: 'Overdue' },
-  { id: 'cancelled', label: 'Cancelled' },
+  { id: 'cash', label: 'Cash' },
+  { id: 'bank', label: 'Bank' },
 ];
 
 /**
@@ -37,7 +33,9 @@ export const PaymentReceiptsSplitView = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const selectedId = searchParams.get('id');
+  // The URL identifier is the human-readable receipt_number (e.g. RCP-1786186958),
+  // not the numeric primary key — resolved server-side (PaymentReceipt::resolveRouteBinding).
+  const selectedNumber = searchParams.get('id');
 
   const [activeTab, setActiveTab] = useState('all');
   const [searchInput, setSearchInput] = useState('');
@@ -56,7 +54,7 @@ export const PaymentReceiptsSplitView = () => {
 
   const { data: resourceData, isLoading } = useResourceList<PaymentReceipt>('payment-receipts', {
     search: search || undefined,
-    status: activeTab !== 'all' ? activeTab : undefined,
+    payment_method: activeTab !== 'all' ? activeTab : undefined,
     page,
     per_page: perPage,
   });
@@ -67,14 +65,14 @@ export const PaymentReceiptsSplitView = () => {
 
   // Auto-select the first invoice once data loads, if nothing is selected yet.
   useEffect(() => {
-    if (!selectedId && paymentreceipts.length > 0) {
-      setSearchParams({ id: String(paymentreceipts[0].id) }, { replace: true });
+    if (!selectedNumber && paymentreceipts.length > 0) {
+      setSearchParams({ id: paymentreceipts[0].receipt_number }, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paymentreceipts, selectedId]);
+  }, [paymentreceipts, selectedNumber]);
 
   const sendEmailMutation = useMutation({
-    mutationFn: async (id: number) => (await api.post(`/admin/payment-receipts/${id}/send-email`)).data,
+    mutationFn: async (id: number | string) => (await api.post(`/admin/payment-receipts/${id}/send-email`)).data,
     onSuccess: () => {
       toast.success('Payment Receipt email sent');
       queryClient.invalidateQueries({ queryKey: ['payment-receipts'] });
@@ -85,9 +83,9 @@ export const PaymentReceiptsSplitView = () => {
   const handleRowClick = (row: PaymentReceipt) => {
     const isDesktop = window.matchMedia('(min-width: 768px)').matches;
     if (isDesktop) {
-      setSearchParams({ id: String(row.id) });
+      setSearchParams({ id: row.receipt_number });
     } else {
-      navigate(`${getBasePath()}/payment-receipts/${row.id}`);
+      navigate(`${getBasePath()}/payment-receipts/${row.receipt_number}`);
     }
   };
 
@@ -151,7 +149,7 @@ export const PaymentReceiptsSplitView = () => {
             ) : (
               <ul>
                 {paymentreceipts.map((inv) => {
-                  const isSelected = String(inv.id) === selectedId;
+                  const isSelected = inv.receipt_number === selectedNumber;
                   return (
                     <li key={inv.id}>
                       <button
@@ -216,10 +214,10 @@ export const PaymentReceiptsSplitView = () => {
 
         {/* Right column: detail */}
         <div className="hidden md:block min-h-0 overflow-y-auto bg-brand-white">
-          {selectedId ? (
+          {selectedNumber ? (
             <TransactionDetailView type="payment-receipt"
-              id={selectedId}
-              onSend={() => sendEmailMutation.mutate(Number(selectedId))}
+              id={selectedNumber}
+              onSend={(recordId) => sendEmailMutation.mutate(recordId)}
               isSendPending={sendEmailMutation.isPending}
               onDeleted={() => setSearchParams({}, { replace: true })}
             />

@@ -219,7 +219,7 @@ export const DeliveriesSplitView = () => {
           {selectedId ? (
             <TransactionDetailView type="delivery"
               id={selectedId}
-              onSend={() => sendEmailMutation.mutate(Number(selectedId))}
+              onSend={(recordId) => sendEmailMutation.mutate(Number(recordId))}
               isSendPending={sendEmailMutation.isPending}
               onDeleted={() => setSearchParams({}, { replace: true })}
             />

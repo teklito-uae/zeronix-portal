@@ -192,6 +192,10 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
   }), [items, docData.discount_percent, docData.shipping_amount]);
 
   const isLocked = config.isLocked ? config.isLocked(docData, admin?.role) : false;
+  // Once an invoice has a recorded payment, status is superseded by payment
+  // state (Partially Paid / Paid) and is no longer manually editable —
+  // enforced server-side too (InvoiceController::update/quickUpdate).
+  const hasPayment = type === 'invoice' && Number(docData.amount_paid) > 0;
 
   const persist = async (overrides: any = {}, { skipNavigate = false }: { skipNavigate?: boolean } = {}): Promise<any | null> => {
     if (!docData[config.party.idField]) {
@@ -560,17 +564,24 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
 
             <div className="p-4 md:p-5 border-b border-brand-border space-y-3">
               <p className="text-[14px] font-semibold text-brand-primary">{config.label} Status</p>
-              <Select value={String(docData.status || '')} onValueChange={handleStatusChange} disabled={isLocked || saving}>
-                <SelectTrigger className="h-9 bg-brand-bg border-brand-border rounded-lg text-[12px]">
-                  <SelectValue placeholder="Select status…" />
-                </SelectTrigger>
-                <SelectContent className="bg-brand-white border-brand-border rounded-lg">
-                  {config.statusOptions.map((s) => (
-                    <SelectItem key={s} value={s} className="text-[12px]">{s.replace(/_/g, ' ').toUpperCase()}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {docData.status === 'draft' && (
+              {hasPayment ? (
+                <div className="flex items-center gap-2 h-9">
+                  <StatusBadge status={docData.payment_status} />
+                  <span className="text-[11px] text-brand-subtle">Set by payment</span>
+                </div>
+              ) : (
+                <Select value={String(docData.status || '')} onValueChange={handleStatusChange} disabled={isLocked || saving}>
+                  <SelectTrigger className="h-9 bg-brand-bg border-brand-border rounded-lg text-[12px]">
+                    <SelectValue placeholder="Select status…" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-brand-white border-brand-border rounded-lg">
+                    {config.statusOptions.map((s) => (
+                      <SelectItem key={s} value={s} className="text-[12px]">{s.replace(/_/g, ' ').toUpperCase()}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {!hasPayment && docData.status === 'draft' && (
                 <Button
                   variant="outline"
                   size="sm"

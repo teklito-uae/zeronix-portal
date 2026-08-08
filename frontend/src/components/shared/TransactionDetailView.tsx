@@ -5,6 +5,8 @@ import { getBasePath } from '@/hooks/useBasePath';
 import { useResourceDetail, useResourceMutation } from '@/hooks/useApi';
 import { StatusBadge } from './StatusBadge';
 import { DownloadButton } from './DownloadButton';
+import { ReceiptDocumentCard } from './ReceiptDocumentCard';
+import { LinkedDocumentSummaryCard } from './LinkedDocumentSummaryCard';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -24,8 +26,8 @@ import { toast } from 'sonner';
 interface TransactionDetailViewProps {
   type: TransactionType;
   id: string | number;
-  /** Optional: parent wires the type-specific "send email" mutation (e.g. quote send). */
-  onSend?: () => void;
+  /** Optional: parent wires the type-specific "send email" mutation (e.g. quote send). Receives the record's real numeric id. */
+  onSend?: (recordId: number | string) => void;
   isSendPending?: boolean;
   /** Called after a successful delete so the parent can clear its selection. */
   onDeleted?: () => void;
@@ -93,10 +95,16 @@ export const TransactionDetailView = ({ type, id, onSend, isSendPending, onDelet
           <h1 className="text-xl font-bold text-brand-primary tracking-tight">
             {config.label.toUpperCase()} {data[config.numberField] || `#${id}`}
           </h1>
-          <StatusBadge status={data.status} />
+          {type !== 'payment-receipt' && <StatusBadge status={data.status} />}
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
-          {config.pdf && (
+          {config.pdf && type === 'payment-receipt' && (
+            <>
+              <DownloadButton id={data.id} type="payment-receipt" mode="view" variant="outline" label="View PDF" />
+              <DownloadButton id={data.id} type="payment-receipt" mode="download" variant="outline" label="Download" />
+            </>
+          )}
+          {config.pdf && type !== 'payment-receipt' && (
             <DownloadButton id={id} type={type as 'quote' | 'invoice'} mode="view" variant="outline" label="View PDF" />
           )}
           {eligibleConversions.map((conversion) => (
@@ -111,7 +119,7 @@ export const TransactionDetailView = ({ type, id, onSend, isSendPending, onDelet
           ))}
           {onSend && (
             <Button
-              onClick={onSend}
+              onClick={() => onSend(data.id)}
               disabled={isSendPending}
               size="sm"
               variant="outline"
@@ -144,144 +152,167 @@ export const TransactionDetailView = ({ type, id, onSend, isSendPending, onDelet
         </div>
       </div>
 
-      {/* Details card */}
-      <div className="bg-brand-bg border border-brand-border rounded-lg p-5 grid grid-cols-2 md:grid-cols-3 gap-4">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1">
-            {config.label} Number
-          </p>
-          <p className="text-[13px] font-medium text-brand-primary">{data[config.numberField] || `#${id}`}</p>
-        </div>
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1 flex items-center gap-1.5">
-            <Calendar size={11} /> Date
-          </p>
-          <p className="text-[13px] font-medium text-brand-primary">
-            {data.date ? new Date(data.date).toLocaleDateString() : '—'}
-          </p>
-        </div>
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1">Status</p>
-          <StatusBadge status={data.status} />
-        </div>
-        {config.dateFields.map((f) => (
-          <div key={f.key}>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1 flex items-center gap-1.5">
-              <Calendar size={11} /> {f.label}
-            </p>
-            <p className="text-[13px] font-medium text-brand-primary">
-              {data[f.key] ? new Date(data[f.key]).toLocaleDateString() : '—'}
-            </p>
-          </div>
-        ))}
-      </div>
+      {type === 'payment-receipt' ? (
+        <div className="space-y-5">
+          <ReceiptDocumentCard
+            fullWidth
+            kind="received"
+            receiptNumber={data.receipt_number || `#${id}`}
+            amount={Number(data.amount || 0)}
+            currency={currency}
+            partyLabel={config.party.label}
+            partyName={partyRelation?.name}
+            partyCompany={partyRelation?.company}
+            partyEmail={partyRelation?.email}
+            partyPhone={partyRelation?.phone}
+            paymentDate={data.payment_date}
+            paymentMethod={data.payment_method}
+            referenceId={data.reference_id}
+            linkedDocument={data.invoice ? { label: 'Invoice', number: data.invoice.invoice_number } : null}
+            notes={data.notes}
+          />
 
-      {/* Party card */}
-      {partyRelation && (
-        <div className="bg-brand-bg border border-brand-border rounded-lg p-5 space-y-1">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-2">
-            {config.party.label}
-          </p>
-          <p className="text-[13px] font-bold text-brand-primary">{partyRelation.name}</p>
-          {partyRelation.company && (
-            <p className="text-[12px] text-brand-secondary">{partyRelation.company}</p>
-          )}
-          {partyRelation.email && (
-            <p className="text-[12px] text-brand-subtle">{partyRelation.email}</p>
-          )}
-          {partyRelation.phone && (
-            <p className="text-[12px] text-brand-subtle">{partyRelation.phone}</p>
-          )}
-          {partyRelation.address && (
-            <p className="text-[12px] text-brand-subtle whitespace-pre-line">{partyRelation.address}</p>
-          )}
+          <LinkedDocumentSummaryCard
+            label="Invoice"
+            number={data.invoice?.invoice_number}
+            date={data.invoice?.date}
+            dueDate={data.invoice?.due_date}
+            total={Number(data.invoice?.total || 0)}
+            amountPaid={Number(data.invoice?.amount_paid || 0)}
+            balance={Number(data.invoice?.balance || 0)}
+            status={data.invoice?.payment_status}
+            currency={currency}
+            onClick={data.invoice ? () => navigate(`${getBasePath()}/invoices/${data.invoice.id}`) : undefined}
+            emptyMessage="This payment isn't linked to an invoice — recorded as an account payment."
+          />
         </div>
-      )}
-
-      {type !== 'payment-receipt' && (<Fragment>
-      {/* Items table */}
-      <div className="bg-brand-bg border border-brand-border rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-brand-border hover:bg-transparent">
-              <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle w-10">#</TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle">Item</TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle text-right">Qty</TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle text-right">Price</TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle text-right">Amount</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {normalizedItems.length === 0 && (
-              <TableRow className="border-brand-border">
-                <TableCell colSpan={5} className="text-center text-[12px] text-brand-subtle py-6">
-                  No line items.
-                </TableCell>
-              </TableRow>
-            )}
-            {normalizedItems.map((item: any, idx: number) => (
-              <TableRow key={item.id ?? idx} className="border-brand-border">
-                <TableCell className="text-[12px] text-brand-subtle">{idx + 1}</TableCell>
-                <TableCell className="text-[12px] text-brand-primary font-medium">
-                  {item.description || item.product_name || '—'}
-                </TableCell>
-                <TableCell className="text-[12px] text-brand-secondary text-right">{item.quantity}</TableCell>
-                <TableCell className="text-[12px] text-brand-secondary text-right">
-                  {Number(item.unit_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </TableCell>
-                <TableCell className="text-[12px] text-brand-primary font-medium text-right">
-                  {(Number(item.quantity) * Number(item.unit_price)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Totals summary */}
-      <div className="flex justify-end">
-        <div className="w-full max-w-xs bg-brand-bg border border-brand-border rounded-lg p-5 space-y-2">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] uppercase tracking-wider text-brand-subtle">Subtotal</p>
-            <p className="text-[13px] font-medium text-brand-primary">
-              {totals.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </p>
-          </div>
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] uppercase tracking-wider text-brand-subtle">VAT</p>
-            <p className="text-[13px] font-medium text-brand-primary">
-              {totals.vat.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </p>
-          </div>
-          <div className="flex items-center justify-between pt-2 border-t border-brand-border">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-brand-subtle">Total</p>
-            <p className="text-lg font-bold text-brand-accent font-mono">
-              <CurrencyAmount amount={totals.total} currency={currency} />
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Notes */}
-      {data.notes && (
-        <div className="bg-brand-bg border border-brand-border rounded-lg p-5">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-2">Notes</p>
-          <p className="text-[12px] text-brand-secondary whitespace-pre-line">{data.notes}</p>
-        </div>
-      )}
-      </Fragment>)}
-      
-      {type === 'payment-receipt' && (
-        <div className="flex justify-end">
-          <div className="w-full max-w-xs bg-brand-bg border border-brand-border rounded-lg p-5 space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] uppercase tracking-wider text-brand-subtle">Amount Received</p>
-              <p className="text-[18px] font-bold text-brand-accent">
-                {Number(data.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+      ) : (
+        <Fragment>
+          {/* Details card */}
+          <div className="bg-brand-bg border border-brand-border rounded-lg p-5 grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1">
+                {config.label} Number
+              </p>
+              <p className="text-[13px] font-medium text-brand-primary">{data[config.numberField] || `#${id}`}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1 flex items-center gap-1.5">
+                <Calendar size={11} /> Date
+              </p>
+              <p className="text-[13px] font-medium text-brand-primary">
+                {data.date ? new Date(data.date).toLocaleDateString() : '—'}
               </p>
             </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1">Status</p>
+              <StatusBadge status={data.status} />
+            </div>
+            {config.dateFields.map((f) => (
+              <div key={f.key}>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1 flex items-center gap-1.5">
+                  <Calendar size={11} /> {f.label}
+                </p>
+                <p className="text-[13px] font-medium text-brand-primary">
+                  {data[f.key] ? new Date(data[f.key]).toLocaleDateString() : '—'}
+                </p>
+              </div>
+            ))}
           </div>
-        </div>
+
+          {/* Party card */}
+          {partyRelation && (
+            <div className="bg-brand-bg border border-brand-border rounded-lg p-5 space-y-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-2">
+                {config.party.label}
+              </p>
+              <p className="text-[13px] font-bold text-brand-primary">{partyRelation.name}</p>
+              {partyRelation.company && (
+                <p className="text-[12px] text-brand-secondary">{partyRelation.company}</p>
+              )}
+              {partyRelation.email && (
+                <p className="text-[12px] text-brand-subtle">{partyRelation.email}</p>
+              )}
+              {partyRelation.phone && (
+                <p className="text-[12px] text-brand-subtle">{partyRelation.phone}</p>
+              )}
+              {partyRelation.address && (
+                <p className="text-[12px] text-brand-subtle whitespace-pre-line">{partyRelation.address}</p>
+              )}
+            </div>
+          )}
+
+          {/* Items table */}
+          <div className="bg-brand-bg border border-brand-border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-brand-border hover:bg-transparent">
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle w-10">#</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle">Item</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle text-right">Qty</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle text-right">Price</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle text-right">Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {normalizedItems.length === 0 && (
+                  <TableRow className="border-brand-border">
+                    <TableCell colSpan={5} className="text-center text-[12px] text-brand-subtle py-6">
+                      No line items.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {normalizedItems.map((item: any, idx: number) => (
+                  <TableRow key={item.id ?? idx} className="border-brand-border">
+                    <TableCell className="text-[12px] text-brand-subtle">{idx + 1}</TableCell>
+                    <TableCell className="text-[12px] text-brand-primary font-medium">
+                      {item.description || item.product_name || '—'}
+                    </TableCell>
+                    <TableCell className="text-[12px] text-brand-secondary text-right">{item.quantity}</TableCell>
+                    <TableCell className="text-[12px] text-brand-secondary text-right">
+                      {Number(item.unit_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </TableCell>
+                    <TableCell className="text-[12px] text-brand-primary font-medium text-right">
+                      {(Number(item.quantity) * Number(item.unit_price)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Totals summary */}
+          <div className="flex justify-end">
+            <div className="w-full max-w-xs bg-brand-bg border border-brand-border rounded-lg p-5 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] uppercase tracking-wider text-brand-subtle">Subtotal</p>
+                <p className="text-[13px] font-medium text-brand-primary">
+                  {totals.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] uppercase tracking-wider text-brand-subtle">VAT</p>
+                <p className="text-[13px] font-medium text-brand-primary">
+                  {totals.vat.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-brand-border">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-brand-subtle">Total</p>
+                <p className="text-lg font-bold text-brand-accent font-mono">
+                  <CurrencyAmount amount={totals.total} currency={currency} />
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Notes */}
+          {data.notes && (
+            <div className="bg-brand-bg border border-brand-border rounded-lg p-5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-2">Notes</p>
+              <p className="text-[12px] text-brand-secondary whitespace-pre-line">{data.notes}</p>
+            </div>
+          )}
+        </Fragment>
       )}
     </div>
   );

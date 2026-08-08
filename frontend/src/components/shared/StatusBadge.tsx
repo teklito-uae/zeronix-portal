@@ -52,6 +52,7 @@ const statusConfig: Record<string, { label: string; className: string; pulse?: b
   // Invoice payment_status (computed from receipts, shown alongside workflow status)
   paid: { label: 'PAID', className: 'text-[#10B981] bg-[#10B9811F]' },
   partially_paid: { label: 'PARTIALLY PAID', className: 'text-[#6366F1] bg-[#6366F11F]' },
+  partial: { label: 'PARTIALLY PAID', className: 'text-[#6366F1] bg-[#6366F11F]' },
   unpaid: { label: 'UNPAID', className: 'text-admin-text-muted bg-admin-surface-hover' },
   overdue: { label: 'OVERDUE', className: 'text-[#EF4444] bg-[#EF44441F]' },
 

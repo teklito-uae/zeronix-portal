@@ -38,6 +38,7 @@ const DOC_TYPES = [
   { type: 'invoice',       label: 'Tax Invoice',     icon: Receipt },
   { type: 'sales_order',   label: 'Sales Order',     icon: ShoppingCart },
   { type: 'payment_slip',  label: 'Payment Receipt', icon: CreditCard },
+  { type: 'supplier_payment_slip', label: 'Supplier Payment Receipt', icon: CreditCard },
   { type: 'purchase_bill', label: 'Purchase Bill',   icon: ClipboardList },
   { type: 'delivery_note', label: 'Delivery Note',   icon: Truck },
 ] as const;
@@ -78,6 +79,7 @@ const buildMockData = (currency: CurrencyCode): Record<string, string> => ({
   '{amount_in_words}': 'FIVE THOUSAND TWO HUNDRED AND FIFTY DIRHAMS ONLY',
   '{notes}': 'Thank you for your business.',
   '{supplier_name}': 'Al Futtaim Electronics',
+  '{supplier_company}': 'Al Futtaim Electronics LLC',
   '{supplier_email}': 'orders@alfuttaim.ae',
   '{supplier_phone}': '+971 4 987 6543',
   '{supplier_address}': 'Jebel Ali, Dubai, UAE',

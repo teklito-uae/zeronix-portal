@@ -5,6 +5,7 @@ import { getBasePath } from '@/hooks/useBasePath';
 import { useResourceDetail, useResourceMutation } from '@/hooks/useApi';
 import { StatusBadge } from './StatusBadge';
 import { DownloadButton } from './DownloadButton';
+import { PaymentReceiptModal } from './PaymentReceiptModal';
 import { Avatar } from './Avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,6 +41,7 @@ import {
   ChevronDown,
   Plus,
   Lock,
+  Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -88,6 +90,7 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
   const [activeTab, setActiveTab] = useState('items');
   const [tagInput, setTagInput] = useState('');
   const [isAddingTag, setIsAddingTag] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading } = useResourceDetail<Invoice>(config.apiBase, id);
@@ -104,6 +107,10 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
   );
 
   const eligibleConversions = data ? (config.conversions || []).filter((c) => c.isEligible(data)) : [];
+  const canAddPayment = !!data && data.status === 'accepted' && data.payment_status !== 'paid';
+  // Once any payment lands, the workflow status is superseded by payment state
+  // (Partially Paid / Paid) and is no longer editable — enforced server-side too.
+  const hasPayment = !!data && Number(data.amount_paid) > 0;
 
   const isLocked = data && config.isLocked ? config.isLocked(data, admin?.role) : false;
   // Mirrors InvoicePolicy::delete — staff may only delete their own invoice
@@ -247,6 +254,15 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
             <DownloadButton id={id} type="invoice" mode="view" variant="outline" label="View PDF" />
+            {canAddPayment && (
+              <Button
+                onClick={() => setIsPaymentModalOpen(true)}
+                size="sm"
+                className="bg-brand-accent hover:bg-brand-accent-hover text-white rounded-xl h-9 px-4 font-bold text-[11px] uppercase tracking-wider shadow-lg shadow-brand-accent/10"
+              >
+                <Wallet size={15} className="mr-2" /> Add Payment
+              </Button>
+            )}
             {eligibleConversions.length === 1 && (
               <Button
                 onClick={() => handleConvert(eligibleConversions[0])}
@@ -671,18 +687,25 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
           {/* Status */}
           <div>
             <p className="text-[11px] text-brand-subtle mb-1.5">Status</p>
-            <Select value={data.status} onValueChange={(value) => quickUpdate.mutate({ status: value as Invoice['status'] })}>
-              <SelectTrigger className="h-9 text-[12px] bg-brand-bg border-brand-border">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {config.statusOptions.map((option) => (
-                  <SelectItem key={option} value={option} className="text-[12px]">
-                    {option.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {hasPayment ? (
+              <div className="flex items-center gap-2 h-9">
+                <StatusBadge status={data.payment_status} />
+                <span className="text-[11px] text-brand-subtle">Set by payment</span>
+              </div>
+            ) : (
+              <Select value={data.status} onValueChange={(value) => quickUpdate.mutate({ status: value as Invoice['status'] })}>
+                <SelectTrigger className="h-9 text-[12px] bg-brand-bg border-brand-border">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {config.statusOptions.map((option) => (
+                    <SelectItem key={option} value={option} className="text-[12px]">
+                      {option.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           {/* Tags */}
@@ -841,6 +864,12 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
           </Button>
         </div>
       </div>
+
+      <PaymentReceiptModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        invoice={data}
+      />
     </div>
   );
 };

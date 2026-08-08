@@ -5,7 +5,7 @@ import { useLocation } from 'react-router-dom';
 import api from '@/lib/axios';
 
 interface DownloadButtonProps {
-  type: 'invoice' | 'quote' | 'purchase-bill';
+  type: 'invoice' | 'quote' | 'purchase-bill' | 'payment-receipt' | 'supplier-payment-receipt';
   id: number | string;
   number?: string | null;
   variant?: 'outline' | 'ghost' | 'default' | 'secondary';
