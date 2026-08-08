@@ -9,11 +9,31 @@ use Illuminate\Support\Carbon;
 trait GeneratesPdf
 {
     /**
+     * Some contact models (e.g. Customer) have a real `company` column;
+     * others (e.g. Supplier, which is itself a company) don't — and since
+     * BelongsToCompany defines a `company()` relation, a bare `$contact->company`
+     * would silently fall through to that relation (the tenant record) instead
+     * of a plain string. Only read the column when it's actually loaded data.
+     */
+    protected function contactCompanyName($contact): string
+    {
+        if (!$contact) {
+            return 'N/A';
+        }
+
+        if (array_key_exists('company', $contact->getAttributes())) {
+            return $contact->company ?: ($contact->name ?? 'N/A');
+        }
+
+        return $contact->name ?? 'N/A';
+    }
+
+    /**
      * Replaces placeholders in the HTML string with actual values.
      *
      * @param string $html
      * @param mixed $model
-     * @param string $type ('quote', 'invoice', 'sales_order', 'payment_slip', 'purchase_bill', 'delivery_note')
+     * @param string $type ('quote', 'invoice', 'sales_order', 'payment_slip', 'purchase_bill', 'delivery_note', 'supplier_payment_slip')
      * @return string
      */
     protected function renderPdfHtml(string $html, $model, string $type)
@@ -25,7 +45,7 @@ trait GeneratesPdf
         $currency = $settings['currency'] ?? 'USD';
 
         // Determine if it's a supplier document or customer document
-        $isSupplier = $type === 'purchase_bill';
+        $isSupplier = in_array($type, ['purchase_bill', 'supplier_payment_slip']);
         
         // Find relation
         $contact = $isSupplier ? $model->supplier : ($model->customer ?? null);
@@ -45,13 +65,13 @@ trait GeneratesPdf
 
             // Customer
             '{customer_name}' => $contact ? $contact->name : 'N/A',
-            '{customer_company}' => $contact ? $contact->company : 'N/A',
+            '{customer_company}' => $this->contactCompanyName($contact),
             '{customer_email}' => $contact ? $contact->email : 'N/A',
             '{customer_address}' => $contact && isset($contact->address) ? $contact->address : 'N/A',
 
             // Supplier
             '{supplier_name}' => $contact ? $contact->name : 'N/A',
-            '{supplier_company}' => $contact ? $contact->company : 'N/A',
+            '{supplier_company}' => $this->contactCompanyName($contact),
             '{supplier_email}' => $contact ? $contact->email : 'N/A',
             '{supplier_phone}' => $contact && isset($contact->phone) ? $contact->phone : 'N/A',
             '{supplier_address}' => $contact && isset($contact->address) ? $contact->address : 'N/A',
@@ -108,6 +128,15 @@ trait GeneratesPdf
             $replace['{amount}'] = number_format($model->amount, 2) . ' ' . $currency;
             $replace['{amount_in_words}'] = \App\Helpers\NumberHelper::toWords($model->amount);
             $replace['{invoice_number}'] = $model->invoice ? $model->invoice->invoice_number : 'N/A';
+            $replace['{notes}'] = $model->notes ?? '';
+        } elseif ($type === 'supplier_payment_slip') {
+            $replace['{receipt_number}'] = $model->receipt_number;
+            $replace['{payment_date}'] = $model->payment_date ? Carbon::parse($model->payment_date)->format('M d, Y') : 'N/A';
+            $replace['{payment_method}'] = $model->payment_method;
+            $replace['{reference_id}'] = $model->reference_id ?? 'N/A';
+            $replace['{amount}'] = number_format($model->amount, 2) . ' ' . $currency;
+            $replace['{amount_in_words}'] = \App\Helpers\NumberHelper::toWords($model->amount);
+            $replace['{bill_number}'] = $model->purchaseBill ? $model->purchaseBill->bill_number : 'N/A';
             $replace['{notes}'] = $model->notes ?? '';
         } elseif ($type === 'purchase_bill') {
             $replace['{bill_number}'] = $model->bill_number;
@@ -187,7 +216,13 @@ trait GeneratesPdf
         return $html;
     }
 
-    protected function generatePdfResponse($model, string $type, string $action)
+    /**
+     * Builds the DomPDF instance for a document from its Template row —
+     * shared by the HTTP view/download response path and by anything that
+     * needs the raw PDF bytes (e.g. an email attachment), so every rendering
+     * of a document's PDF looks identical regardless of who requested it.
+     */
+    protected function buildPdf($model, string $type)
     {
         $template = Template::where('type', $type)->where('is_default', true)->first();
         if (!$template) {
@@ -197,28 +232,48 @@ trait GeneratesPdf
         $htmlContent = $template ? $template->content : '<h1>{company_name}</h1><p>Missing template for ' . $type . '</p>';
         $html = $this->renderPdfHtml($htmlContent, $model, $type);
 
-        $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
+        return Pdf::loadHTML($html)->setPaper('a4', 'portrait');
+    }
 
+    protected function pdfFilename($model, string $type): string
+    {
         if ($type === 'quote') {
-            $filename = "Quote-{$model->quote_number}.pdf";
+            return "Quote-{$model->quote_number}.pdf";
         } elseif ($type === 'invoice') {
-            $filename = "Invoice-{$model->invoice_number}.pdf";
+            return "Invoice-{$model->invoice_number}.pdf";
         } elseif ($type === 'sales_order') {
-            $filename = "Sales-Order-{$model->order_number}.pdf";
+            return "Sales-Order-{$model->order_number}.pdf";
         } elseif ($type === 'payment_slip') {
-            $filename = "Receipt-{$model->receipt_number}.pdf";
+            return "Receipt-{$model->receipt_number}.pdf";
+        } elseif ($type === 'supplier_payment_slip') {
+            return "Supplier-Receipt-{$model->receipt_number}.pdf";
         } elseif ($type === 'purchase_bill') {
-            $filename = "Purchase-Bill-{$model->bill_number}.pdf";
+            return "Purchase-Bill-{$model->bill_number}.pdf";
         } elseif ($type === 'delivery_note') {
-            $filename = "Delivery-Note-{$model->delivery_number}.pdf";
-        } else {
-            $filename = "Document.pdf";
+            return "Delivery-Note-{$model->delivery_number}.pdf";
         }
+
+        return "Document.pdf";
+    }
+
+    protected function generatePdfResponse($model, string $type, string $action)
+    {
+        $pdf = $this->buildPdf($model, $type);
+        $filename = $this->pdfFilename($model, $type);
 
         if ($action === 'download') {
             return $pdf->download($filename);
         }
 
         return $pdf->stream($filename);
+    }
+
+    /**
+     * Raw PDF bytes for the document, using the exact same template +
+     * branding as the View/Download actions — for email attachments.
+     */
+    protected function generatePdfOutput($model, string $type): string
+    {
+        return $this->buildPdf($model, $type)->output();
     }
 }

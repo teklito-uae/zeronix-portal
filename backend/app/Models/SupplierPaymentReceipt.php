@@ -30,6 +30,21 @@ class SupplierPaymentReceipt extends Model
         });
     }
 
+    /**
+     * Route parameters resolve by numeric id or by receipt_number, so
+     * frontend URLs can use the human-readable receipt number.
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        if ($field) {
+            return $this->where($field, $value)->first();
+        }
+
+        return is_numeric($value)
+            ? $this->where('id', $value)->first()
+            : $this->where('receipt_number', $value)->first();
+    }
+
     public function purchaseBill()
     {
         return $this->belongsTo(PurchaseBill::class);

@@ -655,6 +655,81 @@ HTML;
 HTML;
     }
 
+    private function supplierPaymentSlipClassic(): string
+    {
+        return $this->baseStyles() . <<<'HTML'
+<div style="padding: 0;">
+  <table style="margin-bottom: 20px;">
+    <tr>
+      <td style="width: 50%; vertical-align: top;">{logo}</td>
+      <td style="width: 50%; text-align: right; vertical-align: top;">
+        <h1 style="color: {brand_color}; margin: 0; font-size: 28px; letter-spacing: 2px;">PAYMENT RECEIPT</h1>
+        <p style="margin: 4px 0 0; font-size: 13px; color: #6b7280;">#{receipt_number}</p>
+      </td>
+    </tr>
+  </table>
+
+  <div style="height: 3px; background: {brand_color}; margin-bottom: 20px;"></div>
+
+  <div class="section">
+    <table style="margin-bottom: 20px;">
+      <tr>
+        <td style="width: 50%; vertical-align: top; padding-right: 20px;">
+          <div class="label">Paid To</div>
+          <div class="value">{supplier_company}</div>
+          <div style="font-size: 10px; color: #4b5563; line-height: 1.6;">{supplier_name}<br>{supplier_email}</div>
+        </td>
+        <td style="width: 50%; vertical-align: top;">
+          <div class="label">Paid By</div>
+          <div class="value">{company_name}</div>
+          <div style="font-size: 10px; color: #4b5563; line-height: 1.6;">{company_address}<br>{company_email}<br>{company_phone}</div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section" style="margin-bottom: 20px;">
+    <table style="background: #f3f4f6; border-radius: 6px;">
+      <tr>
+        <td style="padding: 10px 16px;"><span class="label">Payment Date</span><br><span class="value">{payment_date}</span></td>
+        <td style="padding: 10px 16px;"><span class="label">Payment Method</span><br><span class="value">{payment_method}</span></td>
+        <td style="padding: 10px 16px;"><span class="label">Reference</span><br><span class="value">{reference_id}</span></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section" style="margin-bottom: 20px; padding: 20px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+    <table>
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+          <span class="label">In Settlement Of</span><br>
+          <span class="value">Purchase Bill #{bill_number}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+          <span class="label">Notes</span><br>
+          <span style="font-size: 10px; color: #4b5563;">{notes}</span>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Amount -->
+  <div class="section" style="text-align: right; margin-bottom: 20px;">
+    <div class="label">Total Amount Paid</div>
+    <div style="font-size: 28px; font-weight: 800; color: {brand_color}; margin-top: 4px;">{amount}</div>
+  </div>
+
+  <div class="section" style="padding: 10px 16px; background: #f9fafb; border-left: 3px solid {brand_color}; font-size: 10px;">
+    <span class="label">Amount in Words</span><br><strong>{amount_in_words}</strong>
+  </div>
+
+  <div class="footer">{company_name} &bull; {company_email} &bull; {company_phone}</div>
+</div>
+HTML;
+    }
+
     private function paymentSlipModern(): string
     {
         return $this->baseStyles() . <<<'HTML'
@@ -1058,6 +1133,9 @@ HTML;
             // Payment Slips
             ['key' => 'payment_slip_classic', 'name' => 'Classic Professional',  'type' => 'payment_slip',  'is_default' => true,  'content' => $this->paymentSlipClassic(), 'subject' => 'Payment Receipt #{receipt_number}', 'email_body' => "Dear {customer_name},\n\nThank you for your payment. Receipt #{receipt_number} is attached.\n\nBest regards,\n{company_name}"],
             ['key' => 'payment_slip_modern',  'name' => 'Modern Minimal',        'type' => 'payment_slip',  'is_default' => false, 'content' => $this->paymentSlipModern(),  'subject' => 'Receipt #{receipt_number}', 'email_body' => "Hi {customer_name},\n\nPayment received — receipt #{receipt_number} attached.\n\nThanks,\n{company_name}"],
+
+            // Supplier Payment Receipts
+            ['key' => 'supplier_payment_slip_classic', 'name' => 'Classic Professional', 'type' => 'supplier_payment_slip', 'is_default' => true, 'content' => $this->supplierPaymentSlipClassic(), 'subject' => 'Payment Receipt #{receipt_number}', 'email_body' => "Dear {supplier_name},\n\nPlease find attached receipt #{receipt_number} for our payment.\n\nBest regards,\n{company_name}"],
 
             // Purchase Bills
             ['key' => 'purchase_bill_classic', 'name' => 'Classic Professional', 'type' => 'purchase_bill', 'is_default' => true,  'content' => $this->purchaseBillClassic(), 'subject' => 'Purchase Bill #{bill_number}', 'email_body' => null],

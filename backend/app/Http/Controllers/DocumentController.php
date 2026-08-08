@@ -6,6 +6,7 @@ use App\Models\Invoice;
 use App\Models\Quote;
 use App\Models\SalesOrder;
 use App\Models\PaymentReceipt;
+use App\Models\SupplierPaymentReceipt;
 use App\Models\PurchaseBill;
 use App\Models\Delivery;
 use Illuminate\Http\Request;
@@ -73,6 +74,16 @@ class DocumentController extends Controller
     public function previewReceipt($id)
     {
         return $this->handlePdfRequest($id, 'payment_slip', 'stream', PaymentReceipt::class);
+    }
+
+    public function downloadSupplierReceipt($id)
+    {
+        return $this->handlePdfRequest($id, 'supplier_payment_slip', 'download', SupplierPaymentReceipt::class);
+    }
+
+    public function previewSupplierReceipt($id)
+    {
+        return $this->handlePdfRequest($id, 'supplier_payment_slip', 'stream', SupplierPaymentReceipt::class);
     }
 
     public function downloadSalesOrder($id)
@@ -158,6 +169,9 @@ class DocumentController extends Controller
         } elseif ($type === 'payment_slip') {
             $relations[] = 'customer';
             $relations[] = 'invoice';
+        } elseif ($type === 'supplier_payment_slip') {
+            $relations[] = 'supplier';
+            $relations[] = 'purchaseBill';
         } elseif ($type === 'delivery_note') {
             $relations[] = 'customer';
             $relations[] = 'items.product';

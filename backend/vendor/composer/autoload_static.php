@@ -677,6 +677,7 @@ class ComposerStaticInit46474ff6b4831cc5a6da017adcd8d797
         'App\\Mail\\MarketingCampaignMail' => __DIR__ . '/../..' . '/app/Mail/MarketingCampaignMail.php',
         'App\\Mail\\PaymentReceiptMail' => __DIR__ . '/../..' . '/app/Mail/PaymentReceiptMail.php',
         'App\\Mail\\QuoteMail' => __DIR__ . '/../..' . '/app/Mail/QuoteMail.php',
+        'App\\Mail\\SupplierPaymentReceiptMail' => __DIR__ . '/../..' . '/app/Mail/SupplierPaymentReceiptMail.php',
         'App\\Mail\\WelcomeCustomerMail' => __DIR__ . '/../..' . '/app/Mail/WelcomeCustomerMail.php',
         'App\\Models\\ActivityLog' => __DIR__ . '/../..' . '/app/Models/ActivityLog.php',
         'App\\Models\\Attendance' => __DIR__ . '/../..' . '/app/Models/Attendance.php',

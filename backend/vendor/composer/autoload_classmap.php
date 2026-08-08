@@ -75,6 +75,7 @@ return array(
     'App\\Mail\\MarketingCampaignMail' => $baseDir . '/app/Mail/MarketingCampaignMail.php',
     'App\\Mail\\PaymentReceiptMail' => $baseDir . '/app/Mail/PaymentReceiptMail.php',
     'App\\Mail\\QuoteMail' => $baseDir . '/app/Mail/QuoteMail.php',
+    'App\\Mail\\SupplierPaymentReceiptMail' => $baseDir . '/app/Mail/SupplierPaymentReceiptMail.php',
     'App\\Mail\\WelcomeCustomerMail' => $baseDir . '/app/Mail/WelcomeCustomerMail.php',
     'App\\Models\\ActivityLog' => $baseDir . '/app/Models/ActivityLog.php',
     'App\\Models\\Attendance' => $baseDir . '/app/Models/Attendance.php',
