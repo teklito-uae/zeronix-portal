@@ -64,7 +64,7 @@ export const Settings = () => {
     terms_conditions: '',
   });
 
-  const { data: brandSettingsData } = useQuery({
+  const { data: brandSettingsData, isLoading: isBrandSettingsLoading } = useQuery({
     queryKey: ['brand_settings'],
     queryFn: async () => {
       const res = await api.get('/admin/settings/workspace');
@@ -108,7 +108,14 @@ export const Settings = () => {
 
     // Append JSON as a blob or array syntax
     Object.keys(settingsPayload).forEach(key => {
-      formData.append(`settings[${key}]`, settingsPayload[key]);
+      const value = settingsPayload[key];
+      if (Array.isArray(value)) {
+        value.forEach(v => formData.append(`settings[${key}][]`, v));
+      } else {
+        // FormData.append() stringifies null/undefined to the literal text "null"/"undefined",
+        // which then gets persisted verbatim and leaks into generated PDFs.
+        formData.append(`settings[${key}]`, value ?? '');
+      }
     });
 
     if (brandForm.logo) {
@@ -278,7 +285,12 @@ export const Settings = () => {
 
         {/* Content Area */}
         <div className="flex-1 min-w-0 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          
+          {isBrandSettingsLoading ? (
+            <div className="flex items-center justify-center py-24">
+              <Spinner size={28} className="text-admin-text-muted" />
+            </div>
+          ) : (
+          <>
           {/* BRAND TAB */}
           <TabsContent value="brand" className="mt-0">
             <div className="space-y-6">
@@ -736,7 +748,8 @@ export const Settings = () => {
                <p className="text-admin-text-muted">Coming soon...</p>
             </Card>
           </TabsContent>
-
+          </>
+          )}
         </div>
       </Tabs>
     </div>

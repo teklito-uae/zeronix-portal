@@ -4,6 +4,8 @@ import { useBreadcrumbStore } from '@/store/useBreadcrumbStore';
 import { useTopbarActionsStore } from '@/store/useTopbarActionsStore';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Logo } from '@/components/shared/Logo';
+import { Spinner } from '@/components/shared/Spinner';
+import { useIsFetching } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import {
   ChevronRight,
@@ -57,6 +59,9 @@ export const Topbar = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const cartItems = useCartStore((s) => s.items);
   const totalCartItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  // Global "app is loading data" indicator — lights up whenever any React Query
+  // request is in flight on the current page, so pages don't need their own spinner wiring.
+  const isFetching = useIsFetching();
 
   const isCustomer = location.pathname.startsWith('/portal');
   const initTheme = useThemeStore((s) => s.initTheme);
@@ -141,6 +146,9 @@ export const Topbar = () => {
               </span>
             ))}
           </nav>
+          {isFetching > 0 && (
+            <Spinner size={14} className="text-brand-accent shrink-0" />
+          )}
       </div>
 
       {/* Right: page-injected actions (desktop) + mobile-only utility icons (desktop equivalents live in the sidebar) */}
