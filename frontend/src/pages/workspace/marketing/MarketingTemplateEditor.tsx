@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
+import type { AxiosError } from 'axios';
 import { toast } from 'sonner';
 import { MarketingLayout } from '@/components/marketing/MarketingLayout';
 import { PageLoader } from '@/components/shared/PageLoader';
@@ -54,6 +55,7 @@ export const MarketingTemplateEditor = () => {
 
   useEffect(() => {
     if (template) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: seeds the form from the fetched template record whenever fresh server data lands.
       setForm({
         name: template.name,
         subject: template.subject,
@@ -82,8 +84,9 @@ export const MarketingTemplateEditor = () => {
         queryClient.invalidateQueries({ queryKey: ['marketing/templates', id] });
         queryClient.invalidateQueries({ queryKey: ['marketing/templates'] });
       }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to save template');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Failed to save template');
     } finally {
       setSaving(false);
     }
@@ -200,8 +203,9 @@ const VersionsSheet = ({
       onRestored();
       refetch();
       onOpenChange(false);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to restore version');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Failed to restore version');
     }
   };
 

@@ -59,7 +59,7 @@ export const ActionGroup = ({
           disabled={isMailPending}
           className={cn(
             "h-8 w-8 p-0 rounded-lg transition-all",
-            isMailSent ? "text-success bg-success/10" : "text-admin-text-muted hover:text-zeronix-blue hover:bg-admin-bg"
+            isMailSent ? "text-success bg-success/10" : "text-brand-subtle hover:text-brand-accent hover:bg-brand-bg"
           )}
         >
           {isMailPending ? <Loader2 size={14} className="animate-spin" /> : (isMailSent ? <Check size={14} /> : <Mail size={14} />)}
@@ -71,7 +71,7 @@ export const ActionGroup = ({
           variant="ghost"
           size="sm"
           onClick={onDownload}
-          className="h-8 w-8 p-0 text-admin-text-muted hover:text-zeronix-blue hover:bg-admin-bg rounded-lg transition-all"
+          className="h-8 w-8 p-0 text-brand-subtle hover:text-brand-accent hover:bg-brand-bg rounded-lg transition-all"
         >
           <Download size={14} />
         </Button>
@@ -81,11 +81,11 @@ export const ActionGroup = ({
       {(onEdit || onDelete || onView) && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0 text-admin-text-muted hover:text-admin-text-primary rounded-lg">
+            <Button variant="ghost" className="h-8 w-8 p-0 text-brand-subtle hover:text-brand-primary rounded-lg">
               <MoreHorizontal size={16} />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-36 bg-admin-surface border-admin-border rounded-xl shadow-xl p-1">
+          <DropdownMenuContent align="end" className="w-36 bg-brand-white border-brand-border rounded-xl shadow-xl p-1">
             {onView && (
               <DropdownMenuItem onClick={onView} className="rounded-lg cursor-pointer">
                 <Eye size={14} className="mr-2" /> View Details

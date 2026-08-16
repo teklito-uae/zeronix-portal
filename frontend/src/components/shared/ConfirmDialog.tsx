@@ -30,15 +30,15 @@ export const ConfirmDialog = ({
 }: ConfirmDialogProps) => {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="bg-admin-surface border-admin-border">
+      <AlertDialogContent className="bg-brand-white border-brand-border">
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-admin-text-primary">{title}</AlertDialogTitle>
-          <AlertDialogDescription className="text-admin-text-secondary">
+          <AlertDialogTitle className="text-brand-primary">{title}</AlertDialogTitle>
+          <AlertDialogDescription className="text-brand-secondary">
             {description}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel className="border-admin-border text-admin-text-secondary hover:bg-admin-surface-hover">
+          <AlertDialogCancel className="border-brand-border text-brand-secondary hover:bg-brand-bg">
             Cancel
           </AlertDialogCancel>
           <AlertDialogAction
@@ -46,7 +46,7 @@ export const ConfirmDialog = ({
             className={
               variant === 'destructive'
                 ? 'bg-danger text-white hover:bg-danger/90'
-                : 'bg-zeronix-blue text-white hover:bg-zeronix-blue-hover'
+                : 'bg-brand-accent text-white hover:bg-brand-accent-hover'
             }
           >
             {confirmLabel}

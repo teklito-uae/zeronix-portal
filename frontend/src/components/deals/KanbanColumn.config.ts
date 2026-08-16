@@ -26,3 +26,8 @@ export const KANBAN_COLUMNS: KanbanColumnConfig[] = [
   { key: 'won', label: 'Won', stageFilter: 'won', writeStage: 'won' },
   { key: 'lost', label: 'Lost', stageFilter: ['lost', 'cancelled'], writeStage: 'lost' },
 ];
+
+/** The `stage` value baked into `useColumnDeals`'s query key for a column. */
+export function stageQueryKeyFor(config: KanbanColumnConfig): string {
+  return Array.isArray(config.stageFilter) ? config.stageFilter.join(',') : config.stageFilter;
+}

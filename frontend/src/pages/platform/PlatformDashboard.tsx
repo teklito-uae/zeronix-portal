@@ -1,6 +1,6 @@
 import React from 'react';
 import { SEO } from '@/components/shared/SEO';
-import { LayoutDashboard, Building2, Activity, Users, ShoppingCart, DollarSign } from 'lucide-react';
+import { Building2, Users, ShoppingCart, DollarSign } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageLoader } from '@/components/shared/PageLoader';
 import { useQuery } from '@tanstack/react-query';

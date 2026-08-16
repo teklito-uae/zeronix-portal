@@ -1,12 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
-import { getBasePath } from '@/hooks/useBasePath';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Plus, ListTodo, Activity, StickyNote as StickyNoteIcon,
   Trash2, CheckCircle2, Circle, Bold, Italic, Underline, List,
-  Calendar, Loader2
+  Loader2
 } from 'lucide-react';
 import { timeAgo } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -18,6 +17,8 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { ApiError } from '@/hooks/useApi';
+import type { User } from '@/types';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Task     { id: number; title: string; status: string; due_date?: string; }
@@ -47,6 +48,47 @@ const activityDotColor = (action = '') => {
   if (action.includes('customer')) return 'bg-blue-400';
   return 'bg-brand-border-strong';
 };
+
+// ── Section header ────────────────────────────────────────────────────────
+const SectionHead = ({
+  icon, title, action,
+}: { icon: React.ReactNode; title: string; action?: React.ReactNode }) => (
+  <div className="flex items-center justify-between px-5 py-3.5 border-b border-brand-border">
+    <div className="flex items-center gap-2 text-[14px] font-semibold text-brand-primary">
+      {icon}{title}
+    </div>
+    {action}
+  </div>
+);
+
+const Empty = ({ msg }: { msg: string }) => (
+  <p className="text-center text-[12px] text-brand-subtle py-10 italic">{msg}</p>
+);
+
+const TaskRow = ({
+  task, showDue = false, onToggle,
+}: { task: Task; showDue?: boolean; onToggle: (task: Task) => void }) => (
+  <div className="flex items-start gap-3 bg-brand-bg rounded-lg p-3 border border-brand-border hover:bg-brand-surface transition-colors">
+    <button
+      onClick={() => onToggle(task)}
+      className="mt-0.5 flex-shrink-0"
+    >
+      {task.status === 'completed'
+        ? <CheckCircle2 size={15} className="text-brand-success" />
+        : <Circle size={15} className="text-brand-subtle hover:text-brand-muted transition-colors" />}
+    </button>
+    <div className="flex-1 min-w-0">
+      <p className={`text-[13px] font-medium leading-snug ${
+        task.status === 'completed' ? 'line-through text-brand-subtle' : 'text-brand-primary'
+      }`}>
+        {task.title}
+      </p>
+      {showDue && task.due_date && (
+        <p className="text-[11px] text-brand-subtle mt-0.5">Due: {task.due_date}</p>
+      )}
+    </div>
+  </div>
+);
 
 // ── ProductivitySuite ─────────────────────────────────────────────────────────
 export const ProductivitySuite = ({ activities = [] }: { activities: Activity[] }) => {
@@ -83,7 +125,7 @@ export const ProductivitySuite = ({ activities = [] }: { activities: Activity[] 
       setIsTaskModalOpen(false);
       setTaskForm({ title: '', description: '', due_date: '', assigned_to: '' });
     },
-    onError: (err: any) => {
+    onError: (err: ApiError) => {
       toast.error(err.response?.data?.message || 'Failed to create task.');
     }
   });
@@ -156,47 +198,10 @@ export const ProductivitySuite = ({ activities = [] }: { activities: Activity[] 
 
   const execFormat = (cmd: string) => document.execCommand(cmd, false);
 
-  // ── Section header ────────────────────────────────────────────────────────
-  const SectionHead = ({
-    icon, title, action,
-  }: { icon: React.ReactNode; title: string; action?: React.ReactNode }) => (
-    <div className="flex items-center justify-between px-5 py-3.5 border-b border-brand-border">
-      <div className="flex items-center gap-2 text-[14px] font-semibold text-brand-primary">
-        {icon}{title}
-      </div>
-      {action}
-    </div>
-  );
-
-  const Empty = ({ msg }: { msg: string }) => (
-    <p className="text-center text-[12px] text-brand-subtle py-10 italic">{msg}</p>
-  );
-
-  const TaskRow = ({ task, showDue = false }: { task: Task; showDue?: boolean }) => (
-    <div className="flex items-start gap-3 bg-brand-bg rounded-lg p-3 border border-brand-border hover:bg-brand-surface transition-colors">
-      <button
-        onClick={() => toggleTaskMutation.mutate({
-          id: task.id,
-          status: task.status === 'completed' ? 'pending' : 'completed',
-        })}
-        className="mt-0.5 flex-shrink-0"
-      >
-        {task.status === 'completed'
-          ? <CheckCircle2 size={15} className="text-brand-success" />
-          : <Circle size={15} className="text-brand-subtle hover:text-brand-muted transition-colors" />}
-      </button>
-      <div className="flex-1 min-w-0">
-        <p className={`text-[13px] font-medium leading-snug ${
-          task.status === 'completed' ? 'line-through text-brand-subtle' : 'text-brand-primary'
-        }`}>
-          {task.title}
-        </p>
-        {showDue && task.due_date && (
-          <p className="text-[11px] text-brand-subtle mt-0.5">Due: {task.due_date}</p>
-        )}
-      </div>
-    </div>
-  );
+  const handleToggleTask = (task: Task) => toggleTaskMutation.mutate({
+    id: task.id,
+    status: task.status === 'completed' ? 'pending' : 'completed',
+  });
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -247,7 +252,7 @@ export const ProductivitySuite = ({ activities = [] }: { activities: Activity[] 
                     ? <p className="text-center text-[12px] text-brand-subtle py-4">Loading…</p>
                     : (tasksData?.mine?.length === 0
                       ? <Empty msg="No tasks. Add one above." />
-                      : tasksData?.mine?.map((t: Task) => <TaskRow key={t.id} task={t} />))}
+                      : tasksData?.mine?.map((t: Task) => <TaskRow key={t.id} task={t} onToggle={handleToggleTask} />))}
                 </div>
               </TabsContent>
 
@@ -256,7 +261,7 @@ export const ProductivitySuite = ({ activities = [] }: { activities: Activity[] 
                   ? <p className="text-center text-[12px] text-brand-subtle py-4">Loading…</p>
                   : (tasksData?.assigned?.length === 0
                     ? <Empty msg="No tasks assigned." />
-                    : tasksData?.assigned?.map((t: Task) => <TaskRow key={t.id} task={t} showDue />))}
+                    : tasksData?.assigned?.map((t: Task) => <TaskRow key={t.id} task={t} showDue onToggle={handleToggleTask} />))}
               </TabsContent>
             </Tabs>
           </div>
@@ -477,7 +482,7 @@ export const ProductivitySuite = ({ activities = [] }: { activities: Activity[] 
                   </SelectTrigger>
                   <SelectContent className="bg-brand-white border-brand-border rounded-xl text-[13px] max-h-[200px]">
                     <SelectItem value="none">Assign to Myself</SelectItem>
-                    {usersList.map((u: any) => (
+                    {usersList.map((u: User) => (
                       <SelectItem key={u.id} value={String(u.id)}>
                         {u.name}
                       </SelectItem>

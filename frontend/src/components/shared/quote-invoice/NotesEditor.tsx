@@ -12,6 +12,21 @@ interface NotesEditorProps {
   softCap?: number;
 }
 
+const ToolButton = ({ onClick, active, children, title }: { onClick: () => void; active?: boolean; children: React.ReactNode; title: string }) => (
+  <button
+    type="button"
+    title={title}
+    onMouseDown={(e) => e.preventDefault()}
+    onClick={onClick}
+    className={cn(
+      'h-7 w-7 inline-flex items-center justify-center rounded-md transition-colors',
+      active ? 'bg-brand-accent-light text-brand-accent' : 'text-brand-muted hover:bg-brand-surface hover:text-brand-primary'
+    )}
+  >
+    {children}
+  </button>
+);
+
 /**
  * Small dedicated Tiptap wrapper for "Notes to Customer" — a minimal toolbar
  * (Bold/Italic/Underline/lists/link only) plus a soft character counter.
@@ -53,21 +68,6 @@ export const NotesEditor = ({ value, onChange, softCap = 1000 }: NotesEditorProp
   };
 
   const charCount = editor ? editor.getText().length : (value || '').replace(/<[^>]*>/g, '').length;
-
-  const ToolButton = ({ onClick, active, children, title }: { onClick: () => void; active?: boolean; children: React.ReactNode; title: string }) => (
-    <button
-      type="button"
-      title={title}
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={onClick}
-      className={cn(
-        'h-7 w-7 inline-flex items-center justify-center rounded-md transition-colors',
-        active ? 'bg-brand-accent-light text-brand-accent' : 'text-brand-muted hover:bg-brand-surface hover:text-brand-primary'
-      )}
-    >
-      {children}
-    </button>
-  );
 
   return (
     <div className="border border-brand-border rounded-lg overflow-hidden bg-brand-white">

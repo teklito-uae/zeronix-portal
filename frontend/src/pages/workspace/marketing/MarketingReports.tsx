@@ -17,17 +17,52 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
+interface ReportCampaignRow {
+  id: number;
+  name: string;
+  status: string;
+  sent: number;
+  open_rate: number;
+  click_rate: number;
+  bounce_rate: number;
+}
+
+interface ReportDomainRow {
+  domain: string;
+  total: number;
+}
+
+interface ReportsOverview {
+  totals: {
+    sent?: number;
+    open_rate?: number;
+    click_rate?: number;
+    bounce_rate?: number;
+    unsubscribe_rate?: number;
+  };
+  campaigns: ReportCampaignRow[];
+  domains: ReportDomainRow[];
+}
+
+interface ReportTrendRow {
+  date: string;
+  sent: number;
+  opens: number;
+  clicks: number;
+  bounces: number;
+}
+
 export const MarketingReports = () => {
   const navigate = useNavigate();
 
   const { data: overview, isLoading } = useQuery({
     queryKey: ['marketing/reports/overview'],
-    queryFn: async () => (await api.get('/admin/marketing/reports/overview', { params: { days: 30 } })).data,
+    queryFn: async () => (await api.get<ReportsOverview>('/admin/marketing/reports/overview', { params: { days: 30 } })).data,
   });
 
   const { data: trends } = useQuery({
     queryKey: ['marketing/reports/trends'],
-    queryFn: async () => (await api.get('/admin/marketing/reports/trends', { params: { days: 30 } })).data.data,
+    queryFn: async () => (await api.get<{ data: ReportTrendRow[] }>('/admin/marketing/reports/trends', { params: { days: 30 } })).data.data,
   });
 
   if (isLoading) {
@@ -41,7 +76,7 @@ export const MarketingReports = () => {
   const totals = overview?.totals || {};
   const campaigns = overview?.campaigns || [];
   const domains = overview?.domains || [];
-  const trendData = (trends || []).map((row: any) => ({ ...row, date: row.date?.slice(5) }));
+  const trendData = (trends || []).map((row) => ({ ...row, date: row.date?.slice(5) }));
 
   return (
     <MarketingLayout title="Reports">
@@ -89,7 +124,7 @@ export const MarketingReports = () => {
               {campaigns.length === 0 && (
                 <TableRow><TableCell colSpan={6} className="text-center py-6 text-[13px] text-brand-subtle">No launched campaigns in this period.</TableCell></TableRow>
               )}
-              {campaigns.map((c: any) => (
+              {campaigns.map((c) => (
                 <TableRow key={c.id} className="cursor-pointer" onClick={() => navigate(`/workspace/marketing/campaigns/${c.id}`)}>
                   <TableCell className="text-[13px] font-medium">{c.name}</TableCell>
                   <TableCell><StatusBadge status={c.status} /></TableCell>
@@ -107,7 +142,7 @@ export const MarketingReports = () => {
           <h3 className="text-[13px] font-semibold text-brand-primary mb-3">Recipient Domains</h3>
           <div className="space-y-2">
             {domains.length === 0 && <p className="text-[12px] text-brand-subtle">No data yet.</p>}
-            {domains.map((d: any) => (
+            {domains.map((d) => (
               <div key={d.domain} className="flex items-center justify-between text-[12px]">
                 <span className="text-brand-secondary">{d.domain}</span>
                 <span className="font-semibold text-brand-primary">{d.total}</span>

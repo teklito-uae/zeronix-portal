@@ -22,7 +22,7 @@ import { CurrencyAmount } from "@/components/shared/CurrencyAmount"
 interface ProductSearchProps {
   products: Product[];
   selectedProductId?: number;
-  onSelect: (product: any) => void;
+  onSelect: (product: Product) => void;
   className?: string;
   size?: 'default' | 'cell';
   disabled?: boolean;

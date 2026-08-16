@@ -170,7 +170,7 @@ export const PipelinePanel = () => {
                 <Building2 size={14} /> Top Customers by Invoiced Value
               </h3>
               <div className="space-y-2">
-                {(data?.top_customers || []).map((c: any) => (
+                {(data?.top_customers || []).map((c: { id: number; name: string; company?: string; total_invoiced?: number }) => (
                   <div key={c.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-brand-surface">
                     <span className="text-[13px] font-medium text-brand-primary">{c.name}{c.company ? ` — ${c.company}` : ''}</span>
                     <span className="text-[13px] font-mono font-semibold text-brand-secondary"><CurrencyAmount amount={c.total_invoiced || 0} currency={currency} /></span>

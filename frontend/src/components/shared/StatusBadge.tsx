@@ -19,28 +19,28 @@ const statusConfig: Record<string, { label: string; className: string; pulse?: b
   quoted: { label: 'QUOTED', className: 'text-[#8B5CF6] bg-[#8B5CF61F]' },
   won: { label: 'WON', className: 'text-[#10B981] bg-[#10B9811F]' },
   lost: { label: 'LOST', className: 'text-[#EF4444] bg-[#EF44441F]' },
-  closed: { label: 'CLOSED', className: 'text-admin-text-muted bg-admin-surface-hover' },
+  closed: { label: 'CLOSED', className: 'text-brand-subtle bg-brand-bg' },
 
   // Lead statuses
   contacted: { label: 'CONTACTED', className: 'text-[#0F52BA] bg-[#0F52BA1F]' },
   qualified: { label: 'QUALIFIED', className: 'text-[#8B5CF6] bg-[#8B5CF61F]' },
-  unresponsive: { label: 'UNRESPONSIVE', className: 'text-admin-text-muted bg-admin-surface-hover' },
+  unresponsive: { label: 'UNRESPONSIVE', className: 'text-brand-subtle bg-brand-bg' },
   converted: { label: 'CONVERTED', className: 'text-[#10B981] bg-[#10B9811F]' },
 
   // Priorities
-  normal: { label: 'NORMAL', className: 'text-admin-text-secondary bg-admin-surface-hover' },
+  normal: { label: 'NORMAL', className: 'text-brand-secondary bg-brand-bg' },
   high: { label: 'HIGH', className: 'text-[#F59E0B] bg-[#F59E0B1F]' },
   urgent: { label: 'URGENT', className: 'text-[#F59E0B] bg-[#F59E0B1F]', pulse: true },
 
   // Quote statuses
-  draft: { label: 'DRAFT', className: 'text-admin-text-muted bg-admin-surface-hover' },
+  draft: { label: 'DRAFT', className: 'text-brand-subtle bg-brand-bg' },
   sent: { label: 'SENT', className: 'text-[#0F52BA] bg-[#0F52BA1F]' },
   accepted: { label: 'ACCEPTED', className: 'text-[#10B981] bg-[#10B9811F]' },
   rejected: { label: 'REJECTED', className: 'text-[#EF4444] bg-[#EF44441F]' },
-  expired: { label: 'EXPIRED', className: 'text-admin-text-muted bg-admin-surface-hover' },
+  expired: { label: 'EXPIRED', className: 'text-brand-subtle bg-brand-bg' },
   invoiced: { label: 'INVOICED', className: 'text-[#10B981] bg-[#10B9811F]' },
   approved: { label: 'APPROVED', className: 'text-[#10B981] bg-[#10B9811F]' },
-  superseded: { label: 'SUPERSEDED', className: 'text-admin-text-muted bg-admin-surface-hover' },
+  superseded: { label: 'SUPERSEDED', className: 'text-brand-subtle bg-brand-bg' },
 
   // Sales Order / Delivery statuses
   confirmed: { label: 'CONFIRMED', className: 'text-[#0F52BA] bg-[#0F52BA1F]' },
@@ -53,12 +53,12 @@ const statusConfig: Record<string, { label: string; className: string; pulse?: b
   paid: { label: 'PAID', className: 'text-[#10B981] bg-[#10B9811F]' },
   partially_paid: { label: 'PARTIALLY PAID', className: 'text-[#6366F1] bg-[#6366F11F]' },
   partial: { label: 'PARTIALLY PAID', className: 'text-[#6366F1] bg-[#6366F11F]' },
-  unpaid: { label: 'UNPAID', className: 'text-admin-text-muted bg-admin-surface-hover' },
+  unpaid: { label: 'UNPAID', className: 'text-brand-subtle bg-brand-bg' },
   overdue: { label: 'OVERDUE', className: 'text-[#EF4444] bg-[#EF44441F]' },
 
   // Invoice workflow status (on_hold; draft/sent/accepted/cancelled are shared with Quote above)
   on_hold: { label: 'ON HOLD', className: 'text-[#F59E0B] bg-[#F59E0B1F]' },
-  cancelled: { label: 'CANCELLED', className: 'text-admin-text-muted bg-admin-surface-hover' },
+  cancelled: { label: 'CANCELLED', className: 'text-brand-subtle bg-brand-bg' },
 
   // Marketing campaign / message / SMTP statuses
   scheduled: { label: 'SCHEDULED', className: 'text-[#0F52BA] bg-[#0F52BA1F]' },
@@ -69,8 +69,8 @@ const statusConfig: Record<string, { label: string; className: string; pulse?: b
   failed: { label: 'FAILED', className: 'text-[#EF4444] bg-[#EF44441F]' },
   bounced: { label: 'BOUNCED', className: 'text-[#EF4444] bg-[#EF44441F]' },
   spam: { label: 'SPAM', className: 'text-[#EF4444] bg-[#EF44441F]' },
-  skipped: { label: 'SKIPPED', className: 'text-admin-text-muted bg-admin-surface-hover' },
-  unsubscribed: { label: 'UNSUBSCRIBED', className: 'text-admin-text-muted bg-admin-surface-hover' },
+  skipped: { label: 'SKIPPED', className: 'text-brand-subtle bg-brand-bg' },
+  unsubscribed: { label: 'UNSUBSCRIBED', className: 'text-brand-subtle bg-brand-bg' },
   healthy: { label: 'HEALTHY', className: 'text-[#10B981] bg-[#10B9811F]' },
   warning: { label: 'WARNING', className: 'text-[#F59E0B] bg-[#F59E0B1F]' },
 };
@@ -78,7 +78,7 @@ const statusConfig: Record<string, { label: string; className: string; pulse?: b
 export const StatusBadge = ({ status, className }: StatusBadgeProps) => {
   const config = (status && statusConfig[status]) || {
     label: (status || 'UNKNOWN').toString().toUpperCase(),
-    className: 'text-admin-text-secondary bg-admin-surface-hover',
+    className: 'text-brand-secondary bg-brand-bg',
   };
 
   return (

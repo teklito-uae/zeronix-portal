@@ -13,9 +13,9 @@ export const PageLoader = ({
 }: PageLoaderProps) => {
   return (
     <div className={`flex flex-col items-center justify-center gap-3 ${className}`}>
-      <Loader2 className="animate-spin text-zeronix-blue" size={iconSize} />
+      <Loader2 className="animate-spin text-brand-accent" size={iconSize} />
       {label && (
-        <p className="text-[10px] font-bold uppercase tracking-wider text-admin-text-muted">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle">
           {label}
         </p>
       )}

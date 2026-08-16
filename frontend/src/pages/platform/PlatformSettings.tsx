@@ -28,6 +28,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import type { Template } from '@/types';
+import type { ComponentType } from 'react';
+import type { ApiError } from '@/hooks/useApi';
 
 const PLACEHOLDERS = [
   { key: '{quote_number}', label: 'Quote Number', type: 'quote' },
@@ -45,6 +47,32 @@ const PLACEHOLDERS = [
   { key: '{total_in_words}', label: 'Total in Words', type: 'both' },
   { key: '{items}', label: 'Items Table (HTML)', type: 'both' },
 ];
+
+interface SidebarItemProps {
+  id: string;
+  label: string;
+  icon: ComponentType<{ size?: number; className?: string }>;
+  activeTab: string;
+  onSelect: (id: string) => void;
+}
+
+const SidebarItem = ({ id, label, icon: Icon, activeTab, onSelect }: SidebarItemProps) => (
+  <button
+    onClick={() => onSelect(id)}
+    className={cn(
+      "w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group",
+      activeTab === id
+        ? "bg-brand-accent text-white shadow-lg shadow-brand-accent/20 font-medium"
+        : "text-brand-secondary hover:bg-brand-bg hover:text-brand-primary"
+    )}
+  >
+    <div className="flex items-center gap-3">
+      <Icon size={18} className={cn(activeTab === id ? "text-white" : "text-brand-subtle group-hover:text-brand-accent")} />
+      <span className="text-sm">{label}</span>
+    </div>
+    <ChevronRight size={14} className={cn("transition-transform", activeTab === id ? "rotate-90 opacity-100" : "opacity-0")} />
+  </button>
+);
 
 export const PlatformSettings = () => {
   const [activeTab, setActiveTab] = useState('email');
@@ -68,6 +96,7 @@ export const PlatformSettings = () => {
 
   useEffect(() => {
     if (adminUser) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: seeds the email form from the auth store's admin user whenever it changes (e.g. after login or a settings save round-trip updates it).
       setEmailForm({
         smtp_host: adminUser.smtp_host || '',
         smtp_port: adminUser.smtp_port?.toString() || '',
@@ -84,7 +113,7 @@ export const PlatformSettings = () => {
   }, [adminUser]);
 
   const saveEmailMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: Record<string, string | number | undefined>) => {
       return api.put('/admin/user/smtp', data);
     },
     onSuccess: (res) => {
@@ -103,18 +132,18 @@ export const PlatformSettings = () => {
     onSuccess: (res) => {
       toast.success(res.data.message);
     },
-    onError: (err: any) => {
+    onError: (err: ApiError) => {
       toast.error(err.response?.data?.message || 'Failed to send test email');
     }
   });
 
   const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const payload: any = { ...emailForm };
+    const payload: Record<string, string | number | undefined> = { ...emailForm };
     if (!payload.smtp_password) delete payload.smtp_password;
     if (!payload.imap_password) delete payload.imap_password;
-    if (payload.smtp_port) payload.smtp_port = parseInt(payload.smtp_port);
-    if (payload.imap_port) payload.imap_port = parseInt(payload.imap_port);
+    if (payload.smtp_port) payload.smtp_port = parseInt(payload.smtp_port as string);
+    if (payload.imap_port) payload.imap_port = parseInt(payload.imap_port as string);
     saveEmailMutation.mutate(payload);
   };
 
@@ -153,17 +182,18 @@ export const PlatformSettings = () => {
     enabled: activeTab === 'templates'
   });
 
-  useEffect(() => {
-    if (templates && !selectedTemplate) {
-      const defaultQuote = templates.find(t => t.type === 'quote' && t.is_default) || templates.find(t => t.type === 'quote');
-      if (defaultQuote) handleSelectTemplate(defaultQuote);
-    }
-  }, [templates]);
-
   const handleSelectTemplate = (template: Template) => {
     setSelectedTemplate(template);
     setTemplateForm(template);
   };
+
+  useEffect(() => {
+    if (templates && !selectedTemplate) {
+      const defaultQuote = templates.find(t => t.type === 'quote' && t.is_default) || templates.find(t => t.type === 'quote');
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: auto-selects the default quote template once the list loads from the server and nothing is selected yet; not derivable via useMemo since it also seeds templateForm through handleSelectTemplate.
+      if (defaultQuote) handleSelectTemplate(defaultQuote);
+    }
+  }, [templates, selectedTemplate]);
 
   const updateTemplateMutation = useMutation({
     mutationFn: async (data: Partial<Template>) => {
@@ -215,37 +245,18 @@ export const PlatformSettings = () => {
     return preview;
   };
 
-  // --- SUB-COMPONENTS ---
-  const SidebarItem = ({ id, label, icon: Icon }: any) => (
-    <button
-      onClick={() => setActiveTab(id)}
-      className={cn(
-        "w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group",
-        activeTab === id 
-          ? "bg-zeronix-blue text-white shadow-lg shadow-zeronix-blue/20 font-medium" 
-          : "text-admin-text-secondary hover:bg-admin-surface-hover hover:text-admin-text-primary"
-      )}
-    >
-      <div className="flex items-center gap-3">
-        <Icon size={18} className={cn(activeTab === id ? "text-white" : "text-admin-text-muted group-hover:text-zeronix-blue")} />
-        <span className="text-sm">{label}</span>
-      </div>
-      <ChevronRight size={14} className={cn("transition-transform", activeTab === id ? "rotate-90 opacity-100" : "opacity-0")} />
-    </button>
-  );
-
   return (
     <div className="flex flex-col lg:flex-row gap-8 min-h-[calc(100vh-10rem)]">
       {/* Settings Internal Sidebar */}
       <div className="w-full lg:w-64 flex-shrink-0 space-y-2">
         <div className="px-4 mb-4">
-          <h2 className="text-xl font-bold text-admin-text-primary">Settings</h2>
-          <p className="text-xs text-admin-text-muted">Manage your workspace</p>
+          <h2 className="text-xl font-bold text-brand-primary">Settings</h2>
+          <p className="text-xs text-brand-subtle">Manage your workspace</p>
         </div>
         <div className="space-y-1">
-          <SidebarItem id="email" label="Email Integration" icon={Mail} />
-          <SidebarItem id="templates" label="Document Templates" icon={FileText} />
-          <SidebarItem id="profile" label="My Profile" icon={User} />
+          <SidebarItem id="email" label="Email Integration" icon={Mail} activeTab={activeTab} onSelect={setActiveTab} />
+          <SidebarItem id="templates" label="Document Templates" icon={FileText} activeTab={activeTab} onSelect={setActiveTab} />
+          <SidebarItem id="profile" label="My Profile" icon={User} activeTab={activeTab} onSelect={setActiveTab} />
         </div>
       </div>
 
@@ -256,12 +267,12 @@ export const PlatformSettings = () => {
           {/* EMAIL TAB */}
           {activeTab === 'email' && (
             <div className="space-y-6">
-              <div className="flex justify-between items-center bg-admin-surface border border-admin-border p-6 rounded-2xl">
+              <div className="flex justify-between items-center bg-brand-white border border-brand-border p-6 rounded-2xl">
                 <div>
-                  <h3 className="text-lg font-bold text-admin-text-primary">Email & Communication</h3>
-                  <p className="text-sm text-admin-text-muted">Configure SMTP for outgoing and IMAP for incoming mail.</p>
+                  <h3 className="text-lg font-bold text-brand-primary">Email & Communication</h3>
+                  <p className="text-sm text-brand-subtle">Configure SMTP for outgoing and IMAP for incoming mail.</p>
                 </div>
-                <Button variant="outline" onClick={loadHostingerDefaults} className="border-zeronix-blue text-zeronix-blue hover:bg-zeronix-blue/10 rounded-xl">
+                <Button variant="outline" onClick={loadHostingerDefaults} className="border-brand-accent text-brand-accent hover:bg-brand-accent/10 rounded-xl">
                   Hostinger Defaults
                 </Button>
               </div>
@@ -269,8 +280,8 @@ export const PlatformSettings = () => {
               <form onSubmit={handleEmailSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* SMTP */}
-                  <Card className="bg-admin-surface border-admin-border rounded-2xl overflow-hidden">
-                    <CardHeader className="bg-admin-bg/50 border-b border-admin-border pb-4">
+                  <Card className="bg-brand-white border-brand-border rounded-2xl overflow-hidden">
+                    <CardHeader className="bg-brand-bg/50 border-b border-brand-border pb-4">
                       <div className="flex items-center gap-2">
                         <ArrowUpRight className="text-green-500" size={18} />
                         <CardTitle className="text-base">Outgoing (SMTP)</CardTitle>
@@ -279,72 +290,72 @@ export const PlatformSettings = () => {
                     <CardContent className="p-6 space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label className="text-xs text-admin-text-muted uppercase">Host</Label>
-                          <Input value={emailForm.smtp_host} onChange={e => setEmailForm({...emailForm, smtp_host: e.target.value})} className="bg-admin-bg border-admin-border h-10" />
+                          <Label className="text-xs text-brand-subtle uppercase">Host</Label>
+                          <Input value={emailForm.smtp_host} onChange={e => setEmailForm({...emailForm, smtp_host: e.target.value})} className="bg-brand-bg border-brand-border h-10" />
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-xs text-admin-text-muted uppercase">Port</Label>
-                          <Input value={emailForm.smtp_port} onChange={e => setEmailForm({...emailForm, smtp_port: e.target.value})} className="bg-admin-bg border-admin-border h-10" />
+                          <Label className="text-xs text-brand-subtle uppercase">Port</Label>
+                          <Input value={emailForm.smtp_port} onChange={e => setEmailForm({...emailForm, smtp_port: e.target.value})} className="bg-brand-bg border-brand-border h-10" />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-xs text-admin-text-muted uppercase">Username</Label>
-                        <Input value={emailForm.smtp_username} onChange={e => setEmailForm({...emailForm, smtp_username: e.target.value})} className="bg-admin-bg border-admin-border h-10" />
+                        <Label className="text-xs text-brand-subtle uppercase">Username</Label>
+                        <Input value={emailForm.smtp_username} onChange={e => setEmailForm({...emailForm, smtp_username: e.target.value})} className="bg-brand-bg border-brand-border h-10" />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-xs text-admin-text-muted uppercase">Password</Label>
-                        <Input type="password" placeholder="••••••••" value={emailForm.smtp_password} onChange={e => setEmailForm({...emailForm, smtp_password: e.target.value})} className="bg-admin-bg border-admin-border h-10" />
+                        <Label className="text-xs text-brand-subtle uppercase">Password</Label>
+                        <Input type="password" placeholder="••••••••" value={emailForm.smtp_password} onChange={e => setEmailForm({...emailForm, smtp_password: e.target.value})} className="bg-brand-bg border-brand-border h-10" />
                       </div>
                     </CardContent>
                   </Card>
 
                   {/* IMAP */}
-                  <Card className="bg-admin-surface border-admin-border rounded-2xl overflow-hidden">
-                    <CardHeader className="bg-admin-bg/50 border-b border-admin-border pb-4 flex flex-row items-center justify-between">
+                  <Card className="bg-brand-white border-brand-border rounded-2xl overflow-hidden">
+                    <CardHeader className="bg-brand-bg/50 border-b border-brand-border pb-4 flex flex-row items-center justify-between">
                       <div className="flex items-center gap-2">
                         <ArrowDownLeft className="text-blue-500" size={18} />
                         <CardTitle className="text-base">Incoming (IMAP)</CardTitle>
                       </div>
-                      <Button type="button" variant="ghost" size="sm" onClick={copySmtpToImap} className="text-[10px] h-6 text-zeronix-blue hover:bg-zeronix-blue/10">Copy Credentials</Button>
+                      <Button type="button" variant="ghost" size="sm" onClick={copySmtpToImap} className="text-[10px] h-6 text-brand-accent hover:bg-brand-accent/10">Copy Credentials</Button>
                     </CardHeader>
                     <CardContent className="p-6 space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label className="text-xs text-admin-text-muted uppercase">Host</Label>
-                          <Input value={emailForm.imap_host} onChange={e => setEmailForm({...emailForm, imap_host: e.target.value})} className="bg-admin-bg border-admin-border h-10" />
+                          <Label className="text-xs text-brand-subtle uppercase">Host</Label>
+                          <Input value={emailForm.imap_host} onChange={e => setEmailForm({...emailForm, imap_host: e.target.value})} className="bg-brand-bg border-brand-border h-10" />
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-xs text-admin-text-muted uppercase">Port</Label>
-                          <Input value={emailForm.imap_port} onChange={e => setEmailForm({...emailForm, imap_port: e.target.value})} className="bg-admin-bg border-admin-border h-10" />
+                          <Label className="text-xs text-brand-subtle uppercase">Port</Label>
+                          <Input value={emailForm.imap_port} onChange={e => setEmailForm({...emailForm, imap_port: e.target.value})} className="bg-brand-bg border-brand-border h-10" />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-xs text-admin-text-muted uppercase">Username</Label>
-                        <Input value={emailForm.imap_username} onChange={e => setEmailForm({...emailForm, imap_username: e.target.value})} className="bg-admin-bg border-admin-border h-10" />
+                        <Label className="text-xs text-brand-subtle uppercase">Username</Label>
+                        <Input value={emailForm.imap_username} onChange={e => setEmailForm({...emailForm, imap_username: e.target.value})} className="bg-brand-bg border-brand-border h-10" />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-xs text-admin-text-muted uppercase">Password</Label>
-                        <Input type="password" placeholder="••••••••" value={emailForm.imap_password} onChange={e => setEmailForm({...emailForm, imap_password: e.target.value})} className="bg-admin-bg border-admin-border h-10" />
+                        <Label className="text-xs text-brand-subtle uppercase">Password</Label>
+                        <Input type="password" placeholder="••••••••" value={emailForm.imap_password} onChange={e => setEmailForm({...emailForm, imap_password: e.target.value})} className="bg-brand-bg border-brand-border h-10" />
                       </div>
                     </CardContent>
                   </Card>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-admin-surface border border-admin-border rounded-2xl">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-brand-white border border-brand-border rounded-2xl">
                   <div className="flex items-center gap-4 flex-1 w-full">
                     <div className="flex-1 space-y-1">
-                      <Label className="text-[10px] text-admin-text-muted uppercase font-bold">Test Delivery</Label>
-                      <Input placeholder="Recipient email..." id="test-email-input" className="h-9 bg-admin-bg border-admin-border text-sm" />
+                      <Label className="text-[10px] text-brand-subtle uppercase font-bold">Test Delivery</Label>
+                      <Input placeholder="Recipient email..." id="test-email-input" className="h-9 bg-brand-bg border-brand-border text-sm" />
                     </div>
                     <Button type="button" variant="outline" onClick={() => {
                         const input = document.getElementById('test-email-input') as HTMLInputElement;
                         testMailMutation.mutate(input?.value || undefined);
-                      }} disabled={testMailMutation.isPending} className="h-9 self-end border-admin-border">
+                      }} disabled={testMailMutation.isPending} className="h-9 self-end border-brand-border">
                       {testMailMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}
                       <span className="ml-2 hidden sm:inline text-xs">Test Email</span>
                     </Button>
                   </div>
-                  <Button type="submit" disabled={saveEmailMutation.isPending} className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover h-11 px-8 rounded-xl w-full sm:w-auto shadow-lg shadow-zeronix-blue/20">
+                  <Button type="submit" disabled={saveEmailMutation.isPending} className="bg-brand-accent text-white hover:bg-brand-accent-hover h-11 px-8 rounded-xl w-full sm:w-auto shadow-lg shadow-brand-accent/20">
                     {saveEmailMutation.isPending ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                     <span className="ml-2 font-medium">Save All Changes</span>
                   </Button>
@@ -356,27 +367,27 @@ export const PlatformSettings = () => {
           {/* TEMPLATES TAB */}
           {activeTab === 'templates' && (
             <div className="space-y-8">
-              <div className="bg-admin-surface border border-admin-border p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="bg-brand-white border border-brand-border p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                  <h3 className="text-lg font-bold text-admin-text-primary">Document Brand Designer</h3>
-                  <p className="text-sm text-admin-text-muted">Choose a base format and customize the layout, colors, and content.</p>
+                  <h3 className="text-lg font-bold text-brand-primary">Document Brand Designer</h3>
+                  <p className="text-sm text-brand-subtle">Choose a base format and customize the layout, colors, and content.</p>
                 </div>
                 <div className="flex gap-2 w-full md:w-auto">
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button variant="outline" className="flex-1 md:flex-none border-admin-border text-xs gap-2 h-10">
+                      <Button variant="outline" className="flex-1 md:flex-none border-brand-border text-xs gap-2 h-10">
                         <Eye size={14} /> Live Preview
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-4xl h-[90vh] p-0 overflow-hidden border-admin-border bg-admin-surface">
-                       <div className="flex items-center justify-between p-4 border-b border-admin-border bg-admin-bg/50">
+                    <DialogContent className="max-w-4xl h-[90vh] p-0 overflow-hidden border-brand-border bg-brand-white">
+                       <div className="flex items-center justify-between p-4 border-b border-brand-border bg-brand-bg/50">
                           <h4 className="font-bold text-sm">PDF View: {templateForm.name}</h4>
-                          <span className="text-[10px] bg-zeronix-blue/10 text-zeronix-blue px-2 py-0.5 rounded font-bold">A4 PORTRAIT</span>
+                          <span className="text-[10px] bg-brand-accent/10 text-brand-accent px-2 py-0.5 rounded font-bold">A4 PORTRAIT</span>
                        </div>
                        <iframe srcDoc={renderPreview(templateForm.content || '')} className="w-full h-full border-none bg-slate-100" />
                     </DialogContent>
                   </Dialog>
-                  <Button onClick={handleTemplateSave} disabled={updateTemplateMutation.isPending} className="flex-1 md:flex-none bg-zeronix-blue text-white hover:bg-zeronix-blue-hover h-10 px-8 rounded-xl shadow-lg shadow-zeronix-blue/20">
+                  <Button onClick={handleTemplateSave} disabled={updateTemplateMutation.isPending} className="flex-1 md:flex-none bg-brand-accent text-white hover:bg-brand-accent-hover h-10 px-8 rounded-xl shadow-lg shadow-brand-accent/20">
                     {updateTemplateMutation.isPending ? <Loader2 size={16} className="animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
                     Save Template
                   </Button>
@@ -386,18 +397,18 @@ export const PlatformSettings = () => {
               <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
                 {/* Left: Selection & Info */}
                 <div className="xl:col-span-3 space-y-6">
-                  <Card className="bg-admin-surface border-admin-border rounded-2xl overflow-hidden shadow-sm">
-                    <CardHeader className="bg-admin-bg/50 border-b border-admin-border p-4">
-                      <div className="flex items-center gap-2 text-zeronix-blue">
+                  <Card className="bg-brand-white border-brand-border rounded-2xl overflow-hidden shadow-sm">
+                    <CardHeader className="bg-brand-bg/50 border-b border-brand-border p-4">
+                      <div className="flex items-center gap-2 text-brand-accent">
                         <Layout size={16} />
                         <CardTitle className="text-[11px] uppercase tracking-widest font-bold">Select Document</CardTitle>
                       </div>
                     </CardHeader>
                     <CardContent className="p-2">
                       <Tabs defaultValue="quote" className="w-full">
-                        <TabsList className="w-full grid grid-cols-2 bg-admin-bg/50 rounded-lg p-1 mb-2">
-                          <TabsTrigger value="quote" className="text-[11px] h-8 rounded-md data-[state=active]:bg-admin-surface data-[state=active]:shadow-sm">Quotes</TabsTrigger>
-                          <TabsTrigger value="invoice" className="text-[11px] h-8 rounded-md data-[state=active]:bg-admin-surface data-[state=active]:shadow-sm">Invoices</TabsTrigger>
+                        <TabsList className="w-full grid grid-cols-2 bg-brand-bg/50 rounded-lg p-1 mb-2">
+                          <TabsTrigger value="quote" className="text-[11px] h-8 rounded-md data-[state=active]:bg-brand-white data-[state=active]:shadow-sm">Quotes</TabsTrigger>
+                          <TabsTrigger value="invoice" className="text-[11px] h-8 rounded-md data-[state=active]:bg-brand-white data-[state=active]:shadow-sm">Invoices</TabsTrigger>
                         </TabsList>
                         <TabsContent value="quote" className="space-y-1">
                           {templates?.filter(t => t.type === 'quote').map(t => (
@@ -407,15 +418,15 @@ export const PlatformSettings = () => {
                               className={cn(
                                 "w-full text-left px-4 py-3 rounded-xl text-xs transition-all flex justify-between items-center group",
                                 selectedTemplate?.id === t.id 
-                                  ? "bg-zeronix-blue/10 text-zeronix-blue border border-zeronix-blue/20 font-bold" 
-                                  : "hover:bg-admin-bg text-admin-text-secondary border border-transparent"
+                                  ? "bg-brand-accent/10 text-brand-accent border border-brand-accent/20 font-bold" 
+                                  : "hover:bg-brand-bg text-brand-secondary border border-transparent"
                               )}
                             >
                               <div className="flex items-center gap-2">
-                                <FileText size={14} className={selectedTemplate?.id === t.id ? "text-zeronix-blue" : "text-admin-text-muted"} />
+                                <FileText size={14} className={selectedTemplate?.id === t.id ? "text-brand-accent" : "text-brand-subtle"} />
                                 {t.name}
                               </div>
-                              {t.is_default && <span className="text-[8px] bg-zeronix-blue text-white px-1.5 py-0.5 rounded-full font-bold">DEF</span>}
+                              {t.is_default && <span className="text-[8px] bg-brand-accent text-white px-1.5 py-0.5 rounded-full font-bold">DEF</span>}
                             </button>
                           ))}
                         </TabsContent>
@@ -427,15 +438,15 @@ export const PlatformSettings = () => {
                               className={cn(
                                 "w-full text-left px-4 py-3 rounded-xl text-xs transition-all flex justify-between items-center group",
                                 selectedTemplate?.id === t.id 
-                                  ? "bg-zeronix-blue/10 text-zeronix-blue border border-zeronix-blue/20 font-bold" 
-                                  : "hover:bg-admin-bg text-admin-text-secondary border border-transparent"
+                                  ? "bg-brand-accent/10 text-brand-accent border border-brand-accent/20 font-bold" 
+                                  : "hover:bg-brand-bg text-brand-secondary border border-transparent"
                               )}
                             >
                               <div className="flex items-center gap-2">
-                                <Receipt size={14} className={selectedTemplate?.id === t.id ? "text-zeronix-blue" : "text-admin-text-muted"} />
+                                <Receipt size={14} className={selectedTemplate?.id === t.id ? "text-brand-accent" : "text-brand-subtle"} />
                                 {t.name}
                               </div>
-                              {t.is_default && <span className="text-[8px] bg-zeronix-blue text-white px-1.5 py-0.5 rounded-full font-bold">DEF</span>}
+                              {t.is_default && <span className="text-[8px] bg-brand-accent text-white px-1.5 py-0.5 rounded-full font-bold">DEF</span>}
                             </button>
                           ))}
                         </TabsContent>
@@ -443,9 +454,9 @@ export const PlatformSettings = () => {
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-admin-surface border-admin-border rounded-2xl overflow-hidden shadow-sm">
-                    <CardHeader className="bg-admin-bg/50 border-b border-admin-border p-4">
-                      <div className="flex items-center gap-2 text-zeronix-blue">
+                  <Card className="bg-brand-white border-brand-border rounded-2xl overflow-hidden shadow-sm">
+                    <CardHeader className="bg-brand-bg/50 border-b border-brand-border p-4">
+                      <div className="flex items-center gap-2 text-brand-accent">
                         <Info size={16} />
                         <CardTitle className="text-[11px] uppercase tracking-widest font-bold">Variables</CardTitle>
                       </div>
@@ -453,9 +464,9 @@ export const PlatformSettings = () => {
                     <CardContent className="p-4">
                       <div className="grid grid-cols-1 gap-2">
                         {PLACEHOLDERS.filter(p => p.type === 'both' || p.type === selectedTemplate?.type).map(p => (
-                          <div key={p.key} className="flex items-center justify-between group p-2 rounded-lg hover:bg-admin-bg transition-colors cursor-help">
-                            <span className="text-[10px] text-admin-text-muted font-medium">{p.label}</span>
-                            <code className="text-[10px] text-zeronix-blue font-mono bg-zeronix-blue/5 px-1.5 py-0.5 rounded border border-zeronix-blue/10">{p.key}</code>
+                          <div key={p.key} className="flex items-center justify-between group p-2 rounded-lg hover:bg-brand-bg transition-colors cursor-help">
+                            <span className="text-[10px] text-brand-subtle font-medium">{p.label}</span>
+                            <code className="text-[10px] text-brand-accent font-mono bg-brand-accent/5 px-1.5 py-0.5 rounded border border-brand-accent/10">{p.key}</code>
                           </div>
                         ))}
                       </div>
@@ -467,24 +478,24 @@ export const PlatformSettings = () => {
                 <div className="xl:col-span-9 space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Basic Info */}
-                    <Card className="md:col-span-1 bg-admin-surface border-admin-border rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+                    <Card className="md:col-span-1 bg-brand-white border-brand-border rounded-2xl p-6 shadow-sm flex flex-col gap-4">
                       <div className="space-y-2">
-                        <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-wider">Format Name</Label>
+                        <Label className="text-[10px] uppercase font-bold text-brand-subtle tracking-wider">Format Name</Label>
                         <Input 
                           value={templateForm.name || ''} 
                           onChange={e => setTemplateForm({...templateForm, name: e.target.value})} 
-                          className="bg-admin-bg border-admin-border h-10 font-medium" 
+                          className="bg-brand-bg border-brand-border h-10 font-medium" 
                         />
                       </div>
-                      <div className="flex items-center justify-between p-4 bg-admin-bg/50 rounded-xl border border-admin-border mt-2">
+                      <div className="flex items-center justify-between p-4 bg-brand-bg/50 rounded-xl border border-brand-border mt-2">
                         <div className="space-y-0.5">
                           <Label htmlFor="def-toggle" className="text-xs font-bold cursor-pointer">Default Template</Label>
-                          <p className="text-[10px] text-admin-text-muted">Use this as the primary design</p>
+                          <p className="text-[10px] text-brand-subtle">Use this as the primary design</p>
                         </div>
                         <input 
                           type="checkbox" 
                           id="def-toggle"
-                          className="w-4 h-4 rounded border-admin-border text-zeronix-blue focus:ring-zeronix-blue"
+                          className="w-4 h-4 rounded border-brand-border text-brand-accent focus:ring-brand-accent"
                           checked={templateForm.is_default || false} 
                           onChange={e => setTemplateForm({...templateForm, is_default: e.target.checked})} 
                         />
@@ -492,26 +503,26 @@ export const PlatformSettings = () => {
                     </Card>
 
                     {/* Email Config */}
-                    <Card className="md:col-span-2 bg-admin-surface border-admin-border rounded-2xl p-6 shadow-sm space-y-4">
+                    <Card className="md:col-span-2 bg-brand-white border-brand-border rounded-2xl p-6 shadow-sm space-y-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <Mail size={16} className="text-zeronix-blue" />
+                        <Mail size={16} className="text-brand-accent" />
                         <h4 className="text-sm font-bold">Email Notification Settings</h4>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-wider">Email Subject Line</Label>
+                          <Label className="text-[10px] uppercase font-bold text-brand-subtle tracking-wider">Email Subject Line</Label>
                           <Input 
                             value={templateForm.subject || ''} 
                             onChange={e => setTemplateForm({...templateForm, subject: e.target.value})} 
-                            className="bg-admin-bg border-admin-border h-10 text-xs" 
+                            className="bg-brand-bg border-brand-border h-10 text-xs" 
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-wider">Greeting & Message</Label>
+                          <Label className="text-[10px] uppercase font-bold text-brand-subtle tracking-wider">Greeting & Message</Label>
                           <Textarea 
                             value={templateForm.email_body || ''} 
                             onChange={e => setTemplateForm({...templateForm, email_body: e.target.value})} 
-                            className="bg-admin-bg border-admin-border min-h-[80px] text-xs resize-none" 
+                            className="bg-brand-bg border-brand-border min-h-[80px] text-xs resize-none" 
                           />
                         </div>
                       </div>
@@ -519,7 +530,7 @@ export const PlatformSettings = () => {
                   </div>
 
                   {/* HTML Editor */}
-                  <Card className="bg-[#0d1117] border border-admin-border rounded-2xl overflow-hidden shadow-2xl">
+                  <Card className="bg-[#0d1117] border border-brand-border rounded-2xl overflow-hidden shadow-2xl">
                     <div className="bg-[#161b22] border-b border-[#30363d] px-6 py-4 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="flex gap-1.5">
@@ -558,24 +569,24 @@ export const PlatformSettings = () => {
 
           {/* PROFILE TAB */}
           {activeTab === 'profile' && (
-            <Card className="bg-admin-surface border-admin-border rounded-2xl p-8 text-center">
-              <div className="mx-auto w-24 h-24 rounded-full bg-zeronix-blue/10 flex items-center justify-center mb-6">
-                <User size={48} className="text-zeronix-blue" />
+            <Card className="bg-brand-white border-brand-border rounded-2xl p-8 text-center">
+              <div className="mx-auto w-24 h-24 rounded-full bg-brand-accent/10 flex items-center justify-center mb-6">
+                <User size={48} className="text-brand-accent" />
               </div>
-              <h3 className="text-xl font-bold text-admin-text-primary">{adminUser?.name}</h3>
-              <p className="text-admin-text-muted mb-6">{adminUser?.email}</p>
+              <h3 className="text-xl font-bold text-brand-primary">{adminUser?.name}</h3>
+              <p className="text-brand-subtle mb-6">{adminUser?.email}</p>
               <div className="max-w-xs mx-auto space-y-4 text-left">
                 <div>
-                  <Label className="text-[10px] uppercase text-admin-text-muted">Role</Label>
+                  <Label className="text-[10px] uppercase text-brand-subtle">Role</Label>
                   <p className="text-sm font-medium capitalize">{adminUser?.role}</p>
                 </div>
                 <div>
-                  <Label className="text-[10px] uppercase text-admin-text-muted">Member Since</Label>
+                  <Label className="text-[10px] uppercase text-brand-subtle">Member Since</Label>
                   <p className="text-sm font-medium">{adminUser?.created_at ? new Date(adminUser.created_at).toLocaleDateString() : '—'}</p>
                 </div>
               </div>
-              <Separator className="my-8 bg-admin-border" />
-              <p className="text-xs text-admin-text-muted italic">Profile editing is currently managed by System Administrators.</p>
+              <Separator className="my-8 bg-brand-border" />
+              <p className="text-xs text-brand-subtle italic">Profile editing is currently managed by System Administrators.</p>
             </Card>
           )}
 

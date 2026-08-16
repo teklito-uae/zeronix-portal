@@ -22,6 +22,7 @@ import {
 import { Spinner } from '@/components/shared/Spinner';
 import { useCreateSbVendor, useSbCategories, useUpdateSbVendor } from '@/hooks/useSupplierBroadcast';
 import type { SbVendor } from '@/types';
+import { isAxiosError } from 'axios';
 
 const NONE = 'none';
 
@@ -53,6 +54,7 @@ export const VendorFormDialog = ({ open, onOpenChange, vendor }: VendorFormDialo
   useEffect(() => {
     if (!open) return;
     if (vendor) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: this persistent dialog instance resets/seeds its form each time it opens or a different vendor is passed in to edit; no mount/unmount to hook into instead.
       setForm({
         name: vendor.name,
         company_name: vendor.company_name || '',
@@ -82,11 +84,12 @@ export const VendorFormDialog = ({ open, onOpenChange, vendor }: VendorFormDialo
       is_active: form.is_active,
     };
 
-    const onError = (err: any) => {
+    const onError = (err: unknown) => {
       // Backend returns 422 with a duplicate-phone validation error for
       // unique(company_id, phone_e164) violations — surface it inline
       // rather than only as a toast.
-      if (err?.response?.status === 422) {
+      type ValidationErrorBody = { message?: string; errors?: Record<string, string[]> };
+      if (isAxiosError<ValidationErrorBody>(err) && err.response?.status === 422) {
         const message =
           err.response?.data?.errors?.phone_raw?.[0] ||
           err.response?.data?.errors?.phone_e164?.[0] ||

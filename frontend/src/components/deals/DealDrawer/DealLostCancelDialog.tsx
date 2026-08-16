@@ -18,17 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { DealLostReason } from '@/types';
-
-export const LOST_REASONS: { id: DealLostReason; label: string }[] = [
-  { id: 'price', label: 'Price' },
-  { id: 'competitor', label: 'Lost to Competitor' },
-  { id: 'no_budget', label: 'No Budget' },
-  { id: 'requirements_changed', label: 'Requirements Changed' },
-  { id: 'customer_cancelled', label: 'Customer Cancelled' },
-  { id: 'no_response', label: 'No Response' },
-  { id: 'duplicate', label: 'Duplicate' },
-  { id: 'other', label: 'Other' },
-];
+import { LOST_REASONS } from './DealLostCancelDialog.config';
 
 export interface DealLostCancelReason {
   lost_reason?: DealLostReason;
@@ -64,6 +54,7 @@ export const DealLostCancelDialog = ({
 
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: resets the form fields each time this persistent dialog instance is reopened; the component doesn't unmount between opens, so there's no other lifecycle hook to reset on.
       setLostReason('');
       setLostNotes('');
       setCancellationReason('');

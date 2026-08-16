@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ProductSearch } from '@/components/shared/ProductSearch';
 import { computeLineTotal } from '@/lib/lineItemMath';
-import { Plus, Library, Package, MoreVertical, Trash2 } from 'lucide-react';
+import { Library, Package, MoreVertical, Trash2 } from 'lucide-react';
 import type { Product } from '@/types';
 import { emptyQIALine, type QIALineItem } from './types';
 

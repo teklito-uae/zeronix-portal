@@ -7,6 +7,7 @@ import { Plus, Check } from 'lucide-react';
 import { SharedTagBadge } from './SharedTagBadge';
 import { cn } from '@/lib/utils';
 import api from '@/lib/axios';
+import type { Tag } from '@/types';
 
 interface TagsManagerProps {
   selectedTags: string[];
@@ -36,12 +37,12 @@ export const TagsManager = ({ selectedTags, onAddTag, onRemoveTag }: TagsManager
 
   const { data: dbTags = [] } = useQuery({
     queryKey: ['tags'],
-    queryFn: async () => (await api.get('/admin/tags')).data,
+    queryFn: async () => (await api.get<Tag[]>('/admin/tags')).data,
   });
 
   const createTagMutation = useMutation({
     mutationFn: async ({ name, color }: { name: string; color: string }) => {
-      return (await api.post('/admin/tags', { name, color })).data;
+      return (await api.post<Tag>('/admin/tags', { name, color })).data;
     },
     onSuccess: (newTag) => {
       queryClient.invalidateQueries({ queryKey: ['tags'] });
@@ -51,8 +52,8 @@ export const TagsManager = ({ selectedTags, onAddTag, onRemoveTag }: TagsManager
     },
   });
 
-  const availableTags = dbTags.filter((t: any) => !selectedTags.includes(t.name) && t.name.toLowerCase().includes(search.toLowerCase()));
-  const isNewTag = search.trim() !== '' && !dbTags.some((t: any) => t.name.toLowerCase() === search.toLowerCase());
+  const availableTags = dbTags.filter((t) => !selectedTags.includes(t.name) && t.name.toLowerCase().includes(search.toLowerCase()));
+  const isNewTag = search.trim() !== '' && !dbTags.some((t) => t.name.toLowerCase() === search.toLowerCase());
 
   const handleCreateAndAdd = () => {
     if (!search.trim()) return;
@@ -62,7 +63,7 @@ export const TagsManager = ({ selectedTags, onAddTag, onRemoveTag }: TagsManager
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {selectedTags.map((tagName) => {
-        const dbTag = dbTags.find((t: any) => t.name === tagName);
+        const dbTag = dbTags.find((t) => t.name === tagName);
         return (
           <SharedTagBadge 
             key={tagName} 
@@ -96,7 +97,7 @@ export const TagsManager = ({ selectedTags, onAddTag, onRemoveTag }: TagsManager
             {availableTags.length === 0 && !isNewTag && (
               <p className="text-[11px] text-brand-subtle text-center py-2">No tags found.</p>
             )}
-            {availableTags.map((t: any) => (
+            {availableTags.map((t) => (
               <button
                 key={t.id}
                 onClick={() => {

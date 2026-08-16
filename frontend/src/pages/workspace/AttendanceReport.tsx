@@ -4,8 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import type { User } from '@/types';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
-import { PhoneFlag } from '@/components/shared/PhoneFlag';
-import { Clock, Calendar, Search, User as UserIcon, RefreshCw, Download, X, Activity } from 'lucide-react';
+import { Clock, Calendar, User as UserIcon, RefreshCw, Download, X, Activity } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -18,13 +17,13 @@ function StatBox({ label, count, vsYesterday }: { label: string, count: number, 
 
   return (
     <div className="flex flex-col">
-      <span className="text-[11px] font-medium text-admin-text-secondary whitespace-nowrap">{label}</span>
-      <span className="text-[20px] font-bold text-admin-text-primary my-0.5 leading-tight">{count}</span>
+      <span className="text-[11px] font-medium text-brand-secondary whitespace-nowrap">{label}</span>
+      <span className="text-[20px] font-bold text-brand-primary my-0.5 leading-tight">{count}</span>
       <div className="flex items-center gap-1 text-[10px] font-semibold">
         {isPositive && <span className="text-emerald-500">+{vsYesterday}</span>}
         {isNegative && <span className="text-amber-500">{vsYesterday}</span>}
-        {vsYesterday === 0 && <span className="text-admin-text-muted">0</span>}
-        <span className="text-admin-text-muted font-medium">vs yesterday</span>
+        {vsYesterday === 0 && <span className="text-brand-subtle">0</span>}
+        <span className="text-brand-subtle font-medium">vs yesterday</span>
       </div>
     </div>
   );
@@ -39,7 +38,7 @@ function AttendanceStats() {
     }
   });
 
-  if (isLoading) return <div className="h-24 bg-admin-surface rounded-xl border border-admin-border animate-pulse mb-4" />;
+  if (isLoading) return <div className="h-24 bg-brand-white rounded-xl border border-brand-border animate-pulse mb-4" />;
   if (isError || !data || !data.today) return <div className="h-24 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-xl border border-red-100 dark:border-red-900/50 flex items-center justify-center font-bold mb-4 text-sm">Failed to load statistics</div>;
 
   const today = data.today;
@@ -50,15 +49,15 @@ function AttendanceStats() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
       {/* Present Summary */}
-      <div className="bg-admin-surface border border-admin-border rounded-xl p-4 flex flex-col justify-between shadow-sm">
+      <div className="bg-brand-white border border-brand-border rounded-xl p-4 flex flex-col justify-between shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Calendar size={14} className="text-brand-primary" />
-            <h3 className="text-[13px] font-bold text-admin-text-primary">Present Summary</h3>
+            <h3 className="text-[13px] font-bold text-brand-primary">Present Summary</h3>
           </div>
-          <button onClick={() => refetch()} className="text-admin-text-muted hover:text-admin-text-primary transition-colors"><RefreshCw size={14} className={isRefetching ? "animate-spin text-brand-primary" : ""} /></button>
+          <button onClick={() => refetch()} className="text-brand-subtle hover:text-brand-primary transition-colors"><RefreshCw size={14} className={isRefetching ? "animate-spin text-brand-primary" : ""} /></button>
         </div>
-        <div className="flex justify-between items-end divide-x divide-admin-border/50">
+        <div className="flex justify-between items-end divide-x divide-brand-border/50">
           <div className="pr-2 md:pr-4 flex-1"><StatBox label="On time" count={today.on_time} vsYesterday={getDiff('on_time')} /></div>
           <div className="px-2 md:px-4 flex-1"><StatBox label="Late clock-in" count={today.late} vsYesterday={getDiff('late')} /></div>
           <div className="pl-2 md:pl-4 flex-1"><StatBox label="Early clock-in" count={today.early} vsYesterday={getDiff('early')} /></div>
@@ -66,15 +65,15 @@ function AttendanceStats() {
       </div>
 
       {/* Not Present Summary */}
-      <div className="bg-admin-surface border border-admin-border rounded-xl p-4 flex flex-col justify-between shadow-sm">
+      <div className="bg-brand-white border border-brand-border rounded-xl p-4 flex flex-col justify-between shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Calendar size={14} className="text-brand-primary" />
-            <h3 className="text-[13px] font-bold text-admin-text-primary">Not Present Summary</h3>
+            <h3 className="text-[13px] font-bold text-brand-primary">Not Present Summary</h3>
           </div>
-          <button onClick={() => refetch()} className="text-admin-text-muted hover:text-admin-text-primary transition-colors"><RefreshCw size={14} className={isRefetching ? "animate-spin text-brand-primary" : ""} /></button>
+          <button onClick={() => refetch()} className="text-brand-subtle hover:text-brand-primary transition-colors"><RefreshCw size={14} className={isRefetching ? "animate-spin text-brand-primary" : ""} /></button>
         </div>
-        <div className="flex justify-between items-end divide-x divide-admin-border/50">
+        <div className="flex justify-between items-end divide-x divide-brand-border/50">
           <div className="pr-2 flex-1"><StatBox label="Absent" count={today.absent} vsYesterday={getDiff('absent')} /></div>
           <div className="px-2 flex-1"><StatBox label="No clock-in" count={today.no_clock_in} vsYesterday={getDiff('no_clock_in')} /></div>
           <div className="px-2 flex-1"><StatBox label="No clock-out" count={today.no_clock_out} vsYesterday={getDiff('no_clock_out')} /></div>
@@ -83,15 +82,15 @@ function AttendanceStats() {
       </div>
 
       {/* Away Summary */}
-      <div className="bg-admin-surface border border-admin-border rounded-xl p-4 flex flex-col justify-between shadow-sm">
+      <div className="bg-brand-white border border-brand-border rounded-xl p-4 flex flex-col justify-between shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Calendar size={14} className="text-brand-primary" />
-            <h3 className="text-[13px] font-bold text-admin-text-primary">Away Summary</h3>
+            <h3 className="text-[13px] font-bold text-brand-primary">Away Summary</h3>
           </div>
-          <button onClick={() => refetch()} className="text-admin-text-muted hover:text-admin-text-primary transition-colors"><RefreshCw size={14} className={isRefetching ? "animate-spin text-brand-primary" : ""} /></button>
+          <button onClick={() => refetch()} className="text-brand-subtle hover:text-brand-primary transition-colors"><RefreshCw size={14} className={isRefetching ? "animate-spin text-brand-primary" : ""} /></button>
         </div>
-        <div className="flex justify-between items-end divide-x divide-admin-border/50">
+        <div className="flex justify-between items-end divide-x divide-brand-border/50">
           <div className="pr-2 md:pr-4 flex-1"><StatBox label="Day off" count={today.day_off} vsYesterday={getDiff('day_off')} /></div>
           <div className="pl-2 md:pl-4 flex-1"><StatBox label="Time off" count={today.time_off} vsYesterday={getDiff('time_off')} /></div>
         </div>
@@ -183,10 +182,10 @@ export const AttendanceReport = () => {
             colors={avatarColorsFor(row.original.user)}
           />
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-admin-text-primary">
+            <p className="text-sm font-semibold text-brand-primary">
               {row.original.user?.name}
             </p>
-            <p className="text-xs text-admin-text-secondary">
+            <p className="text-xs text-brand-secondary">
               {row.original.user?.email}
             </p>
           </div>
@@ -200,7 +199,7 @@ export const AttendanceReport = () => {
         const u = row.original.user;
         if (!u) return '—';
         return (
-          <span className="text-xs font-medium text-admin-text-secondary">
+          <span className="text-xs font-medium text-brand-secondary">
             {u.shift_start ? u.shift_start.slice(0, 5) : '09:00'} - {u.shift_end ? u.shift_end.slice(0, 5) : '18:00'}
           </span>
         );
@@ -210,8 +209,8 @@ export const AttendanceReport = () => {
       accessorKey: 'clock_in',
       header: 'Clock In',
       cell: ({ row }) => (
-        <div className="flex items-center gap-1.5 text-xs text-admin-text-secondary">
-          <Calendar size={12} className="text-admin-text-muted" />
+        <div className="flex items-center gap-1.5 text-xs text-brand-secondary">
+          <Calendar size={12} className="text-brand-subtle" />
           {formatDateTime(row.original.clock_in)}
         </div>
       ),
@@ -226,8 +225,8 @@ export const AttendanceReport = () => {
             ● ON DUTY
           </span>
         ) : (
-          <div className="flex items-center gap-1.5 text-xs text-admin-text-secondary">
-            <Calendar size={12} className="text-admin-text-muted" />
+          <div className="flex items-center gap-1.5 text-xs text-brand-secondary">
+            <Calendar size={12} className="text-brand-subtle" />
             {formatDateTime(row.original.clock_out)}
           </div>
         );
@@ -263,15 +262,15 @@ export const AttendanceReport = () => {
         return (
           <div className="flex flex-col gap-1.5 w-32">
             <div className="flex items-center justify-between">
-              <span className={`text-[11px] font-bold ${active ? 'text-emerald-600 dark:text-emerald-400 animate-pulse' : 'text-admin-text-primary'
+              <span className={`text-[11px] font-bold ${active ? 'text-emerald-600 dark:text-emerald-400 animate-pulse' : 'text-brand-primary'
                 }`}>
                 {formatDurationStr(dur)}
               </span>
-              <span className="text-[9px] font-bold text-admin-text-muted">
+              <span className="text-[9px] font-bold text-brand-subtle">
                 {Math.round(progress)}%
               </span>
             </div>
-            <div className="h-1.5 w-full bg-admin-bg rounded-full overflow-hidden">
+            <div className="h-1.5 w-full bg-brand-bg rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-500 ${active ? 'bg-emerald-500' :
                     progress >= 100 ? 'bg-brand-primary' : 'bg-brand-accent'
@@ -288,13 +287,13 @@ export const AttendanceReport = () => {
       header: 'Checkout Reason',
       cell: ({ row }) => {
         const reason = row.original.clock_out_reason;
-        if (!row.original.clock_out) return <span className="text-xs text-admin-text-muted italic">Session active</span>;
-        if (!reason) return <span className="text-xs text-admin-text-muted">Standard</span>;
+        if (!row.original.clock_out) return <span className="text-xs text-brand-subtle italic">Session active</span>;
+        if (!reason) return <span className="text-xs text-brand-subtle">Standard</span>;
 
         // Highlight custom reasons
         const isSpecial = !['Shift ended', 'Standard'].includes(reason);
         return (
-          <span className={`text-xs font-medium px-2 py-0.5 rounded ${isSpecial ? 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400' : 'text-admin-text-secondary'
+          <span className={`text-xs font-medium px-2 py-0.5 rounded ${isSpecial ? 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400' : 'text-brand-secondary'
             }`}>
             {reason}
           </span>

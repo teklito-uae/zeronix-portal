@@ -13,7 +13,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/axios';
-import type { Product } from '@/types';
+import type { Product, Brand, Category, PaginatedResponse, SupplierProduct } from '@/types';
 import { Plus, Package, AlertTriangle } from 'lucide-react';
 import { Spinner } from '@/components/shared/Spinner';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
@@ -45,13 +45,13 @@ export const Products = () => {
   // Fetch static data for filters/forms
   const { data: brandsData } = useQuery({
     queryKey: ['brands'],
-    queryFn: async () => (await api.get(`/admin/brands`)).data,
+    queryFn: async () => (await api.get<PaginatedResponse<Brand>>(`/admin/brands`)).data,
   });
   const brands = brandsData?.data || [];
 
   const { data: categoriesData } = useQuery({
     queryKey: ['categories'],
-    queryFn: async () => (await api.get(`/admin/categories`)).data,
+    queryFn: async () => (await api.get<PaginatedResponse<Category>>(`/admin/categories`)).data,
   });
   const categories = categoriesData?.data || [];
 
@@ -75,7 +75,7 @@ export const Products = () => {
             type="checkbox"
             className="w-[18px] h-[18px] rounded border-brand-border/50 bg-brand-surface text-brand-accent focus:ring-0 cursor-pointer shadow-sm"
             checked={selectedIds.length > 0}
-            onChange={(_e) => {}}
+            onChange={() => {}}
           />
         </div>
       ),
@@ -113,7 +113,7 @@ export const Products = () => {
       header: 'Category',
       cell: ({ row }) => (
         <Badge variant="secondary" className="bg-brand-surface border-brand-border/50 text-brand-primary text-[10px] font-semibold px-2 py-0.5 uppercase tracking-wider">
-          {(row.original as any).category?.name || 'Uncategorized'}
+          {row.original.category?.name || 'Uncategorized'}
         </Badge>
       ),
     },
@@ -134,7 +134,7 @@ export const Products = () => {
         if (suppliers.length === 0) return <span className="text-[11px] text-brand-subtle italic">None</span>;
         return (
           <div className="flex flex-wrap gap-1 max-w-[150px]">
-            {suppliers.map((sp: any, i: number) => (
+            {suppliers.map((sp: SupplierProduct, i: number) => (
               <Badge key={i} variant="outline" className="bg-brand-surface border-brand-border/50 text-[10px] px-1.5 py-0 font-medium text-brand-secondary">
                 {sp.supplier?.name}
               </Badge>
@@ -203,13 +203,13 @@ export const Products = () => {
             name: 'brand_id',
             label: 'Brand',
             placeholder: 'Filter by brand',
-            options: brands.map((b: any) => ({ label: b.name, value: String(b.id) }))
+            options: brands.map((b: Brand) => ({ label: b.name, value: String(b.id) }))
           },
           {
             name: 'category_id',
             label: 'Category',
             placeholder: 'Filter by category',
-            options: categories.map((c: any) => ({ label: c.name, value: String(c.id) }))
+            options: categories.map((c: Category) => ({ label: c.name, value: String(c.id) }))
           }
         ]}
         selectedIds={selectedIds}
@@ -263,7 +263,7 @@ export const Products = () => {
                 </SelectTrigger>
                 <SelectContent className="bg-brand-white border-brand-border/50 rounded-xl shadow-lg">
                   <SelectItem value="none">No Change</SelectItem>
-                  {brands.map((b: any) => <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>)}
+                  {brands.map((b: Brand) => <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -275,7 +275,7 @@ export const Products = () => {
                 </SelectTrigger>
                 <SelectContent className="bg-brand-white border-brand-border/50 rounded-xl shadow-lg">
                   <SelectItem value="none">No Change</SelectItem>
-                  {categories.map((c: any) => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
+                  {categories.map((c: Category) => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -285,7 +285,7 @@ export const Products = () => {
               <Button variant="ghost" onClick={() => setBulkUpdateOpen(false)} className="rounded-lg text-[13px] font-medium">Cancel</Button>
               <Button
                 onClick={() => {
-                  const data: any = { ids: selectedIds };
+                  const data: { ids: number[]; brand_id?: number; category_id?: number } = { ids: selectedIds };
                   if (bulkUpdateForm.brand_id && bulkUpdateForm.brand_id !== 'none') data.brand_id = Number(bulkUpdateForm.brand_id);
                   if (bulkUpdateForm.category_id && bulkUpdateForm.category_id !== 'none') data.category_id = Number(bulkUpdateForm.category_id);
                   bulkUpdate.mutate(data);

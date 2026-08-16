@@ -3,13 +3,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Search, Loader2, Building2, CheckCircle, XCircle, FileText, Ban } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/useAuthStore';
+import type { ApiError } from '@/hooks/useApi';
 
 type Company = {
   id: number;
@@ -54,7 +55,7 @@ export const TenantManagement = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-companies'] });
       setIsDialogOpen(false);
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Approval failed')
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Approval failed')
   });
 
   const rejectMutation = useMutation({
@@ -65,7 +66,7 @@ export const TenantManagement = () => {
       setIsDialogOpen(false);
       setRejectReason('');
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Rejection failed')
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Rejection failed')
   });
 
   const suspendMutation = useMutation({
@@ -75,7 +76,7 @@ export const TenantManagement = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-companies'] });
       setIsDialogOpen(false);
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Suspension failed')
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Suspension failed')
   });
 
   const filteredCompanies = companies.filter(c => 

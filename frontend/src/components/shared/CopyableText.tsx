@@ -39,19 +39,19 @@ export const CopyableText = ({
     ? value.substring(0, limit) + '...' 
     : value;
 
-  if (!value) return <span className="text-admin-text-muted">—</span>;
+  if (!value) return <span className="text-brand-subtle">—</span>;
 
   return (
     <div className={cn("flex items-center gap-2 group min-w-[200px] max-w-[600px] py-1", className)}>
       <Tooltip delayDuration={300}>
         <TooltipTrigger asChild>
-          <p className="font-medium text-admin-text-primary leading-tight flex-1 cursor-help">
+          <p className="font-medium text-brand-primary leading-tight flex-1 cursor-help">
             {displayName}
           </p>
         </TooltipTrigger>
         <TooltipContent 
           side={tooltipSide} 
-          className="max-w-[400px] bg-admin-surface border-admin-border text-admin-text-primary p-3 shadow-xl z-50 rounded-xl"
+          className="max-w-[400px] bg-brand-white border-brand-border text-brand-primary p-3 shadow-xl z-50 rounded-xl"
         >
           <p className="text-sm leading-relaxed">{value}</p>
         </TooltipContent>
@@ -62,8 +62,8 @@ export const CopyableText = ({
         className={cn(
           "p-1.5 rounded-lg transition-all flex-shrink-0",
           copied
-            ? "text-zeronix-green bg-zeronix-green/10 opacity-100"
-            : "text-admin-text-muted hover:text-zeronix-blue hover:bg-admin-bg opacity-0 group-hover:opacity-100"
+            ? "text-brand-success bg-brand-success/10 opacity-100"
+            : "text-brand-subtle hover:text-brand-accent hover:bg-brand-bg opacity-0 group-hover:opacity-100"
         )}
         title="Copy to clipboard"
       >

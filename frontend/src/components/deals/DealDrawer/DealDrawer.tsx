@@ -46,6 +46,7 @@ export const DealDrawer = () => {
   const [deal, setDeal] = useState<Deal | undefined>(undefined);
   useEffect(() => {
     if (fetchedDeal) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: freezes the last-loaded deal against `selectedDealId` clearing to avoid a loading-skeleton flash while the sheet slides shut (see comment above); this is state derived from history, not purely from current props, so it can't be computed inline or via useMemo.
       setDeal(fetchedDeal);
     } else if (selectedDealId && deal && deal.id !== selectedDealId) {
       setDeal(undefined);

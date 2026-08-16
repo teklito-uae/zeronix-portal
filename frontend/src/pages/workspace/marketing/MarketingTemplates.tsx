@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import type { ColumnDef } from '@tanstack/react-table';
 import { MarketingLayout } from '@/components/marketing/MarketingLayout';
 import { useResourceList } from '@/hooks/useApi';
 import { PageLoader } from '@/components/shared/PageLoader';
@@ -20,7 +19,8 @@ import {
 import { Plus, Search, MoreHorizontal, Pencil, Copy, Trash2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/axios';
-import type { MarketingTemplate } from '@/types';
+import type { AxiosError } from 'axios';
+import type { MarketingTemplate, PaginatedResponse } from '@/types';
 
 const CATEGORIES = [
   { value: 'all', label: 'All' },
@@ -41,7 +41,7 @@ export const MarketingTemplates = () => {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
 
-  const { data, isLoading } = useResourceList<MarketingTemplate>('marketing/templates', {
+  const { data, isLoading } = useResourceList<PaginatedResponse<MarketingTemplate>>('marketing/templates', {
     search: search || undefined,
     category: category === 'all' ? undefined : category,
     page,
@@ -54,12 +54,13 @@ export const MarketingTemplates = () => {
 
   const duplicate = async (template: MarketingTemplate) => {
     try {
-      const res = await api.post(`/admin/marketing/templates/${template.id}/duplicate`);
+      const res = await api.post<MarketingTemplate>(`/admin/marketing/templates/${template.id}/duplicate`);
       queryClient.invalidateQueries({ queryKey: ['marketing/templates'] });
       toast.success('Template duplicated');
       navigate(`/workspace/marketing/templates/${res.data.id}/edit`);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to duplicate template');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Failed to duplicate template');
     }
   };
 
@@ -69,8 +70,9 @@ export const MarketingTemplates = () => {
       await api.delete(`/admin/marketing/templates/${deleteTarget.id}`);
       queryClient.invalidateQueries({ queryKey: ['marketing/templates'] });
       toast.success('Template deleted');
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to delete template');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Failed to delete template');
     } finally {
       setDeleteTarget(null);
     }

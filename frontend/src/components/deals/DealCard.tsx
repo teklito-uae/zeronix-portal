@@ -1,7 +1,6 @@
 import { memo, useMemo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { motion } from 'framer-motion';
 import { format, formatDistanceToNow } from 'date-fns';
 import Avatar from 'boring-avatars';
 import { Building2, Calendar, Clock, Eye, MoreHorizontal, Pencil, FileText, ChevronRight } from 'lucide-react';
@@ -47,8 +46,17 @@ export const DealCard = memo(function DealCard({ deal, onOpen, onEdit, onConvert
     data: sortableData,
   });
 
+  // Plain CSS transform/transition here (not framer-motion) — dnd-kit
+  // updates `transform` on every pointer-move frame during a drag, and a
+  // motion component intercepting that same property fights the drag
+  // engine's own RAF loop, which is what caused the drag-time jank. The
+  // drag-scale is folded into this same transform string (rather than a
+  // Tailwind `scale-*` class) since an inline `transform` style overrides
+  // any class-based transform.
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: [CSS.Transform.toString(transform), isDragging ? 'scale(1.02)' : null]
+      .filter(Boolean)
+      .join(' '),
     transition,
   };
 
@@ -70,16 +78,14 @@ export const DealCard = memo(function DealCard({ deal, onOpen, onEdit, onConvert
   }, [deal.activities, deal.updated_at]);
 
   return (
-    <motion.div
+    <div
       ref={setNodeRef}
       style={style}
       {...attributes}
       {...listeners}
-      animate={{ scale: isDragging ? 1.02 : 1 }}
-      transition={{ duration: 0.12 }}
       className={cn(
         'group relative rounded-2xl border border-brand-border/50 bg-brand-white p-3.5 cursor-grab active:cursor-grabbing',
-        'shadow-sm hover:shadow-md transition-shadow',
+        'shadow-sm hover:shadow-md transition-[transform,box-shadow,opacity] duration-150',
         isDragging && 'opacity-60 shadow-lg'
       )}
       onClick={() => onOpen(deal.id)}
@@ -202,6 +208,6 @@ export const DealCard = memo(function DealCard({ deal, onOpen, onEdit, onConvert
           </DropdownMenu>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 });

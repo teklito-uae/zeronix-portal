@@ -8,7 +8,7 @@ import type {
   MoveDealPayload,
   PipelineStatsParams,
 } from '@/api/dealsApi';
-import { useResourceDetail } from './useApi';
+import { useResourceDetail, type ApiError } from './useApi';
 import type { Deal, DealStage } from '@/types';
 
 /**
@@ -99,7 +99,7 @@ export function useCreateDeal() {
       invalidate();
       toast.success('Deal created');
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to create deal'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to create deal'),
   });
 }
 
@@ -112,7 +112,7 @@ export function useUpdateDeal() {
       invalidate(vars.id);
       toast.success('Deal updated');
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to update deal'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to update deal'),
   });
 }
 
@@ -135,7 +135,7 @@ export function useMoveDeal() {
     onSuccess: (_data, vars) => {
       invalidate(vars.id);
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to move deal'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to move deal'),
   });
 }
 
@@ -147,7 +147,7 @@ export function useDeleteDeal() {
       invalidate();
       toast.success('Deal deleted');
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to delete deal'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to delete deal'),
   });
 }
 
@@ -160,7 +160,7 @@ export function useAssignDeal() {
       invalidate(vars.id);
       toast.success('Team updated');
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to update team'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to update team'),
   });
 }
 
@@ -173,7 +173,7 @@ export function useAddActivity() {
       invalidate(vars.id);
       toast.success('Activity logged');
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to log activity'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to log activity'),
   });
 }
 
@@ -186,7 +186,7 @@ export function useUploadAttachment() {
       invalidate(vars.id);
       toast.success('File uploaded');
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Upload failed'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Upload failed'),
   });
 }
 
@@ -199,7 +199,7 @@ export function useRemoveAttachment() {
       invalidate(vars.id);
       toast.success('File removed');
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to remove file'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to remove file'),
   });
 }
 
@@ -212,7 +212,7 @@ export function useAttachContact() {
       invalidate(vars.id);
       toast.success('Contact added');
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to add contact'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to add contact'),
   });
 }
 
@@ -225,7 +225,7 @@ export function useDetachContact() {
       invalidate(vars.id);
       toast.success('Contact removed');
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to remove contact'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to remove contact'),
   });
 }
 
@@ -236,7 +236,7 @@ export function useAttachTag() {
     onSuccess: (_data, vars) => {
       invalidate(vars.id);
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to add tag'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to add tag'),
   });
 }
 
@@ -247,6 +247,6 @@ export function useDetachTag() {
     onSuccess: (_data, vars) => {
       invalidate(vars.id);
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to remove tag'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to remove tag'),
   });
 }

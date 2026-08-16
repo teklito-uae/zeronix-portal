@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Receipt } from 'lucide-react';
+import type { AxiosError } from 'axios';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -106,8 +107,9 @@ export const SupplierPaymentModal = ({ isOpen, onClose, purchaseBill, supplierId
       queryClient.invalidateQueries({ queryKey: ['purchase-bills'] });
       queryClient.invalidateQueries({ queryKey: ['supplier-payment-receipts'] });
       onClose();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to record payment');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Failed to record payment');
     } finally {
       setLoading(false);
     }
@@ -191,7 +193,7 @@ export const SupplierPaymentModal = ({ isOpen, onClose, purchaseBill, supplierId
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs text-brand-secondary">Method</Label>
-                <Select value={formData.payment_method} onValueChange={(v: any) => setFormData({ ...formData, payment_method: v })}>
+                <Select value={formData.payment_method} onValueChange={(v: 'cash' | 'bank') => setFormData({ ...formData, payment_method: v })}>
                   <SelectTrigger className="h-9 bg-brand-bg border-brand-border rounded-md text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-brand-white border-brand-border">
                     <SelectItem value="bank">Bank Transfer</SelectItem>

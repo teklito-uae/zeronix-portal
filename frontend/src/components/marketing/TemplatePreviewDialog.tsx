@@ -20,6 +20,7 @@ export const TemplatePreviewDialog = ({ open, onOpenChange, subject, bodyHtml }:
 
   useEffect(() => {
     if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: kicks off an async server-side render (external API call) whenever the dialog opens or its inputs change; setLoading/setRendered here track that in-flight request, not derived render output.
     setLoading(true);
     api
       .post('/admin/marketing/templates/preview', { subject, body_html: bodyHtml })

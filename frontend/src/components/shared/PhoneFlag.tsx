@@ -17,7 +17,7 @@ export const PhoneFlag = ({ phone, showNumber = true, size = 'sm' }: PhoneFlagPr
 
   if (!phone) {
     return (
-      <span className={`inline-flex items-center gap-1 ${textCls} text-admin-text-muted italic`}>
+      <span className={`inline-flex items-center gap-1 ${textCls} text-brand-subtle italic`}>
         <Phone size={10} className="opacity-40" />
         No phone
       </span>
@@ -37,13 +37,13 @@ export const PhoneFlag = ({ phone, showNumber = true, size = 'sm' }: PhoneFlagPr
       ) : (
         <span
           title="Unknown country"
-          className="inline-flex items-center justify-center w-4 h-4 rounded-sm bg-admin-border text-[8px] font-bold text-admin-text-muted leading-none"
+          className="inline-flex items-center justify-center w-4 h-4 rounded-sm bg-brand-border text-[8px] font-bold text-brand-subtle leading-none"
         >
           ?
         </span>
       )}
       {showNumber && (
-        <span className="text-admin-text-secondary font-medium">{phone}</span>
+        <span className="text-brand-secondary font-medium">{phone}</span>
       )}
     </span>
   );

@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/shared/Spinner';
 import { toTitleCase } from '@/lib/utils';
+import type { ApiError } from '@/hooks/useApi';
 
 // Staff-only clock in/out widget, extracted from the former standalone
 // StaffDashboard so it can be embedded inside the merged Dashboard instead
@@ -41,13 +42,13 @@ export const ClockInHeader = () => {
   const clockInMutation = useMutation({
     mutationFn: async () => (await api.post(`/admin/attendance/clock-in`)).data,
     onSuccess: () => { toast.success('Clocked in successfully.'); refetchAttendance(); queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] }); },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to clock in.'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to clock in.'),
   });
 
   const clockOutMutation = useMutation({
     mutationFn: async (reason: string) => (await api.post(`/admin/attendance/clock-out`, { reason })).data,
     onSuccess: () => { toast.success('Clocked out successfully.'); refetchAttendance(); setIsClockOutOpen(false); setClockOutReason('Shift ended'); setCustomReason(''); queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] }); },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to clock out.'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to clock out.'),
   });
 
   const handleClockOutSubmit = () => {

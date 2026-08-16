@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { AxiosError } from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getBasePath } from '@/hooks/useBasePath';
@@ -12,7 +13,7 @@ import { PageLoader } from '@/components/shared/PageLoader';
 import { SEO } from '@/components/shared/SEO';
 import { Pagination } from '@/components/shared/Pagination';
 import api from '@/lib/axios';
-import type { Invoice } from '@/types';
+import type { Invoice, PaginatedResponse } from '@/types';
 import { Search, Building2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -54,7 +55,7 @@ export const InvoicesSplitView = () => {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const { data: resourceData, isLoading } = useResourceList<Invoice>('invoices', {
+  const { data: resourceData, isLoading } = useResourceList<PaginatedResponse<Invoice>>('invoices', {
     search: search || undefined,
     status: activeTab !== 'all' ? activeTab : undefined,
     page,
@@ -79,7 +80,7 @@ export const InvoicesSplitView = () => {
       toast.success('Invoice email sent');
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
     },
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to send email'),
+    onError: (e: AxiosError<{ message?: string }>) => toast.error(e.response?.data?.message || 'Failed to send email'),
   });
 
   const handleRowClick = (row: Invoice) => {

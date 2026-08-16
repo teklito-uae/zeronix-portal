@@ -25,7 +25,8 @@ import { computeDocTotals, normalizeLineItems } from '@/lib/lineItemMath';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
 import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 import api from '@/lib/axios';
-import type { PurchaseBill, QuoteAttachment } from '@/types';
+import type { AxiosError } from 'axios';
+import type { PurchaseBill, QuoteAttachment, SupplierPaymentReceipt } from '@/types';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Loader2,
@@ -121,17 +122,17 @@ export const PurchaseBillDetailView = ({ id, onDeleted }: PurchaseBillDetailView
         toast.success('Updated successfully.');
       }
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Update failed.'),
+    onError: (err: AxiosError<{ message?: string }>) => toast.error(err.response?.data?.message || 'Update failed.'),
   });
 
   const duplicateMutation = useMutation({
-    mutationFn: async () => (await api.post(`/admin/purchase-bills/${id}/duplicate`)).data,
-    onSuccess: (result: any) => {
+    mutationFn: async () => (await api.post<PurchaseBill>(`/admin/purchase-bills/${id}/duplicate`)).data,
+    onSuccess: (result) => {
       toast.success('Purchase bill duplicated.');
       queryClient.invalidateQueries({ queryKey: [config.apiBase] });
       navigate(`${getBasePath()}/purchases/${result.id}`);
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Duplicate failed.'),
+    onError: (err: AxiosError<{ message?: string }>) => toast.error(err.response?.data?.message || 'Duplicate failed.'),
   });
 
   const uploadAttachment = useMutation({
@@ -144,7 +145,7 @@ export const PurchaseBillDetailView = ({ id, onDeleted }: PurchaseBillDetailView
       toast.success('Attachment uploaded.');
       invalidate();
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Upload failed.'),
+    onError: (err: AxiosError<{ message?: string }>) => toast.error(err.response?.data?.message || 'Upload failed.'),
   });
 
   const deleteAttachment = useMutation({
@@ -153,7 +154,7 @@ export const PurchaseBillDetailView = ({ id, onDeleted }: PurchaseBillDetailView
       toast.success('Attachment removed.');
       invalidate();
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to remove attachment.'),
+    onError: (err: AxiosError<{ message?: string }>) => toast.error(err.response?.data?.message || 'Failed to remove attachment.'),
   });
 
   const handleDelete = () => {
@@ -322,7 +323,7 @@ export const PurchaseBillDetailView = ({ id, onDeleted }: PurchaseBillDetailView
                         </TableCell>
                       </TableRow>
                     )}
-                    {normalizedItems.map((item: any, idx: number) => {
+                    {(data?.items || []).map((item, idx) => {
                       const showSubtitle = item.product_name && item.product_name !== item.description;
                       return (
                         <TableRow key={item.id ?? idx} className="border-brand-border">
@@ -420,7 +421,7 @@ export const PurchaseBillDetailView = ({ id, onDeleted }: PurchaseBillDetailView
                         </TableCell>
                       </TableRow>
                     )}
-                    {data.receipts?.map((receipt : any) => (
+                    {data.receipts?.map((receipt: SupplierPaymentReceipt) => (
                       <TableRow key={receipt.id} className="border-brand-border">
                         <TableCell className="text-[12px] font-mono font-medium text-brand-accent">{receipt.receipt_number}</TableCell>
                         <TableCell className="text-[12px] text-brand-subtle">{formatDate(receipt.payment_date)}</TableCell>

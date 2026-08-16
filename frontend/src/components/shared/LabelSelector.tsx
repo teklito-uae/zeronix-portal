@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { AxiosError } from 'axios';
 import api from '@/lib/axios';
-import { getBasePath } from '@/hooks/useBasePath';
 import type { CustomerLabel } from '@/types';
 import { LabelBadge } from './LabelBadge';
 import { Plus, Check, Loader2, Tag } from 'lucide-react';
@@ -43,7 +43,7 @@ export const LabelSelector = ({ selectedIds, onChange, disabled }: LabelSelector
 
   const createLabel = useMutation({
     mutationFn: (data: { name: string; color: string }) =>
-      api.post(`/admin/customer-labels`, data),
+      api.post<CustomerLabel>(`/admin/customer-labels`, data),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['customer-labels'] });
       onChange([...selectedIds, res.data.id]);
@@ -51,7 +51,7 @@ export const LabelSelector = ({ selectedIds, onChange, disabled }: LabelSelector
       setNewName('');
       toast.success(`Label "${res.data.name}" created`);
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to create label'),
+    onError: (err: AxiosError<{ message?: string }>) => toast.error(err.response?.data?.message || 'Failed to create label'),
   });
 
   const toggle = (id: number) => {

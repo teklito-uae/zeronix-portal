@@ -48,7 +48,7 @@ export const CustomerLayout = () => {
             <input
               type="text"
               placeholder="Search products, part numbers, or brands..."
-              className="w-full h-10 pl-10 pr-4 rounded-full border border-cust-border bg-cust-bg-subtle text-sm focus:outline-none focus:ring-2 focus:ring-zeronix-blue transition-all dark:bg-cust-bg-dark dark:border-admin-border"
+              className="w-full h-10 pl-10 pr-4 rounded-full border border-cust-border bg-cust-bg-subtle text-sm focus:outline-none focus:ring-2 focus:ring-brand-accent transition-all dark:bg-cust-bg-dark dark:border-brand-border"
               onClick={() => navigate('/portal/products')}
             />
           </div>
@@ -66,8 +66,8 @@ export const CustomerLayout = () => {
                     className={cn(
                       "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
                       active 
-                        ? "text-zeronix-blue bg-zeronix-blue/10" 
-                        : "text-cust-text-secondary hover:text-cust-text-primary hover:bg-cust-bg-subtle dark:hover:bg-admin-surface-hover"
+                        ? "text-brand-accent bg-brand-accent/10" 
+                        : "text-cust-text-secondary hover:text-cust-text-primary hover:bg-cust-bg-subtle dark:hover:bg-brand-bg"
                     )}
                   >
                     {link.icon}
@@ -81,7 +81,7 @@ export const CustomerLayout = () => {
               variant="ghost"
               size="icon"
               onClick={() => toggle(false)}
-              className="rounded-full text-cust-text-secondary hover:text-cust-text-primary hover:bg-cust-bg-subtle dark:hover:bg-admin-surface-hover"
+              className="rounded-full text-cust-text-secondary hover:text-cust-text-primary hover:bg-cust-bg-subtle dark:hover:bg-brand-bg"
             >
               {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
             </Button>
@@ -90,11 +90,11 @@ export const CustomerLayout = () => {
               variant="ghost"
               size="icon"
               onClick={() => navigate('/portal/request-form')}
-              className="relative rounded-full text-cust-text-secondary hover:text-cust-text-primary hover:bg-cust-bg-subtle dark:hover:bg-admin-surface-hover"
+              className="relative rounded-full text-cust-text-secondary hover:text-cust-text-primary hover:bg-cust-bg-subtle dark:hover:bg-brand-bg"
             >
               <ShoppingCart size={20} />
               {totalCartItems > 0 && (
-                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-white transform translate-x-1/4 -translate-y-1/4 bg-zeronix-blue rounded-full">
+                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-white transform translate-x-1/4 -translate-y-1/4 bg-brand-accent rounded-full">
                   {totalCartItems}
                 </span>
               )}
@@ -102,20 +102,20 @@ export const CustomerLayout = () => {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full bg-cust-bg-subtle dark:bg-admin-surface-hover text-zeronix-blue">
+                <Button variant="ghost" size="icon" className="rounded-full bg-cust-bg-subtle dark:bg-brand-bg text-brand-accent">
                   <User size={20} />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-white dark:bg-[#152030] border-cust-border dark:border-admin-border">
-                <div className="px-4 py-3 border-b border-cust-border dark:border-admin-border">
+              <DropdownMenuContent align="end" className="w-56 bg-white dark:bg-[#152030] border-cust-border dark:border-brand-border">
+                <div className="px-4 py-3 border-b border-cust-border dark:border-brand-border">
                   <p className="text-sm font-medium text-cust-text-primary">Ahmed Al Mansoori</p>
                   <p className="text-xs text-cust-text-secondary truncate">ahmed@gulfind.ae</p>
                 </div>
-                <DropdownMenuItem onClick={() => navigate('/portal/enquiries')} className="cursor-pointer text-cust-text-primary focus:bg-cust-bg-subtle dark:focus:bg-admin-surface-hover">
+                <DropdownMenuItem onClick={() => navigate('/portal/enquiries')} className="cursor-pointer text-cust-text-primary focus:bg-cust-bg-subtle dark:focus:bg-brand-bg">
                   <MessageSquareText size={16} className="mr-2" />
                   My Enquiries
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-cust-border dark:bg-admin-border" />
+                <DropdownMenuSeparator className="bg-cust-border dark:bg-brand-border" />
                 <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-danger focus:bg-danger/10">
                   <LogOut size={16} className="mr-2" />
                   Logout

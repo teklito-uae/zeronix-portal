@@ -52,6 +52,7 @@ export default function SupplierBroadcastPage() {
   }, [searchInput]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: resets to page 1 whenever any filter changes, so a stale page number from a previous filter set doesn't produce an out-of-range/empty page.
     setPage(1);
   }, [search, vendorId, categoryId]);
 

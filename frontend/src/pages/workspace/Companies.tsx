@@ -11,7 +11,7 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
 } from '@/components/ui/sheet';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
-import { UserPlus, Download, Upload, Search, MoreHorizontal, ArrowRight, Users, User as UserIcon, AlertTriangle, Tag, UserCircle2, ShieldCheck, Briefcase } from 'lucide-react';
+import { UserPlus, Download, Upload, Users, User as UserIcon, AlertTriangle, Tag, UserCircle2, ShieldCheck, Briefcase } from 'lucide-react';
 import { Spinner } from '@/components/shared/Spinner';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import { MultiSelectFilter } from '@/components/shared/MultiSelectFilter';
@@ -21,7 +21,7 @@ import { LabelBadge } from '@/components/shared/LabelBadge';
 import { LabelSelector } from '@/components/shared/LabelSelector';
 import { PhoneInput } from '@/components/shared/PhoneInput';
 
-import type { Customer, User, CustomerLabel } from '@/types';
+import type { Customer, User, CustomerLabel, PaginatedResponse } from '@/types';
 import { Switch } from '@/components/ui/switch';
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -66,12 +66,12 @@ export const Companies = () => {
   const [formLabelIds, setFormLabelIds] = useState<number[]>([]);
 
   // Staff members for assignment
-  const { data: staffData } = useResourceList<User>('users', { per_page: 100 });
-  const staffMembers = (staffData?.data || []).filter((u: any) => u.role !== 'customer');
+  const { data: staffData } = useResourceList<PaginatedResponse<User>>('users', { per_page: 100 });
+  const staffMembers = (staffData?.data || []).filter((u) => u.role !== 'customer');
 
-  // Labels for filter dropdown
-  const { data: labelsData } = useLabels<CustomerLabel>('customer-labels', {});
-  const allLabels: CustomerLabel[] = (labelsData as any) || [];
+  // Labels for filter dropdown (`/admin/customer-labels` returns a plain array)
+  const { data: labelsData } = useLabels<CustomerLabel[]>('customer-labels', {});
+  const allLabels: CustomerLabel[] = labelsData || [];
 
   // Distinct industries for the Industry filter
   const { data: industriesData } = useResourceList<string[]>('customers/industries', {});
@@ -120,7 +120,7 @@ export const Companies = () => {
       website: customer.website || '',
       description: customer.description || '',
       is_portal_active: customer.is_portal_active ?? true,
-      user_ids: customer.assigned_users?.map((u: any) => u.id.toString()) || [],
+      user_ids: customer.assigned_users?.map((u: User) => u.id.toString()) || [],
       type: customer.type || 'business',
     });
     setDialogOpen(true);
@@ -152,7 +152,7 @@ export const Companies = () => {
         c.phone || '',
         c.trn || '',
         c.labels?.map(l => l.name).join(' | ') || '',
-        c.assigned_users?.map((u: any) => u.name).join(' | ') || '',
+        c.assigned_users?.map((u: User) => u.name).join(' | ') || '',
         c.is_portal_active ? 'Active' : 'Inactive',
         c.created_at ? new Date(c.created_at).toLocaleDateString() : '',
       ]);
@@ -183,9 +183,9 @@ export const Companies = () => {
               colors={avatarColors}
             />
             <div className="min-w-0">
-              <p className="text-sm font-bold text-admin-text-primary truncate">{primary}</p>
+              <p className="text-sm font-bold text-brand-primary truncate">{primary}</p>
               {showContactPerson && (
-                <p className="text-[11px] text-admin-text-muted flex items-center gap-1 truncate font-medium">
+                <p className="text-[11px] text-brand-subtle flex items-center gap-1 truncate font-medium">
                   <UserIcon size={10} /> {toTitleCase(row.original.name)}
                 </p>
               )}
@@ -220,7 +220,7 @@ export const Companies = () => {
       cell: ({ row }) => {
         const users = row.original.assigned_users || [];
         if (users.length === 0) return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider bg-admin-bg text-admin-text-muted border border-admin-border">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider bg-brand-bg text-brand-subtle border border-brand-border">
             UNASSIGNED
           </span>
         );
@@ -228,7 +228,7 @@ export const Companies = () => {
           <TooltipProvider delayDuration={200}>
             <div className="flex items-center gap-2">
               <div className="flex -space-x-2">
-                {users.slice(0, 3).map((u: any, i: number) => (
+                {users.slice(0, 3).map((u: User, i: number) => (
                   <Tooltip key={u.id}>
                     <TooltipTrigger asChild>
                       <div className="relative border-2 border-brand-white rounded-full bg-brand-surface shadow-sm transition-transform hover:z-20 hover:scale-110" style={{ zIndex: 10 - i }}>
@@ -248,13 +248,13 @@ export const Companies = () => {
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="bg-brand-secondary text-brand-white text-[11px] font-bold px-2.5 py-1.5 rounded-md shadow-md border-none max-w-[200px]">
-                      {users.slice(3).map((u: any) => toTitleCase(u.name)).join(', ')}
+                      {users.slice(3).map((u: User) => toTitleCase(u.name)).join(', ')}
                     </TooltipContent>
                   </Tooltip>
                 )}
               </div>
               {users.length === 1 && (
-                <span className="text-[11px] font-medium text-admin-text-secondary truncate max-w-[80px]">
+                <span className="text-[11px] font-medium text-brand-secondary truncate max-w-[80px]">
                   {toTitleCase(users[0].name).split(' ')[0]}
                 </span>
               )}
@@ -267,9 +267,9 @@ export const Companies = () => {
       accessorKey: 'contacts_count',
       header: 'Contacts',
       cell: ({ row }) => (
-        <div className="text-xs font-bold text-admin-text-secondary flex items-center gap-1">
-          <Users size={11} className="text-admin-text-muted" />
-          {row.original.contacts_count || 0} <span className="text-[10px] text-admin-text-muted font-medium ml-0.5">Contacts</span>
+        <div className="text-xs font-bold text-brand-secondary flex items-center gap-1">
+          <Users size={11} className="text-brand-subtle" />
+          {row.original.contacts_count || 0} <span className="text-[10px] text-brand-subtle font-medium ml-0.5">Contacts</span>
         </div>
       ),
     },
@@ -277,8 +277,8 @@ export const Companies = () => {
       accessorKey: 'deals_count',
       header: 'Deals',
       cell: ({ row }) => (
-        <div className="text-xs font-bold text-admin-text-secondary">
-          {row.original.deals_count || 0} <span className="text-[10px] text-admin-text-muted font-medium ml-0.5">Deals</span>
+        <div className="text-xs font-bold text-brand-secondary">
+          {row.original.deals_count || 0} <span className="text-[10px] text-brand-subtle font-medium ml-0.5">Deals</span>
         </div>
       ),
     },
@@ -289,7 +289,7 @@ export const Companies = () => {
         const revenue = row.original.total_invoiced || 0;
         if (revenue <= 0) return <span className="text-[11px] text-brand-subtle italic">—</span>;
         return (
-          <p className="font-mono text-[13px] font-semibold text-admin-text-primary">
+          <p className="font-mono text-[13px] font-semibold text-brand-primary">
             <CurrencyAmount amount={revenue} currency={currency} />
           </p>
         );
@@ -304,7 +304,7 @@ export const Companies = () => {
         if (balance <= 0) return <span className="text-[11px] text-brand-subtle italic">Settled</span>;
         return (
           <div className="space-y-1">
-            <p className="font-mono text-[13px] font-semibold text-admin-text-primary">
+            <p className="font-mono text-[13px] font-semibold text-brand-primary">
               <CurrencyAmount amount={balance} currency={currency} />
             </p>
             {overdueCount > 0 && (
@@ -350,7 +350,7 @@ export const Companies = () => {
           variant="outline"
           size="sm"
           onClick={handleExportCsv}
-          className="text-admin-text-secondary hover:text-admin-text-primary"
+          className="text-brand-secondary hover:text-brand-primary"
         >
           <Download size={14} /> Export CSV
         </Button>
@@ -360,12 +360,12 @@ export const Companies = () => {
           variant="outline"
           size="sm"
           onClick={() => navigate(`${getBasePath()}/companies/import`)}
-          className="text-zeronix-blue border-zeronix-blue/30 hover:bg-zeronix-blue/5"
+          className="text-brand-accent border-brand-accent/30 hover:bg-brand-accent/5"
         >
           <Upload size={14} /> Import
         </Button>
       )}
-      <Button size="sm" onClick={openAdd} className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover">
+      <Button size="sm" onClick={openAdd} className="bg-brand-accent text-white hover:bg-brand-accent-hover">
         <UserPlus size={14} /> <span className="hidden sm:inline">Add Account</span>
       </Button>
     </>
@@ -384,7 +384,7 @@ export const Companies = () => {
       <MultiSelectFilter
         title="Owner"
         icon={<UserCircle2 />}
-        options={staffMembers.map((s: any) => ({ label: s.name, value: String(s.id) }))}
+        options={staffMembers.map((s: User) => ({ label: s.name, value: String(s.id) }))}
         selected={selectedOwnerIds}
         onChange={setSelectedOwnerIds}
       />
@@ -425,20 +425,20 @@ export const Companies = () => {
 
       {/* Floating Add Button (Mobile) */}
       <div className="fixed bottom-8 right-8 z-50 lg:hidden">
-        <Button onClick={openAdd} className="h-14 w-14 rounded-full bg-zeronix-blue shadow-xl text-white">
+        <Button onClick={openAdd} className="h-14 w-14 rounded-full bg-brand-accent shadow-xl text-white">
           <UserIcon size={24} />
         </Button>
       </div>
 
       {/* Add / Edit Sheet */}
       <Sheet open={dialogOpen} onOpenChange={setDialogOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-xl bg-admin-surface border-admin-border p-0 flex flex-col gap-0">
-          <div className="p-6 border-b border-admin-border flex-shrink-0">
+        <SheetContent side="right" className="w-full sm:max-w-xl bg-brand-white border-brand-border p-0 flex flex-col gap-0">
+          <div className="p-6 border-b border-brand-border flex-shrink-0">
             <SheetHeader className="space-y-1 text-left">
-              <SheetTitle className="text-xl font-bold text-admin-text-primary pr-6">
+              <SheetTitle className="text-xl font-bold text-brand-primary pr-6">
                 {editingCustomer ? 'Update Account Profile' : 'Register New Account'}
               </SheetTitle>
-              <SheetDescription className="text-sm text-admin-text-secondary">
+              <SheetDescription className="text-sm text-brand-secondary">
                 Configure contact information and portal access settings.
               </SheetDescription>
             </SheetHeader>
@@ -446,25 +446,25 @@ export const Companies = () => {
 
           <div className="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-5 p-6">
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Full Name *</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-brand-subtle ml-1">Full Name *</Label>
               <Input
                 value={form.name}
                 onChange={e => setForm({ ...form, name: e.target.value })}
-                className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl"
+                className="h-11 bg-brand-bg border-brand-border text-brand-primary rounded-xl"
                 placeholder="Primary contact name"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Company Name</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-brand-subtle ml-1">Company Name</Label>
               <Input
                 value={form.company}
                 onChange={e => setForm({ ...form, company: e.target.value })}
-                className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl"
+                className="h-11 bg-brand-bg border-brand-border text-brand-primary rounded-xl"
                 placeholder="Legal business name"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Account Type</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-brand-subtle ml-1">Account Type</Label>
               <div className="flex gap-2 h-11 items-center">
                 {(['business', 'individual'] as const).map((t) => (
                   <div
@@ -481,17 +481,17 @@ export const Companies = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Email Address *</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-brand-subtle ml-1">Email Address *</Label>
               <Input
                 type="email"
                 value={form.email}
                 onChange={e => setForm({ ...form, email: e.target.value })}
-                className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl"
+                className="h-11 bg-brand-bg border-brand-border text-brand-primary rounded-xl"
                 placeholder="client@example.com"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Phone Number</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-brand-subtle ml-1">Phone Number</Label>
               <PhoneInput
                 value={form.phone}
                 onChange={val => setForm({ ...form, phone: val || '' })}
@@ -499,73 +499,73 @@ export const Companies = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">TRN / VAT Number</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-brand-subtle ml-1">TRN / VAT Number</Label>
               <Input
                 value={form.trn}
                 onChange={e => setForm({ ...form, trn: e.target.value })}
-                className="h-11 bg-admin-bg border-admin-border text-admin-text-primary font-mono rounded-xl"
+                className="h-11 bg-brand-bg border-brand-border text-brand-primary font-mono rounded-xl"
                 placeholder="100XXXXXXXXX"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Industry</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-brand-subtle ml-1">Industry</Label>
               <Input
                 value={form.industry}
                 onChange={e => setForm({ ...form, industry: e.target.value })}
-                className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl"
+                className="h-11 bg-brand-bg border-brand-border text-brand-primary rounded-xl"
                 placeholder="e.g. Manufacturing"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Website</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-brand-subtle ml-1">Website</Label>
               <Input
                 value={form.website}
                 onChange={e => setForm({ ...form, website: e.target.value })}
-                className="h-11 bg-admin-bg border-admin-border text-admin-text-primary rounded-xl"
+                className="h-11 bg-brand-bg border-brand-border text-brand-primary rounded-xl"
                 placeholder="https://example.com"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Portal Status</Label>
-              <div className="flex items-center gap-3 h-11 px-3 bg-admin-bg border border-admin-border rounded-xl">
+              <Label className="text-xs font-bold uppercase tracking-wider text-brand-subtle ml-1">Portal Status</Label>
+              <div className="flex items-center gap-3 h-11 px-3 bg-brand-bg border border-brand-border rounded-xl">
                 <Switch
                   checked={form.is_portal_active}
                   onCheckedChange={checked => setForm({ ...form, is_portal_active: checked })}
                 />
-                <span className="text-xs text-admin-text-primary font-bold">
+                <span className="text-xs text-brand-primary font-bold">
                   {form.is_portal_active ? 'PORTAL ENABLED' : 'PORTAL DISABLED'}
                 </span>
               </div>
             </div>
             <div className="md:col-span-2 space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Billing Address</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-brand-subtle ml-1">Billing Address</Label>
               <Textarea
                 value={form.address}
                 onChange={e => setForm({ ...form, address: e.target.value })}
-                className="bg-admin-bg border-admin-border text-admin-text-primary rounded-xl resize-none"
+                className="bg-brand-bg border-brand-border text-brand-primary rounded-xl resize-none"
                 placeholder="Unit, Building, Street, City..."
                 rows={2}
               />
             </div>
             <div className="md:col-span-2 space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Description</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-brand-subtle ml-1">Description</Label>
               <Textarea
                 value={form.description}
                 onChange={e => setForm({ ...form, description: e.target.value })}
-                className="bg-admin-bg border-admin-border text-admin-text-primary rounded-xl resize-none"
+                className="bg-brand-bg border-brand-border text-brand-primary rounded-xl resize-none"
                 placeholder="Brief notes about this company..."
                 rows={2}
               />
             </div>
             <div className="md:col-span-2 space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Labels</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-brand-subtle ml-1">Labels</Label>
               <LabelSelector selectedIds={formLabelIds} onChange={setFormLabelIds} />
             </div>
             {currentUser?.role === 'admin' && (
               <div className="md:col-span-2 space-y-3 mt-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-admin-text-muted ml-1">Assign to Team</Label>
+                <Label className="text-xs font-bold uppercase tracking-wider text-brand-subtle ml-1">Assign to Team</Label>
                 <div className="flex flex-wrap gap-2">
-                  {staffMembers.map((staff: any) => {
+                  {staffMembers.map((staff: User) => {
                     const isSelected = form.user_ids.includes(staff.id.toString());
                     return (
                       <div
@@ -588,13 +588,13 @@ export const Companies = () => {
             )}
           </div>
 
-          <div className="p-6 pt-4 border-t border-admin-border flex-shrink-0">
+          <div className="p-6 pt-4 border-t border-brand-border flex-shrink-0">
             <SheetFooter className="gap-2 sm:justify-end">
               <Button variant="ghost" onClick={() => setDialogOpen(false)} className="rounded-xl">Cancel</Button>
               <Button
                 onClick={handleSave}
                 disabled={!form.name || create.isPending || update.isPending}
-                className="bg-zeronix-blue text-white hover:bg-zeronix-blue-hover min-w-[140px] rounded-xl font-bold shadow-lg shadow-zeronix-blue/20"
+                className="bg-brand-accent text-white hover:bg-brand-accent-hover min-w-[140px] rounded-xl font-bold shadow-lg shadow-brand-accent/20"
               >
                 {(create.isPending || update.isPending) ? <Spinner size={16} /> : (editingCustomer ? 'Update Profile' : 'Register Account')}
               </Button>

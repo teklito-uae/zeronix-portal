@@ -45,7 +45,7 @@ export const CustomerInvoices = () => {
   const { data: invoicesData, isLoading } = useQuery<PaginatedResponse<Invoice>>({
     queryKey: ['customer-invoices', page, perPage, search, status],
     queryFn: async () => {
-      const params: any = { page, search, per_page: perPage };
+      const params: Record<string, string | number> = { page, search, per_page: perPage };
       if (status !== 'all') params.status = status;
       const res = await api.get('/customer/invoices', { params });
       return res.data;
@@ -60,14 +60,18 @@ export const CustomerInvoices = () => {
       const previousInvoices = queryClient.getQueryData(['customer-invoices', page, perPage, search, status]);
 
       if (previousInvoices) {
-        queryClient.setQueryData(['customer-invoices', page, perPage, search, status], (old: any) => ({
-          ...old,
-          data: old.data.map((inv: any) =>
-            inv.id === newData.id && inv.linked_delivery
-              ? { ...inv, linked_delivery: { ...inv.linked_delivery, customer_confirmation: newData.status } }
-              : inv
-          )
-        }));
+        queryClient.setQueryData(
+          ['customer-invoices', page, perPage, search, status],
+          (old: PaginatedResponse<Invoice> | undefined) =>
+            old && {
+              ...old,
+              data: old.data.map((inv) =>
+                inv.id === newData.id && inv.linked_delivery
+                  ? { ...inv, linked_delivery: { ...inv.linked_delivery, customer_confirmation: newData.status } }
+                  : inv
+              ),
+            }
+        );
       }
       return { previousInvoices };
     },
@@ -90,7 +94,7 @@ export const CustomerInvoices = () => {
       accessorKey: 'invoice_number',
       header: 'Invoice #',
       cell: ({ row }) => (
-        <span className="font-mono text-sm text-zeronix-blue font-bold tracking-tight">
+        <span className="font-mono text-sm text-brand-accent font-bold tracking-tight">
           {row.original.invoice_number}
         </span>
       ),
@@ -104,7 +108,7 @@ export const CustomerInvoices = () => {
       accessorKey: 'total',
       header: 'Total',
       cell: ({ row }) => (
-        <span className="font-mono text-sm font-bold text-admin-text-primary">
+        <span className="font-mono text-sm font-bold text-brand-primary">
           <CurrencyAmount amount={row.original.total} currency={currency} />
         </span>
       ),
@@ -123,7 +127,7 @@ export const CustomerInvoices = () => {
       accessorKey: 'date',
       header: 'Date',
       cell: ({ row }) => (
-        <div className="flex items-center gap-1.5 text-xs text-admin-text-muted">
+        <div className="flex items-center gap-1.5 text-xs text-brand-subtle">
           <Calendar size={13} />
           {row.original.date ? new Date(row.original.date).toLocaleDateString() : '—'}
         </div>
@@ -180,36 +184,36 @@ export const CustomerInvoices = () => {
             <Receipt size={20} className="text-emerald-500" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-admin-text-primary tracking-tight">MY INVOICES</h2>
-            <p className="text-xs text-admin-text-muted font-medium">Track your orders and verify delivery status.</p>
+            <h2 className="text-xl font-bold text-brand-primary tracking-tight">MY INVOICES</h2>
+            <p className="text-xs text-brand-subtle font-medium">Track your orders and verify delivery status.</p>
           </div>
         </div>
-        <div className="hidden md:flex bg-admin-surface border border-admin-border rounded-lg px-4 h-10 items-center gap-3 shadow-sm">
+        <div className="hidden md:flex bg-brand-white border border-brand-border rounded-lg px-4 h-10 items-center gap-3 shadow-sm">
            <Wallet size={14} className="text-emerald-500" />
-           <p className="text-xs font-bold text-admin-text-primary uppercase tracking-widest">
+           <p className="text-xs font-bold text-brand-primary uppercase tracking-widest">
              Account Balance: <span className="text-emerald-500 font-black"><CurrencyAmount amount={0} currency={currency} /></span>
            </p>
         </div>
       </div>
 
       {/* Search & Filters */}
-      <div className="bg-admin-surface border border-admin-border rounded-lg p-3 flex flex-wrap items-center gap-2 shadow-sm">
+      <div className="bg-brand-white border border-brand-border rounded-lg p-3 flex flex-wrap items-center gap-2 shadow-sm">
         <div className="relative max-w-sm flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-admin-text-muted" size={14} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-subtle" size={14} />
           <Input
             placeholder="Search by invoice number…"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="pl-9 h-10 bg-admin-bg border-admin-border text-sm rounded-lg focus:ring-emerald-500/20"
+            className="pl-9 h-10 bg-brand-bg border-brand-border text-sm rounded-lg focus:ring-emerald-500/20"
           />
         </div>
         <div className="flex items-center gap-2">
-          <Filter size={13} className="text-admin-text-muted" />
+          <Filter size={13} className="text-brand-subtle" />
           <Select value={status} onValueChange={(v) => { setStatus(v); setPage(1); }}>
-            <SelectTrigger className="h-10 w-40 bg-admin-bg border-admin-border text-xs rounded-lg font-medium">
+            <SelectTrigger className="h-10 w-40 bg-brand-bg border-brand-border text-xs rounded-lg font-medium">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
-            <SelectContent className="bg-admin-surface border-admin-border">
+            <SelectContent className="bg-brand-white border-brand-border">
               <SelectItem value="all">All Statuses</SelectItem>
               {INVOICE_STATUSES.map((s) => (
                 <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
@@ -220,11 +224,11 @@ export const CustomerInvoices = () => {
       </div>
 
       {/* Table Container */}
-      <div className="bg-admin-surface border border-admin-border rounded-lg overflow-hidden shadow-sm">
+      <div className="bg-brand-white border border-brand-border rounded-lg overflow-hidden shadow-sm">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-24 gap-3">
             <Loader2 className="animate-spin text-emerald-500" size={32} />
-            <p className="text-xs font-bold text-admin-text-muted uppercase tracking-widest">Fetching Invoices...</p>
+            <p className="text-xs font-bold text-brand-subtle uppercase tracking-widest">Fetching Invoices...</p>
           </div>
         ) : invoicesData?.data && invoicesData.data.length > 0 ? (
           <DataTable
@@ -232,9 +236,9 @@ export const CustomerInvoices = () => {
             data={invoicesData.data}
             hidePagination={true}
             renderRowDetails={(inv) => (
-              <div className="p-4 bg-admin-bg/50 rounded-lg m-2 border border-admin-border space-y-4">
+              <div className="p-4 bg-brand-bg/50 rounded-lg m-2 border border-brand-border space-y-4">
                  <div className="flex justify-between items-center">
-                   <h4 className="text-[10px] font-bold text-admin-text-muted uppercase tracking-widest">Invoice Line Items</h4>
+                   <h4 className="text-[10px] font-bold text-brand-subtle uppercase tracking-widest">Invoice Line Items</h4>
                    {inv.linked_delivery?.customer_confirmed_at && (
                      <p className="text-[10px] font-bold text-emerald-500 uppercase flex items-center gap-1">
                        <CheckCircle2 size={10} /> Confirmed on {new Date(inv.linked_delivery.customer_confirmed_at).toLocaleString()}
@@ -243,19 +247,19 @@ export const CustomerInvoices = () => {
                  </div>
                 <div className="space-y-2">
                   {inv.items?.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-sm p-2 bg-admin-surface rounded border border-admin-border">
-                      <span className="text-admin-text-primary font-medium">{item.product_name || item.description}</span>
+                    <div key={idx} className="flex justify-between items-center text-sm p-2 bg-brand-white rounded border border-brand-border">
+                      <span className="text-brand-primary font-medium">{item.product_name || item.description}</span>
                       <div className="flex items-center gap-6">
-                         <span className="text-xs text-admin-text-muted">Qty: {item.quantity}</span>
-                         <span className="text-xs font-bold text-admin-text-primary"><CurrencyAmount amount={item.total} currency={currency} /></span>
+                         <span className="text-xs text-brand-subtle">Qty: {item.quantity}</span>
+                         <span className="text-xs font-bold text-brand-primary"><CurrencyAmount amount={item.total} currency={currency} /></span>
                       </div>
                     </div>
                   ))}
                 </div>
                 {inv.linked_delivery?.customer_notes && (
-                  <div className="mt-2 p-3 bg-admin-surface rounded border border-admin-border">
-                     <p className="text-[9px] font-bold text-admin-text-muted uppercase mb-1">Customer Delivery Notes</p>
-                     <p className="text-xs text-admin-text-primary italic">"{inv.linked_delivery.customer_notes}"</p>
+                  <div className="mt-2 p-3 bg-brand-white rounded border border-brand-border">
+                     <p className="text-[9px] font-bold text-brand-subtle uppercase mb-1">Customer Delivery Notes</p>
+                     <p className="text-xs text-brand-primary italic">"{inv.linked_delivery.customer_notes}"</p>
                   </div>
                 )}
               </div>
@@ -263,11 +267,11 @@ export const CustomerInvoices = () => {
           />
         ) : (
           <div className="flex flex-col items-center justify-center p-20 text-center">
-            <div className="w-16 h-16 bg-admin-bg rounded-full flex items-center justify-center mb-4 border border-admin-border">
-              <Receipt size={32} className="text-admin-text-muted/30" />
+            <div className="w-16 h-16 bg-brand-bg rounded-full flex items-center justify-center mb-4 border border-brand-border">
+              <Receipt size={32} className="text-brand-subtle/30" />
             </div>
-            <h3 className="text-lg font-bold text-admin-text-primary mb-1 uppercase tracking-tight">No Invoices</h3>
-            <p className="text-sm text-admin-text-secondary max-w-[250px] mx-auto leading-relaxed">
+            <h3 className="text-lg font-bold text-brand-primary mb-1 uppercase tracking-tight">No Invoices</h3>
+            <p className="text-sm text-brand-secondary max-w-[250px] mx-auto leading-relaxed">
               Your billing history and invoices will appear here once orders are processed.
             </p>
           </div>
@@ -288,13 +292,13 @@ export const CustomerInvoices = () => {
 
       {/* Confirmation Dialog */}
       <Dialog open={confirmModal.open} onOpenChange={(v) => !v && setConfirmModal({ ...confirmModal, open: false })}>
-        <DialogContent className="bg-admin-surface border-admin-border sm:max-w-[450px]">
+        <DialogContent className="bg-brand-white border-brand-border sm:max-w-[450px]">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-admin-text-primary flex items-center gap-2">
+            <DialogTitle className="text-lg font-bold text-brand-primary flex items-center gap-2">
               {confirmModal.status === 'accepted' ? <CheckCircle2 className="text-emerald-500" /> : <XCircle className="text-red-500" />}
               {confirmModal.status === 'accepted' ? 'Confirm Delivery' : 'Report Issue / Reject'}
             </DialogTitle>
-            <DialogDescription className="text-sm text-admin-text-secondary">
+            <DialogDescription className="text-sm text-brand-secondary">
               {confirmModal.status === 'accepted' 
                 ? 'Are you sure you have received the items listed in this invoice in good condition?' 
                 : 'Please let us know why you are rejecting the delivery or what issue you encountered.'}
@@ -303,26 +307,26 @@ export const CustomerInvoices = () => {
 
           <div className="py-4 space-y-4">
              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-admin-text-muted uppercase tracking-widest">Additional Notes (Optional)</label>
+                <label className="text-[10px] font-bold text-brand-subtle uppercase tracking-widest">Additional Notes (Optional)</label>
                 <Textarea 
                   placeholder={confirmModal.status === 'accepted' ? "e.g. Received in perfect condition..." : "e.g. Items damaged, wrong quantity..."}
                   value={confirmNotes}
                   onChange={(e) => setConfirmNotes(e.target.value)}
-                  className="bg-admin-bg border-admin-border focus:ring-zeronix-blue/20 min-h-[100px] text-sm"
+                  className="bg-brand-bg border-brand-border focus:ring-brand-accent/20 min-h-[100px] text-sm"
                 />
              </div>
              
              {confirmModal.status === 'accepted' ? (
                 <div className="p-3 bg-warning/10 rounded-lg border border-warning/30 flex gap-3">
                    <AlertCircle size={18} className="text-warning shrink-0 mt-0.5" />
-                   <p className="text-[11px] text-admin-text-primary leading-relaxed font-medium">
+                   <p className="text-[11px] text-brand-primary leading-relaxed font-medium">
                      By accepting, you acknowledge that the goods have been delivered as per the invoice specifications.
                    </p>
                 </div>
              ) : (
                 <div className="p-3 bg-danger/10 rounded-lg border border-danger/30 flex gap-3">
                    <AlertCircle size={18} className="text-danger shrink-0 mt-0.5" />
-                   <p className="text-[11px] text-admin-text-primary leading-relaxed font-medium">
+                   <p className="text-[11px] text-brand-primary leading-relaxed font-medium">
                      Our team will be notified immediately to investigate the issue and contact you.
                    </p>
                 </div>
@@ -342,7 +346,7 @@ export const CustomerInvoices = () => {
                )}
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setConfirmModal({ open: false, invoiceId: null, status: null })} className="h-9 text-xs font-bold border-admin-border">Cancel</Button>
+              <Button variant="outline" onClick={() => setConfirmModal({ open: false, invoiceId: null, status: null })} className="h-9 text-xs font-bold border-brand-border">Cancel</Button>
               <Button 
                 onClick={handleConfirmAction} 
                 disabled={confirmMutation.isPending}

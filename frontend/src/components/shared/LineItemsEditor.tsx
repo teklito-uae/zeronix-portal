@@ -94,20 +94,20 @@ export const LineItemsEditor = ({ items, onChange, products, disabled, currency 
     }
   };
 
-  const numericCellClass = "w-full bg-transparent text-sm text-admin-text-primary outline-none px-1 py-1 rounded focus:bg-admin-bg focus:ring-1 focus:ring-zeronix-blue/30 disabled:opacity-60";
+  const numericCellClass = "w-full bg-transparent text-sm text-brand-primary outline-none px-1 py-1 rounded focus:bg-brand-bg focus:ring-1 focus:ring-brand-accent/30 disabled:opacity-60";
 
   return (
-    <div className="bg-admin-surface border border-admin-border rounded-lg overflow-hidden shadow-sm">
+    <div className="bg-brand-white border border-brand-border rounded-lg overflow-hidden shadow-sm">
       <div className="overflow-x-auto">
         <Table>
-          <TableHeader className="bg-admin-bg/30">
-            <TableRow className="border-admin-border hover:bg-transparent">
-              <TableHead className="w-10 text-center text-[11px] font-semibold uppercase tracking-wider text-admin-text-muted">#</TableHead>
-              <TableHead className="min-w-[280px] text-[11px] font-semibold uppercase tracking-wider text-admin-text-muted">Product / Description</TableHead>
-              <TableHead className="text-center text-[11px] font-semibold uppercase tracking-wider text-admin-text-muted w-20">Qty</TableHead>
-              <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-admin-text-muted w-28">Unit Price</TableHead>
-              <TableHead className="text-center text-[11px] font-semibold uppercase tracking-wider text-admin-text-muted w-16">Tax %</TableHead>
-              <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-admin-text-muted w-32">Total</TableHead>
+          <TableHeader className="bg-brand-bg/30">
+            <TableRow className="border-brand-border hover:bg-transparent">
+              <TableHead className="w-10 text-center text-[11px] font-semibold uppercase tracking-wider text-brand-subtle">#</TableHead>
+              <TableHead className="min-w-[280px] text-[11px] font-semibold uppercase tracking-wider text-brand-subtle">Product / Description</TableHead>
+              <TableHead className="text-center text-[11px] font-semibold uppercase tracking-wider text-brand-subtle w-20">Qty</TableHead>
+              <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-brand-subtle w-28">Unit Price</TableHead>
+              <TableHead className="text-center text-[11px] font-semibold uppercase tracking-wider text-brand-subtle w-16">Tax %</TableHead>
+              <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-brand-subtle w-32">Total</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -115,8 +115,8 @@ export const LineItemsEditor = ({ items, onChange, products, disabled, currency 
             {items.map((item, i) => {
               const lineTotal = computeLineTotal(item.quantity, item.unit_price, item.tax_percent);
               return (
-                <TableRow key={i} className="border-admin-border group hover:bg-admin-surface-hover/40 transition-colors align-top">
-                  <TableCell className="text-center text-xs text-admin-text-muted font-medium pt-3.5">{i + 1}</TableCell>
+                <TableRow key={i} className="border-brand-border group hover:bg-brand-bg/40 transition-colors align-top">
+                  <TableCell className="text-center text-xs text-brand-subtle font-medium pt-3.5">{i + 1}</TableCell>
                   <TableCell className="py-2">
                     <ProductSearch
                       size="cell"
@@ -137,7 +137,7 @@ export const LineItemsEditor = ({ items, onChange, products, disabled, currency 
                       onChange={(e) => update(i, { description: e.target.value })}
                       onKeyDown={(e) => handleKeyDown(e, i, 'desc')}
                       placeholder="Description…"
-                      className="w-full bg-transparent text-xs text-admin-text-secondary placeholder:text-admin-text-muted/60 outline-none px-1.5 py-0.5 mt-0.5 rounded focus:bg-admin-bg disabled:opacity-60"
+                      className="w-full bg-transparent text-xs text-brand-secondary placeholder:text-brand-subtle/60 outline-none px-1.5 py-0.5 mt-0.5 rounded focus:bg-brand-bg disabled:opacity-60"
                     />
                   </TableCell>
                   <TableCell className="text-center py-2">
@@ -179,7 +179,7 @@ export const LineItemsEditor = ({ items, onChange, products, disabled, currency 
                       className={`${numericCellClass} text-center`}
                     />
                   </TableCell>
-                  <TableCell className="text-right text-sm font-mono font-semibold text-admin-text-primary py-2 pt-3.5">
+                  <TableCell className="text-right text-sm font-mono font-semibold text-brand-primary py-2 pt-3.5">
                     {lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </TableCell>
                   <TableCell className="text-right py-2 pt-3">
@@ -187,7 +187,7 @@ export const LineItemsEditor = ({ items, onChange, products, disabled, currency 
                       <button
                         type="button"
                         onClick={() => remove(i)}
-                        className="h-7 w-7 inline-flex items-center justify-center text-admin-text-muted hover:text-danger hover:bg-danger/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="h-7 w-7 inline-flex items-center justify-center text-brand-subtle hover:text-danger hover:bg-danger/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <Trash2 size={13} />
                       </button>
@@ -197,13 +197,13 @@ export const LineItemsEditor = ({ items, onChange, products, disabled, currency 
               );
             })}
             {!disabled && (
-              <TableRow className="border-admin-border hover:bg-admin-surface-hover/30 transition-colors">
+              <TableRow className="border-brand-border hover:bg-brand-bg/30 transition-colors">
                 <TableCell colSpan={7} className="p-0">
                   <button
                     ref={(el) => { refs.current['add-line'] = el; }}
                     type="button"
                     onClick={addLine}
-                    className="w-full flex items-center gap-2 px-4 py-3 text-xs font-medium text-admin-text-muted hover:text-zeronix-blue border-t border-dashed border-admin-border transition-colors"
+                    className="w-full flex items-center gap-2 px-4 py-3 text-xs font-medium text-brand-subtle hover:text-brand-accent border-t border-dashed border-brand-border transition-colors"
                   >
                     <Plus size={14} /> Add line
                   </button>
@@ -212,7 +212,7 @@ export const LineItemsEditor = ({ items, onChange, products, disabled, currency 
             )}
             {items.length === 0 && disabled && (
               <TableRow>
-                <TableCell colSpan={7} className="h-32 text-center text-xs text-admin-text-muted opacity-50">
+                <TableCell colSpan={7} className="h-32 text-center text-xs text-brand-subtle opacity-50">
                   No line items.
                 </TableCell>
               </TableRow>
@@ -221,19 +221,19 @@ export const LineItemsEditor = ({ items, onChange, products, disabled, currency 
         </Table>
       </div>
 
-      <div className="border-t border-admin-border bg-admin-bg/20 px-6 py-4 flex justify-end">
+      <div className="border-t border-brand-border bg-brand-bg/20 px-6 py-4 flex justify-end">
         <div className="w-full max-w-xs space-y-2">
-          <div className="flex justify-between text-xs text-admin-text-secondary">
+          <div className="flex justify-between text-xs text-brand-secondary">
             <span>Subtotal</span>
             <span className="font-mono">{totals.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
           </div>
-          <div className="flex justify-between text-xs text-admin-text-secondary">
+          <div className="flex justify-between text-xs text-brand-secondary">
             <span>VAT</span>
             <span className="font-mono">{totals.vat.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
           </div>
-          <div className="flex justify-between items-baseline pt-2 border-t border-admin-border">
-            <span className="text-xs font-semibold uppercase tracking-wide text-admin-text-primary">Total</span>
-            <span className="text-lg font-bold font-mono text-zeronix-blue">
+          <div className="flex justify-between items-baseline pt-2 border-t border-brand-border">
+            <span className="text-xs font-semibold uppercase tracking-wide text-brand-primary">Total</span>
+            <span className="text-lg font-bold font-mono text-brand-accent">
               <CurrencyAmount amount={totals.total} currency={effectiveCurrency} />
             </span>
           </div>

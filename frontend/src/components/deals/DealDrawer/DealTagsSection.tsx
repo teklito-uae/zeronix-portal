@@ -4,6 +4,7 @@ import type { UseMutationResult } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '@/lib/axios';
 import type { Deal, Tag } from '@/types';
+import type { ApiError } from '@/hooks/useApi';
 import { Label } from '@/components/ui/label';
 import { SharedTagBadge } from '@/components/shared/SharedTagBadge';
 import { cn } from '@/lib/utils';
@@ -68,7 +69,7 @@ export const DealTagsSection = ({ deal, attachTag, detachTag }: DealTagsSectionP
       setNewName('');
       toast.success(`Tag "${tag.name}" created`);
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to create tag'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to create tag'),
   });
 
   const dealTags = deal.tags ?? [];

@@ -33,6 +33,21 @@ interface RichTextEditorProps {
   minHeight?: number;
 }
 
+const ToolButton = ({ onClick, active, children, title }: { onClick: () => void; active?: boolean; children: React.ReactNode; title: string }) => (
+  <button
+    type="button"
+    title={title}
+    onMouseDown={(e) => e.preventDefault()}
+    onClick={onClick}
+    className={cn(
+      'h-7 w-7 inline-flex items-center justify-center rounded-md transition-colors',
+      active ? 'bg-brand-accent-light text-brand-accent' : 'text-brand-secondary hover:bg-brand-surface'
+    )}
+  >
+    {children}
+  </button>
+);
+
 /**
  * TipTap rich-text editor with a raw-HTML source toggle and a variable
  * insertion menu. In HTML mode the full document (including table-based
@@ -68,6 +83,7 @@ export const RichTextEditor = ({ value, onChange, minHeight = 360 }: RichTextEdi
       editor.commands.setContent(value || '', { emitUpdate: false });
     }
     if (mode === 'html') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: syncs the TipTap editor instance (external system) and the raw-HTML draft with an externally-changed `value` prop; not derivable via useMemo since it also imperatively calls editor.commands.setContent.
       setHtmlDraft(value);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -111,21 +127,6 @@ export const RichTextEditor = ({ value, onChange, minHeight = 360 }: RichTextEdi
     const url = window.prompt('Image URL', 'https://');
     if (url) editor.chain().focus().setImage({ src: url }).run();
   };
-
-  const ToolButton = ({ onClick, active, children, title }: { onClick: () => void; active?: boolean; children: React.ReactNode; title: string }) => (
-    <button
-      type="button"
-      title={title}
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={onClick}
-      className={cn(
-        'h-7 w-7 inline-flex items-center justify-center rounded-md transition-colors',
-        active ? 'bg-brand-accent-light text-brand-accent' : 'text-brand-secondary hover:bg-brand-surface'
-      )}
-    >
-      {children}
-    </button>
-  );
 
   return (
     <div className="border border-brand-border rounded-lg overflow-hidden bg-brand-white">

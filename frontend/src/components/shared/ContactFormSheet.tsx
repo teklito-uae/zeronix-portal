@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { AxiosError } from 'axios';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import { PartySearch, type PartyOption } from '@/components/shared/PartySearch';
@@ -81,13 +82,13 @@ export const ContactFormSheet = ({ open, onOpenChange, editing, customerId }: Co
   const createMutation = useMutation({
     mutationFn: async () => api.post(`/admin/customers/${form.customer_id}/contacts`, form),
     onSuccess: () => { invalidate(form.customer_id); onOpenChange(false); toast.success('Contact added'); },
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to add contact'),
+    onError: (e: AxiosError<{ message?: string }>) => toast.error(e.response?.data?.message || 'Failed to add contact'),
   });
 
   const updateMutation = useMutation({
     mutationFn: async () => api.put(`/admin/customers/${editing!.customer_id}/contacts/${editing!.id}`, form),
     onSuccess: () => { invalidate(editing?.customer_id); onOpenChange(false); toast.success('Contact updated'); },
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to update contact'),
+    onError: (e: AxiosError<{ message?: string }>) => toast.error(e.response?.data?.message || 'Failed to update contact'),
   });
 
   const handleSave = () => (editing ? updateMutation.mutate() : createMutation.mutate());

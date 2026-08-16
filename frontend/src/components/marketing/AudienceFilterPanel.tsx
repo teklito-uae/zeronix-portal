@@ -3,12 +3,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { User } from '@/types';
+import type { User, PaginatedResponse } from '@/types';
 
 interface AudienceFilterPanelProps {
   source: 'customers' | 'leads' | 'contacts';
-  filters: Record<string, any>;
-  onChange: (filters: Record<string, any>) => void;
+  filters: Record<string, unknown>;
+  onChange: (filters: Record<string, unknown>) => void;
+}
+
+interface CustomerLabel {
+  id: number;
+  name: string;
+  color: string;
 }
 
 const LEAD_STATUSES = ['new', 'contacted', 'qualified', 'unresponsive', 'converted', 'lost'];
@@ -18,13 +24,14 @@ const LEAD_STATUSES = ['new', 'contacted', 'qualified', 'unresponsive', 'convert
  * audience step. Field set depends on the selected source.
  */
 export const AudienceFilterPanel = ({ source, filters, onChange }: AudienceFilterPanelProps) => {
-  const { data: usersData } = useResourceList<User>('users', { per_page: 100 });
-  const { data: labelsData } = useResourceList<{ id: number; name: string; color: string }>('customer-labels', { per_page: 100 });
+  const { data: usersData } = useResourceList<PaginatedResponse<User>>('users', { per_page: 100 });
+  // `/admin/customer-labels` returns a plain array, not the paginated envelope.
+  const { data: labelsData } = useResourceList<CustomerLabel[]>('customer-labels', { per_page: 100 });
 
   const users: User[] = usersData?.data || [];
-  const labels = labelsData?.data || [];
+  const labels = labelsData || [];
 
-  const set = (key: string, value: any) => {
+  const set = (key: string, value: unknown) => {
     const next = { ...filters };
     if (value === '' || value === undefined || value === null || value === 'all' || (Array.isArray(value) && value.length === 0)) {
       delete next[key];
@@ -34,8 +41,8 @@ export const AudienceFilterPanel = ({ source, filters, onChange }: AudienceFilte
     onChange(next);
   };
 
-  const toggleArrayValue = (key: string, value: any) => {
-    const current: any[] = filters[key] || [];
+  const toggleArrayValue = (key: string, value: string | number) => {
+    const current = (Array.isArray(filters[key]) ? filters[key] as (string | number)[] : []);
     set(key, current.includes(value) ? current.filter((v) => v !== value) : [...current, value]);
   };
 
@@ -59,11 +66,11 @@ export const AudienceFilterPanel = ({ source, filters, onChange }: AudienceFilte
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1.5">
           <Label className="text-[12px]">Created after</Label>
-          <Input type="date" value={filters.created_after || ''} onChange={(e) => set('created_after', e.target.value)} className="h-9 text-[13px]" />
+          <Input type="date" value={(filters.created_after as string) || ''} onChange={(e) => set('created_after', e.target.value)} className="h-9 text-[13px]" />
         </div>
         <div className="space-y-1.5">
           <Label className="text-[12px]">Created before</Label>
-          <Input type="date" value={filters.created_before || ''} onChange={(e) => set('created_before', e.target.value)} className="h-9 text-[13px]" />
+          <Input type="date" value={(filters.created_before as string) || ''} onChange={(e) => set('created_before', e.target.value)} className="h-9 text-[13px]" />
         </div>
       </div>
 
@@ -75,7 +82,7 @@ export const AudienceFilterPanel = ({ source, filters, onChange }: AudienceFilte
               {LEAD_STATUSES.map((status) => (
                 <label key={status} className="flex items-center gap-1.5 text-[12px] text-brand-secondary cursor-pointer capitalize">
                   <Checkbox
-                    checked={(filters.status || []).includes(status)}
+                    checked={((filters.status as string[]) || []).includes(status)}
                     onCheckedChange={() => toggleArrayValue('status', status)}
                   />
                   {status}
@@ -85,7 +92,7 @@ export const AudienceFilterPanel = ({ source, filters, onChange }: AudienceFilte
           </div>
           <div className="space-y-1.5">
             <Label className="text-[12px]">Lead source</Label>
-            <Input value={filters.source || ''} onChange={(e) => set('source', e.target.value)} placeholder="e.g. website" className="h-9 text-[13px]" />
+            <Input value={(filters.source as string) || ''} onChange={(e) => set('source', e.target.value)} placeholder="e.g. website" className="h-9 text-[13px]" />
           </div>
           <label className="flex items-center gap-2 text-[12px] text-brand-secondary cursor-pointer pt-6">
             <Checkbox checked={!!filters.exclude_converted} onCheckedChange={(v) => set('exclude_converted', v ? true : '')} />
@@ -98,10 +105,10 @@ export const AudienceFilterPanel = ({ source, filters, onChange }: AudienceFilte
         <div className="space-y-1.5 sm:col-span-2">
           <Label className="text-[12px]">Customer labels</Label>
           <div className="flex flex-wrap gap-3 pt-1">
-            {labels.map((label: any) => (
+            {labels.map((label) => (
               <label key={label.id} className="flex items-center gap-1.5 text-[12px] text-brand-secondary cursor-pointer">
                 <Checkbox
-                  checked={(filters.label_ids || []).includes(label.id)}
+                  checked={((filters.label_ids as number[]) || []).includes(label.id)}
                   onCheckedChange={() => toggleArrayValue('label_ids', label.id)}
                 />
                 <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: label.color }} />
@@ -117,21 +124,21 @@ export const AudienceFilterPanel = ({ source, filters, onChange }: AudienceFilte
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1.5">
               <Label className="text-[12px]">Min outstanding balance</Label>
-              <Input type="number" value={filters.min_outstanding_balance ?? ''} onChange={(e) => set('min_outstanding_balance', e.target.value)} className="h-9 text-[13px]" />
+              <Input type="number" value={(filters.min_outstanding_balance as string) ?? ''} onChange={(e) => set('min_outstanding_balance', e.target.value)} className="h-9 text-[13px]" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-[12px]">Max outstanding balance</Label>
-              <Input type="number" value={filters.max_outstanding_balance ?? ''} onChange={(e) => set('max_outstanding_balance', e.target.value)} className="h-9 text-[13px]" />
+              <Input type="number" value={(filters.max_outstanding_balance as string) ?? ''} onChange={(e) => set('max_outstanding_balance', e.target.value)} className="h-9 text-[13px]" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1.5">
               <Label className="text-[12px]">Last purchase after</Label>
-              <Input type="date" value={filters.last_purchase_after || ''} onChange={(e) => set('last_purchase_after', e.target.value)} className="h-9 text-[13px]" />
+              <Input type="date" value={(filters.last_purchase_after as string) || ''} onChange={(e) => set('last_purchase_after', e.target.value)} className="h-9 text-[13px]" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-[12px]">Last purchase before</Label>
-              <Input type="date" value={filters.last_purchase_before || ''} onChange={(e) => set('last_purchase_before', e.target.value)} className="h-9 text-[13px]" />
+              <Input type="date" value={(filters.last_purchase_before as string) || ''} onChange={(e) => set('last_purchase_before', e.target.value)} className="h-9 text-[13px]" />
             </div>
           </div>
           <label className="flex items-center gap-2 text-[12px] text-brand-secondary cursor-pointer">
@@ -140,7 +147,7 @@ export const AudienceFilterPanel = ({ source, filters, onChange }: AudienceFilte
           </label>
           <div className="space-y-1.5">
             <Label className="text-[12px]">Active since (activity log)</Label>
-            <Input type="date" value={filters.active_after || ''} onChange={(e) => set('active_after', e.target.value)} className="h-9 text-[13px]" />
+            <Input type="date" value={(filters.active_after as string) || ''} onChange={(e) => set('active_after', e.target.value)} className="h-9 text-[13px]" />
           </div>
         </>
       )}

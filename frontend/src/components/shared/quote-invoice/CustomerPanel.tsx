@@ -15,14 +15,29 @@ import { Button } from '@/components/ui/button';
 import { TRANSACTION_CONFIGS, type TransactionType } from '@/lib/transactionTypes';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
 import { CURRENCIES } from '@/lib/currency';
-import type { Customer, CustomerContact, User } from '@/types';
+import type { Customer, CustomerContact, User, Deal, PaginatedResponse } from '@/types';
 import { MapPin, Mail, User as UserIcon, MoreHorizontal, UserPlus } from 'lucide-react';
 import { PhoneFlag } from '@/components/shared/PhoneFlag';
 
+/**
+ * Doc shape read/written by this panel — shared with QuoteInvoiceEditor's
+ * form doc, but this component only cares about the customer/deal/user
+ * fields, accessed partly via `TRANSACTION_CONFIGS`-driven dynamic keys
+ * (`config.party.idField`/`contactIdField`), so it's typed loosely here too.
+ */
+type CustomerPanelDocData = {
+  customer_id?: number;
+  supplier_id?: number;
+  customer_contact_id?: number;
+  deal_id?: number | null;
+  user_id?: number | null;
+  customer?: Customer;
+} & Record<string, unknown>;
+
 interface CustomerPanelProps {
   type: TransactionType;
-  docData: any;
-  onUpdate: (patch: any) => void;
+  docData: CustomerPanelDocData;
+  onUpdate: (patch: Partial<CustomerPanelDocData>) => void;
   disabled?: boolean;
 }
 
@@ -69,7 +84,8 @@ export const CustomerPanel = ({ type, docData, onUpdate, disabled }: CustomerPan
 
   const { data: dealsResponse } = useQuery({
     queryKey: ['deals', partyId, 'for-doc'],
-    queryFn: async () => (await api.get('/admin/deals', { params: { customer_id: partyId, per_page: 100 } })).data,
+    queryFn: async () =>
+      (await api.get<PaginatedResponse<Deal>>('/admin/deals', { params: { customer_id: partyId, per_page: 100 } })).data,
     enabled: !!partyId,
   });
   const dealOptions = dealsResponse?.data || [];
@@ -214,7 +230,7 @@ export const CustomerPanel = ({ type, docData, onUpdate, disabled }: CustomerPan
               <SelectValue placeholder={dealOptions.length === 0 ? 'No projects' : 'Select project…'} />
             </SelectTrigger>
             <SelectContent className="bg-brand-white border-brand-border rounded-lg">
-              {dealOptions.map((d: any) => (
+              {dealOptions.map((d) => (
                 <SelectItem key={d.id} value={String(d.id)} className="text-[12px]">{d.title}</SelectItem>
               ))}
             </SelectContent>

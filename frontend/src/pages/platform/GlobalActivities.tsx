@@ -3,6 +3,7 @@ import { Clock, Info, User as UserIcon, Activity as ActivityIcon } from 'lucide-
 import api from '@/lib/axios';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
+import type { User } from '@/types';
 
 // Native date formatter helper
 const formatActivityDate = (dateStr: string, includeTime: boolean = false) => {
@@ -26,7 +27,7 @@ interface ActivityLog {
   user_id: number;
   action: string;
   description: string;
-  properties: any;
+  properties: { changes?: Record<string, unknown> } | null;
   created_at: string;
   user?: {
     name: string;
@@ -50,10 +51,10 @@ export const GlobalActivities = () => {
       header: 'Timestamp',
       cell: ({ row }) => (
         <div className="flex flex-col">
-          <span className="text-sm font-black text-admin-text-primary uppercase tracking-tighter">
+          <span className="text-sm font-black text-brand-primary uppercase tracking-tighter">
             {formatActivityDate(row.original.created_at)}
           </span>
-          <span className="text-[10px] text-admin-text-muted flex items-center gap-1 font-bold">
+          <span className="text-[10px] text-brand-subtle flex items-center gap-1 font-bold">
             <Clock size={10} className="opacity-50" />
             {formatActivityDate(row.original.created_at, true)}
           </span>
@@ -65,12 +66,12 @@ export const GlobalActivities = () => {
       header: 'Actor',
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-admin-bg border border-admin-border flex items-center justify-center text-admin-text-secondary">
+          <div className="h-8 w-8 rounded-full bg-brand-bg border border-brand-border flex items-center justify-center text-brand-secondary">
             <UserIcon size={14} />
           </div>
           <div>
-            <p className="text-sm font-bold text-admin-text-primary">{row.original.user?.name || 'SYSTEM'}</p>
-            <p className="text-[9px] font-black uppercase tracking-widest text-admin-text-muted">{row.original.user?.role || 'CORE'}</p>
+            <p className="text-sm font-bold text-brand-primary">{row.original.user?.name || 'SYSTEM'}</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-brand-subtle">{row.original.user?.role || 'CORE'}</p>
           </div>
         </div>
       ),
@@ -80,10 +81,10 @@ export const GlobalActivities = () => {
       header: 'Action Detail',
       cell: ({ row }) => (
         <div className="flex items-start gap-2.5 max-w-lg">
-          <div className="mt-0.5 text-zeronix-blue opacity-40">
+          <div className="mt-0.5 text-brand-accent opacity-40">
             <Info size={14} />
           </div>
-          <p className="text-sm font-medium text-admin-text-secondary leading-relaxed">
+          <p className="text-sm font-medium text-brand-secondary leading-relaxed">
             {row.original.description}
           </p>
         </div>
@@ -94,7 +95,7 @@ export const GlobalActivities = () => {
       header: 'Event Type',
       cell: ({ row }) => {
         const action = row.original.action;
-        let colorClass = "bg-admin-bg text-admin-text-muted border-admin-border";
+        let colorClass = "bg-brand-bg text-brand-subtle border-brand-border";
         
         if (action.includes('created')) colorClass = "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
         if (action.includes('updated')) colorClass = "bg-blue-500/10 text-blue-600 border-blue-500/20";
@@ -122,7 +123,7 @@ export const GlobalActivities = () => {
           name: 'user_id',
           label: 'User',
           placeholder: 'All Users',
-          options: usersData?.data?.map((u: any) => ({ label: u.name, value: String(u.id) })) || []
+          options: usersData?.data?.map((u: User) => ({ label: u.name, value: String(u.id) })) || []
         },
         {
           name: 'action',

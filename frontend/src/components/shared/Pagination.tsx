@@ -59,8 +59,8 @@ export const Pagination = ({
           className={cn(
             'h-8 w-8 p-0 rounded-md text-sm font-semibold transition-colors',
             page === i
-              ? 'bg-zeronix-blue text-white hover:bg-zeronix-blue-hover hover:text-white'
-              : 'text-admin-text-secondary hover:bg-admin-surface-hover'
+              ? 'bg-brand-accent text-white hover:bg-brand-accent-hover hover:text-white'
+              : 'text-brand-secondary hover:bg-brand-bg'
           )}
         >
           {i}

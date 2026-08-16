@@ -6,8 +6,11 @@ import { useCurrencyStore } from './store/useCurrencyStore';
 import { AdminLayout } from './components/layout/AdminLayout';
 import { AdminRoute, CustomerRoute } from './components/auth/ProtectedRoute';
 import api from './lib/axios';
+import { isAxiosError } from 'axios';
 import { Loader2 } from 'lucide-react';
 import { UnifiedLogin } from './pages/UnifiedLogin';
+import { ForgotPassword } from './pages/ForgotPassword';
+import { ResetPassword } from './pages/ResetPassword';
 import { CustomerRegister } from './pages/portal/Register';
 import { NotFound } from './pages/NotFound';
 
@@ -166,9 +169,11 @@ function App() {
           try {
             const res = await api.get('/admin/user');
             setAdmin(res.data.user);
-          } catch (err: any) {
-            if (err.response?.status === 401 || err.response?.status === 403) {
-              (localStorage.removeItem('zeronix_admin_token'), localStorage.removeItem('zeronix_staff_token'));
+          } catch (err) {
+            const status = isAxiosError(err) ? err.response?.status : undefined;
+            if (status === 401 || status === 403) {
+              localStorage.removeItem('zeronix_admin_token');
+              localStorage.removeItem('zeronix_staff_token');
               setAdmin(null);
             }
           }
@@ -180,8 +185,9 @@ function App() {
           try {
             const res = await api.get('/customer/user');
             setCustomer(res.data.customer);
-          } catch (err: any) {
-            if (err.response?.status === 401 || err.response?.status === 403) {
+          } catch (err) {
+            const status = isAxiosError(err) ? err.response?.status : undefined;
+            if (status === 401 || status === 403) {
               localStorage.removeItem('zeronix_customer_portal_token');
               setCustomer(null);
             }
@@ -234,7 +240,9 @@ function App() {
     <Routes>
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<UnifiedLogin />} />
-      
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+
       <Route path="/saas-admin/login" element={<UnifiedLogin />} />
       
       <Route path="/register" element={<CustomerRegister />} />

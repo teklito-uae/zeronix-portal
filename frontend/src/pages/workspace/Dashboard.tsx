@@ -40,13 +40,92 @@ import {
 import { cn, timeAgo, toTitleCase } from '@/lib/utils';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
 import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
+import type { Invoice } from '@/types';
 
 import { StatCard } from '@/components/shared/StatCard';
+
+// ── /admin/dashboard response shape ─────────────────────────────────────────
+interface DashboardStats {
+  total_bank_received: number;
+  total_cash_received: number;
+  total_invoiced: number;
+  total_paid: number;
+  pending_quotes: number;
+  total_enquiries: number;
+  active_customers: number;
+  total_users?: number | null;
+  active_users?: number | null;
+  total_products: number;
+}
+
+interface DashboardSalesStats {
+  invoices_today?: number;
+  invoice_value_today?: number;
+  quotes_this_month?: number;
+  new_leads_today?: number;
+  leads_converted_this_month?: number;
+}
+
+interface DashboardRevenuePoint {
+  date: string;
+  bank: number;
+  cash: number;
+}
+
+interface DashboardActivityPoint {
+  name: string;
+  enquiries: number;
+  quotes: number;
+  invoices: number;
+}
+
+interface DashboardRecentActivity {
+  id: number;
+  user_name?: string;
+  description: string;
+  created_at?: string;
+  action?: string;
+}
+
+interface DashboardRecentEnquiry {
+  id: number;
+  customer?: { name?: string } | null;
+  created_at?: string;
+  status?: string;
+}
+
+interface DashboardLeaderboardRow {
+  user_id: number;
+  rank: number;
+  name: string;
+  is_current_user: boolean;
+  invoice_count: number;
+  total_value: number;
+}
+
+interface DashboardUserStat {
+  id: number;
+  name: string;
+  enquiries_count: number;
+  quotes_count: number;
+}
+
+interface DashboardData {
+  stats: DashboardStats;
+  daily_revenue?: DashboardRevenuePoint[];
+  daily_activity?: DashboardActivityPoint[];
+  recent_enquiries?: DashboardRecentEnquiry[];
+  recent_invoices?: Invoice[];
+  recent_activities?: DashboardRecentActivity[];
+  user_stats?: DashboardUserStat[];
+  sales_stats?: DashboardSalesStats;
+  leaderboard?: DashboardLeaderboardRow[];
+}
 
 const SectionHeader = ({ icon, title, action }: { icon: React.ReactNode; title: string; action?: React.ReactNode }) => (
   <div className="px-4 py-4 border-b border-brand-border flex items-center justify-between">
     <div className="flex items-center gap-2 text-[14px] font-semibold text-brand-primary">
-      {React.cloneElement(icon as any, { className: "text-brand-subtle" })}
+      {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "text-brand-subtle" })}
       {title}
     </div>
     {action}
@@ -102,15 +181,15 @@ const AdminDashboard = () => {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin-dashboard'],
-    queryFn: async () => (await api.get(`/admin/dashboard`)).data,
+    queryFn: async () => (await api.get<DashboardData>(`/admin/dashboard`)).data,
     refetchInterval: 60_000,
   });
 
-  const daily_revenue = data?.daily_revenue || [];
+  const daily_revenue = useMemo(() => data?.daily_revenue || [], [data?.daily_revenue]);
 
   const totals = useMemo(() => ({
-    bank: daily_revenue.reduce((acc: number, curr: any) => acc + curr.bank, 0),
-    cash: daily_revenue.reduce((acc: number, curr: any) => acc + curr.cash, 0),
+    bank: daily_revenue.reduce((acc: number, curr: DashboardRevenuePoint) => acc + curr.bank, 0),
+    cash: daily_revenue.reduce((acc: number, curr: DashboardRevenuePoint) => acc + curr.cash, 0),
   }), [daily_revenue]);
 
   const pieData = useMemo(() => [
@@ -182,7 +261,7 @@ const AdminDashboard = () => {
         <div className="bg-brand-white border border-brand-border rounded-xl shadow-sm overflow-hidden">
           <SectionHeader icon={<Trophy size={16} />} title="Team Leaderboard — This Month" />
           <div className="divide-y divide-brand-border/50">
-            {leaderboard.map((row: any) => (
+            {leaderboard.map((row: DashboardLeaderboardRow) => (
               <div
                 key={row.user_id}
                 className={cn(
@@ -375,7 +454,7 @@ const AdminDashboard = () => {
               </div>
             ) : (
               <div className="h-[250px] overflow-y-auto divide-y divide-brand-border/50 custom-scrollbar">
-                {recent_activities?.length > 0 ? recent_activities.map((act: any) => (
+                {(recent_activities?.length ?? 0) > 0 ? recent_activities!.map((act: DashboardRecentActivity) => (
                   <div key={act.id} className="flex items-center gap-3 px-4 py-3 hover:bg-brand-surface transition-colors">
                     <Avatar
                       size={28}
@@ -416,7 +495,7 @@ const AdminDashboard = () => {
                 <span className="text-[14px] font-semibold text-brand-primary">{pct}%</span>
               </div>
               <div className="w-full bg-brand-white rounded-full h-1.5 overflow-hidden">
-                <div className="bg-zeronix-blue h-1.5 rounded-full transition-all duration-700" style={{ width: `${Math.min(pct, 100)}%` }} />
+                <div className="bg-brand-accent h-1.5 rounded-full transition-all duration-700" style={{ width: `${Math.min(pct, 100)}%` }} />
               </div>
               <div className="flex justify-between text-[11px] text-brand-subtle">
                 <span>Paid: <CurrencyAmount amount={stats.total_paid} currency={currency} /></span>
@@ -446,7 +525,7 @@ const AdminDashboard = () => {
                 <p className="text-[11px] text-brand-subtle uppercase tracking-wide flex items-center gap-1 font-medium">
                   <Users size={12} /> Team Performance
                 </p>
-                {user_stats.slice(0, 4).map((u: any) => (
+                {user_stats.slice(0, 4).map((u: DashboardUserStat) => (
                   <div key={u.id} className="flex items-center justify-between py-1">
                     <div className="flex items-center gap-2">
                       <div className="h-6 w-6 rounded-full bg-brand-surface border border-brand-border text-brand-primary text-[10px] font-bold flex items-center justify-center shrink-0">
@@ -477,7 +556,7 @@ const AdminDashboard = () => {
             }
           />
           <div className="divide-y divide-brand-border/50">
-            {(recent_enquiries || []).slice(0, 6).map((enq: any) => (
+            {(recent_enquiries || []).slice(0, 6).map((enq: DashboardRecentEnquiry) => (
               <div
                 key={enq.id}
                 onClick={() => navigate(`${getBasePath()}/enquiries`)}
@@ -487,7 +566,7 @@ const AdminDashboard = () => {
                   <p className="text-[13px] font-medium text-brand-primary">{enq.customer?.name || 'Unknown'}</p>
                   <p className="text-[11px] text-brand-subtle mt-0.5">{enq.created_at ? timeAgo(enq.created_at) : '—'}</p>
                 </div>
-                <StatusBadge status={enq.status} />
+                <StatusBadge status={enq.status || 'new'} />
               </div>
             ))}
             {(!recent_enquiries || recent_enquiries.length === 0) && (
@@ -508,7 +587,7 @@ const AdminDashboard = () => {
             }
           />
           <div className="divide-y divide-brand-border/50">
-            {(recent_invoices || []).slice(0, 6).map((inv: any) => (
+            {(recent_invoices || []).slice(0, 6).map((inv: Invoice) => (
               <div
                 key={inv.id}
                 onClick={() => navigate(`${getBasePath()}/invoices/${inv.id}`)}
@@ -533,7 +612,11 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {isStaff && <ProductivitySuite activities={recent_activities} />}
+      {isStaff && (
+        <ProductivitySuite
+          activities={(recent_activities ?? []).map((act) => ({ ...act, created_at: act.created_at ?? '' }))}
+        />
+      )}
       </>
         )}
       </div>

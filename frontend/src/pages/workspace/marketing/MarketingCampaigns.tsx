@@ -10,6 +10,7 @@ import { Avatar } from '@/components/shared/Avatar';
 import { Send } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/axios';
+import type { AxiosError } from 'axios';
 import type { MarketingCampaign } from '@/types';
 
 const TABS = [
@@ -27,24 +28,14 @@ export const MarketingCampaigns = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('all');
 
-  const duplicate = async (id: number) => {
-    try {
-      const res = await api.post(`/admin/marketing/campaigns/${id}/duplicate`);
-      queryClient.invalidateQueries({ queryKey: ['marketing/campaigns'] });
-      toast.success('Campaign duplicated');
-      navigate(`/workspace/marketing/campaigns/${res.data.id}/edit`);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to duplicate campaign');
-    }
-  };
-
   const remove = async (id: number) => {
     try {
       await api.delete(`/admin/marketing/campaigns/${id}`);
       queryClient.invalidateQueries({ queryKey: ['marketing/campaigns'] });
       toast.success('Campaign deleted');
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to delete campaign');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Failed to delete campaign');
     }
   };
 

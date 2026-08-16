@@ -45,11 +45,11 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { normalizeQIAItems, type QIALineItem } from './types';
 import api from '@/lib/axios';
+import type { AxiosError } from 'axios';
 import { TRANSACTION_CONFIGS, type TransactionType, type TransactionConversionConfig } from '@/lib/transactionTypes';
 import { computeDocTotals } from '@/lib/lineItemMath';
-import type { Product } from '@/types';
+import type { Product, Customer, QuoteAttachment } from '@/types';
 import {
-  ArrowLeft,
   Loader2,
   Lock,
   Calendar,
@@ -60,10 +60,10 @@ import {
   Copy,
   Trash2,
   ChevronRight,
-  FileText,
   ChevronUp,
   Check,
 } from 'lucide-react';
+import type { ComponentType } from 'react';
 import { toast } from 'sonner';
 
 interface QuoteInvoiceEditorProps {
@@ -72,15 +72,47 @@ interface QuoteInvoiceEditorProps {
   isNew: boolean;
 }
 
-const PAYMENT_TERMS_OPTIONS = [
-  'Due on Receipt',
-  'Net 7',
-  'Net 15',
-  'Net 30',
-  'Net 45',
-  'Net 60',
-  '50% Advance, 50% on Delivery',
-];
+const ActionRow = ({ icon: Icon, label, onClick, disabled }: { icon: ComponentType<{ size?: number; className?: string }>; label: string; onClick: () => void; disabled?: boolean }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[12px] font-medium text-brand-primary hover:bg-brand-bg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+  >
+    <Icon size={15} className="text-brand-subtle flex-shrink-0" />
+    <span className="flex-1 text-left">{label}</span>
+    <ChevronRight size={13} className="text-brand-subtle flex-shrink-0" />
+  </button>
+);
+
+/**
+ * Form doc shared by the Quote and Invoice editor. Most fields overlap
+ * between the two document types, but a few are read/written via
+ * `TRANSACTION_CONFIGS`-driven dynamic keys (`config.numberField`,
+ * `config.party.idField`, `config.dateFields[0].key`), so those resolve to
+ * `unknown` and are narrowed at the point of use.
+ */
+type QuoteInvoiceFormData = {
+  id?: number;
+  status?: string;
+  customer_id?: number;
+  customer_contact_id?: number;
+  deal_id?: number | null;
+  user_id?: number | null;
+  date?: string;
+  notes?: string | null;
+  terms?: string | null;
+  discount_percent?: number;
+  shipping_amount?: number;
+  reference_id?: string | null;
+  tags?: string[] | null;
+  attachments?: QuoteAttachment[] | null;
+  customer?: Customer;
+  amount_paid?: number;
+  payment_status?: string;
+  created_at?: string;
+  updated_at?: string;
+} & Record<string, unknown>;
 
 /**
  * Modern create/edit shell for Quotes and Invoices — a redesigned sibling of
@@ -105,8 +137,8 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
 
-  const buildDefaultDoc = () => {
-    const base: any = {
+  const buildDefaultDoc = (): QuoteInvoiceFormData => {
+    const base: QuoteInvoiceFormData = {
       status: config.defaultStatus,
       [config.party.idField]: undefined,
       date: new Date().toISOString().split('T')[0],
@@ -123,13 +155,15 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
     return base;
   };
 
-  const [docData, setDocData] = useState<any>(buildDefaultDoc);
+  const [docData, setDocData] = useState<QuoteInvoiceFormData>(buildDefaultDoc);
   const [items, setItems] = useState<QIALineItem[]>([]);
   const [showNotes, setShowNotes] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [showActions, setShowActions] = useState(false);
 
-  const docLabel = isNew ? config.newTitle : (docData[config.numberField] || `#${id}`);
+  const numberFieldValue = docData[config.numberField];
+  const displayNumber = typeof numberFieldValue === 'string' || typeof numberFieldValue === 'number' ? numberFieldValue : undefined;
+  const docLabel = isNew ? config.newTitle : String(displayNumber || `#${id}`);
 
   useBreadcrumb([
     { label: config.pluralLabel, href: `${getBasePath()}/${config.listRoute}` },
@@ -153,8 +187,8 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
     staleTime: 30_000,
   });
 
-  const updateDoc = (patch: any) => {
-    setDocData((prev: any) => ({ ...prev, ...patch }));
+  const updateDoc = (patch: Partial<QuoteInvoiceFormData>) => {
+    setDocData((prev) => ({ ...prev, ...patch }));
     setIsDirty(true);
   };
 
@@ -166,10 +200,10 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
   const fetchDocument = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`/admin/${config.apiBase}/${id}`);
+      const response = await api.get<QuoteInvoiceFormData>(`/admin/${config.apiBase}/${id}`);
       const data = response.data;
       setDocData(data);
-      setItems(normalizeQIAItems(data.items || []));
+      setItems(normalizeQIAItems((data.items as Record<string, unknown>[]) || []));
       setIsDirty(false);
       setSavedAt(data.updated_at ? new Date(data.updated_at) : (data.created_at ? new Date(data.created_at) : null));
       if (data.notes) setShowNotes(true);
@@ -182,6 +216,7 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: fetchDocument loads the doc keyed by the route `id` and populates form state; this is a data fetch on mount/navigation, not state derivable from props/render.
     if (!isNew && id) fetchDocument();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isNew]);
@@ -197,7 +232,10 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
   // enforced server-side too (InvoiceController::update/quickUpdate).
   const hasPayment = type === 'invoice' && Number(docData.amount_paid) > 0;
 
-  const persist = async (overrides: any = {}, { skipNavigate = false }: { skipNavigate?: boolean } = {}): Promise<any | null> => {
+  const persist = async (
+    overrides: Partial<QuoteInvoiceFormData> = {},
+    { skipNavigate = false }: { skipNavigate?: boolean } = {}
+  ): Promise<QuoteInvoiceFormData | null> => {
     if (!docData[config.party.idField]) {
       toast.error(`Please select a ${config.party.label.toLowerCase()} first.`);
       return null;
@@ -214,12 +252,12 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
     try {
       const payload = { ...docData, ...overrides, items };
       const response = isNew
-        ? await api.post(`/admin/${config.apiBase}`, payload)
-        : await api.put(`/admin/${config.apiBase}/${id}`, payload);
+        ? await api.post<QuoteInvoiceFormData>(`/admin/${config.apiBase}`, payload)
+        : await api.put<QuoteInvoiceFormData>(`/admin/${config.apiBase}/${id}`, payload);
       const saved = response.data;
       toast.success(isNew ? `${config.label} created successfully.` : `${docLabel} updated.`);
       setDocData(saved);
-      setItems(normalizeQIAItems(saved.items || items));
+      setItems(normalizeQIAItems((saved.items as Record<string, unknown>[]) || items));
       setIsDirty(false);
       setSavedAt(new Date());
       config.invalidateQueries.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
@@ -227,8 +265,9 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
         navigate(`${getBasePath()}/${config.listRoute}/${saved.id}`, { replace: true });
       }
       return saved;
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Save failed. Please check the form.');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Save failed. Please check the form.');
       return null;
     } finally {
       setSaving(false);
@@ -247,8 +286,9 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
       await api.post(`/admin/${config.apiBase}/${doc.id}/send-email`);
       toast.success(`${config.label} sent.`);
       config.invalidateQueries.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to send email.');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Failed to send email.');
     } finally {
       setSending(false);
     }
@@ -262,8 +302,9 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
       toast.success(`${config.label} duplicated.`);
       config.invalidateQueries.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
       navigate(`${getBasePath()}/${config.listRoute}/${res.data.id}`);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Duplicate failed.');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Duplicate failed.');
     } finally {
       setDuplicating(false);
     }
@@ -277,8 +318,9 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
       toast.success(`${config.label} deleted.`);
       config.invalidateQueries.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
       navigate(`${getBasePath()}/${config.listRoute}`);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Delete failed.');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Delete failed.');
     }
   };
 
@@ -311,8 +353,9 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
       toast.success(`${conversion.label} succeeded.`);
       config.invalidateQueries.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
       navigate(`${getBasePath()}${conversion.resultRoute(res.data)}`);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Conversion failed.');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Conversion failed.');
     }
   };
 
@@ -335,11 +378,6 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
     if (saved) goToList();
   };
 
-  const handleBackClick = () => {
-    if (isDirty) setLeaveConfirmOpen(true);
-    else goToList();
-  };
-
   const handleDiscardAndLeave = () => {
     setLeaveConfirmOpen(false);
     goToList();
@@ -358,19 +396,6 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
   const sendLabel = type === 'quote' ? 'Send Quote' : 'Send Invoice';
   const attachments = docData.attachments || [];
 
-  const ActionRow = ({ icon: Icon, label, onClick, disabled }: { icon: any; label: string; onClick: () => void; disabled?: boolean }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[12px] font-medium text-brand-primary hover:bg-brand-bg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-    >
-      <Icon size={15} className="text-brand-subtle flex-shrink-0" />
-      <span className="flex-1 text-left">{label}</span>
-      <ChevronRight size={13} className="text-brand-subtle flex-shrink-0" />
-    </button>
-  );
-
   useTopbarActions(
     (loading && !isNew && !docData.id) ? null : (
       <div className="flex items-center gap-3">
@@ -385,7 +410,7 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {canPreview ? (
-            <DownloadButton id={docData.id} type={type as 'quote' | 'invoice'} mode="view" variant="outline" label="Preview" />
+            <DownloadButton id={docData.id!} type={type as 'quote' | 'invoice'} mode="view" variant="outline" label="Preview" />
           ) : (
             <Button variant="outline" size="sm" disabled className="h-8 px-3 rounded-lg text-[12px] font-medium border-brand-border">
               <Eye size={13} className="mr-1.5" /> Preview
@@ -455,7 +480,7 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
                   <div className="relative">
                     <Input
                       readOnly
-                      value={!isNew ? (docData[config.numberField] || '') : (nextNumberPreview || '')}
+                      value={!isNew ? (displayNumber || '') : (nextNumberPreview || '')}
                       placeholder="Auto-generated"
                       className="h-9 bg-brand-bg/50 border-brand-border rounded-lg text-[13px] pr-8 text-brand-primary font-medium"
                     />
@@ -474,20 +499,24 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
                     className="h-9 bg-brand-bg/50 border-brand-border rounded-lg text-[13px] text-brand-primary"
                   />
                 </div>
-                {config.dateFields[0] && (
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-medium text-brand-subtle flex items-center gap-1.5">
-                      <Calendar size={12} className="opacity-70" /> {config.dateFields[0].label}
-                    </label>
-                    <Input
-                      type="date"
-                      value={docData[config.dateFields[0].key] ? docData[config.dateFields[0].key].split('T')[0] : ''}
-                      onChange={(e) => updateDoc({ [config.dateFields[0].key]: e.target.value })}
-                      disabled={isLocked}
-                      className="h-9 bg-brand-bg/50 border-brand-border rounded-lg text-[13px] text-brand-primary"
-                    />
-                  </div>
-                )}
+                {config.dateFields[0] && (() => {
+                  const rawValue = docData[config.dateFields[0].key];
+                  const fieldValue = typeof rawValue === 'string' ? rawValue : '';
+                  return (
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-medium text-brand-subtle flex items-center gap-1.5">
+                        <Calendar size={12} className="opacity-70" /> {config.dateFields[0].label}
+                      </label>
+                      <Input
+                        type="date"
+                        value={fieldValue ? fieldValue.split('T')[0] : ''}
+                        onChange={(e) => updateDoc({ [config.dateFields[0].key]: e.target.value })}
+                        disabled={isLocked}
+                        className="h-9 bg-brand-bg/50 border-brand-border rounded-lg text-[13px] text-brand-primary"
+                      />
+                    </div>
+                  );
+                })()}
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-medium text-brand-subtle">Reference / Subject</label>
                   <Input
@@ -566,7 +595,7 @@ export const QuoteInvoiceEditor = ({ type, id, isNew }: QuoteInvoiceEditorProps)
               <p className="text-[14px] font-semibold text-brand-primary">{config.label} Status</p>
               {hasPayment ? (
                 <div className="flex items-center gap-2 h-9">
-                  <StatusBadge status={docData.payment_status} />
+                  <StatusBadge status={docData.payment_status || ''} />
                   <span className="text-[11px] text-brand-subtle">Set by payment</span>
                 </div>
               ) : (

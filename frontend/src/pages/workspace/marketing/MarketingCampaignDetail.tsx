@@ -34,6 +34,19 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import type { MarketingCampaign, MarketingRecipient } from '@/types';
+import type { AxiosError } from 'axios';
+
+interface CampaignTimelinePoint {
+  hour?: string;
+  sent?: number;
+  opens?: number;
+  clicks?: number;
+}
+
+interface CampaignTopLink {
+  url: string;
+  clicks: number;
+}
 
 export const MarketingCampaignDetail = () => {
   const { id } = useParams();
@@ -75,8 +88,9 @@ export const MarketingCampaignDetail = () => {
       toast.success(res.data.message);
       queryClient.invalidateQueries({ queryKey: ['marketing/campaigns', id] });
       queryClient.invalidateQueries({ queryKey: ['marketing/campaigns'] });
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Action failed');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Action failed');
     } finally {
       setConfirmAction(null);
     }
@@ -87,8 +101,9 @@ export const MarketingCampaignDetail = () => {
       await api.post(`/admin/marketing/queue/${recipientId}/retry`);
       toast.success('Queued for retry');
       queryClient.invalidateQueries({ queryKey: ['marketing/campaigns', id, 'recipients'] });
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to retry');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Failed to retry');
     }
   };
 
@@ -101,7 +116,7 @@ export const MarketingCampaignDetail = () => {
   }
 
   const rates = report?.rates || {};
-  const timeline = (report?.timeline || []).map((row: any) => ({ ...row, hour: row.hour?.slice(5, 16) }));
+  const timeline = ((report?.timeline || []) as CampaignTimelinePoint[]).map((row) => ({ ...row, hour: row.hour?.slice(5, 16) }));
   const recipients: MarketingRecipient[] = recipientsData?.data || [];
 
   return (
@@ -261,7 +276,7 @@ export const MarketingCampaignDetail = () => {
             <div className="bg-brand-white border border-brand-border rounded-xl p-4 mt-4">
               <h3 className="text-[13px] font-semibold text-brand-primary mb-3">Top Clicked Links</h3>
               <div className="space-y-2">
-                {report.top_links.map((link: any) => (
+                {(report.top_links as CampaignTopLink[]).map((link) => (
                   <div key={link.url} className="flex items-center justify-between text-[12px]">
                     <span className="text-brand-secondary truncate max-w-[70%]">{link.url}</span>
                     <span className="font-semibold text-brand-primary">{link.clicks}</span>

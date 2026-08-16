@@ -1,10 +1,15 @@
-import type { EditableLineItem } from '@/components/shared/LineItemsEditor';
-
 export interface LineItemLike {
   quantity: number | string;
   unit_price: number | string;
   tax_percent?: number | string;
   discount_percent?: number | string;
+}
+
+interface NormalizableLineItem {
+  quantity: number | string;
+  unit_price: number | string;
+  total?: number | string;
+  tax_percent?: number | string;
 }
 
 export const computeLineTotal = (
@@ -59,8 +64,10 @@ export const computeDocTotals = (
   return { subtotal, discountAmount, vat, shippingAmount, total };
 };
 
-export const normalizeLineItems = (items: any[]): EditableLineItem[] =>
-  items.map((item: any) => ({
+export const normalizeLineItems = <T extends NormalizableLineItem>(
+  items: T[]
+): (T & { quantity: number; unit_price: number; total: number; tax_percent: number })[] =>
+  items.map((item) => ({
     ...item,
     quantity: Number(item.quantity),
     unit_price: Number(item.unit_price),

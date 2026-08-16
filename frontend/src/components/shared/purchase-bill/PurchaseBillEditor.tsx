@@ -43,9 +43,10 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { normalizeQIAItems, type QIALineItem } from '@/components/shared/quote-invoice/types';
 import api from '@/lib/axios';
+import type { AxiosError } from 'axios';
 import { TRANSACTION_CONFIGS } from '@/lib/transactionTypes';
 import { computeDocTotals } from '@/lib/lineItemMath';
-import type { Product, SupplierProduct } from '@/types';
+import type { Product, SupplierProduct, PurchaseBill } from '@/types';
 import {
   Loader2,
   Calendar,
@@ -57,6 +58,7 @@ import {
   ChevronRight,
   ChevronUp,
   Check,
+  type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -64,6 +66,15 @@ interface PurchaseBillEditorProps {
   id?: string;
   isNew: boolean;
 }
+
+/**
+ * Form doc for the Purchase Bill editor. Most fields come straight from
+ * `PurchaseBill`, but a couple are read/written via `TRANSACTION_CONFIGS`-driven
+ * dynamic keys (`config.numberField`, `config.dateFields[0].key`) shared with
+ * the other transaction editors, so those resolve to `unknown` and are
+ * narrowed at the point of use.
+ */
+type PurchaseBillFormData = Omit<Partial<PurchaseBill>, 'status'> & { status?: string } & Record<string, unknown>;
 
 const config = TRANSACTION_CONFIGS['purchase-bill'];
 
@@ -87,7 +98,7 @@ export const PurchaseBillEditor = ({ id, isNew }: PurchaseBillEditorProps) => {
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [supplierProducts, setSupplierProducts] = useState<SupplierProduct[]>([]);
 
-  const buildDefaultDoc = () => ({
+  const buildDefaultDoc = (): PurchaseBillFormData => ({
     status: config.defaultStatus,
     supplier_id: undefined,
     date: new Date().toISOString().split('T')[0],
@@ -101,13 +112,15 @@ export const PurchaseBillEditor = ({ id, isNew }: PurchaseBillEditorProps) => {
     attachments: [],
   });
 
-  const [docData, setDocData] = useState<any>(buildDefaultDoc);
+  const [docData, setDocData] = useState<PurchaseBillFormData>(buildDefaultDoc);
   const [items, setItems] = useState<QIALineItem[]>([]);
   const [showNotes, setShowNotes] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [showActions, setShowActions] = useState(false);
 
-  const docLabel = isNew ? config.newTitle : (docData[config.numberField] || `#${id}`);
+  const numberFieldValue = docData[config.numberField];
+  const displayNumber = typeof numberFieldValue === 'string' || typeof numberFieldValue === 'number' ? numberFieldValue : undefined;
+  const docLabel = isNew ? config.newTitle : String(displayNumber || `#${id}`);
 
   useBreadcrumb([
     { label: config.pluralLabel, href: `${getBasePath()}/${config.listRoute}` },
@@ -137,8 +150,8 @@ export const PurchaseBillEditor = ({ id, isNew }: PurchaseBillEditorProps) => {
     return map;
   }, [supplierProducts]);
 
-  const updateDoc = (patch: any) => {
-    setDocData((prev: any) => ({ ...prev, ...patch }));
+  const updateDoc = (patch: Partial<PurchaseBillFormData>) => {
+    setDocData((prev) => ({ ...prev, ...patch }));
     setIsDirty(true);
   };
 
@@ -150,10 +163,10 @@ export const PurchaseBillEditor = ({ id, isNew }: PurchaseBillEditorProps) => {
   const fetchDocument = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`/admin/${config.apiBase}/${id}`);
+      const response = await api.get<PurchaseBillFormData>(`/admin/${config.apiBase}/${id}`);
       const data = response.data;
       setDocData(data);
-      setItems(normalizeQIAItems(data.items || []));
+      setItems(normalizeQIAItems((data.items as unknown as Record<string, unknown>[]) || []));
       setIsDirty(false);
       setSavedAt(data.updated_at ? new Date(data.updated_at) : (data.created_at ? new Date(data.created_at) : null));
       if (data.notes) setShowNotes(true);
@@ -175,7 +188,10 @@ export const PurchaseBillEditor = ({ id, isNew }: PurchaseBillEditorProps) => {
     shippingAmount: Number(docData.shipping_amount) || 0,
   }), [items, docData.discount_percent, docData.shipping_amount]);
 
-  const persist = async (overrides: any = {}, { skipNavigate = false }: { skipNavigate?: boolean } = {}): Promise<any | null> => {
+  const persist = async (
+    overrides: Partial<PurchaseBillFormData> = {},
+    { skipNavigate = false }: { skipNavigate?: boolean } = {}
+  ): Promise<PurchaseBillFormData | null> => {
     if (!docData.supplier_id) {
       toast.error('Please select a supplier first.');
       return null;
@@ -192,12 +208,12 @@ export const PurchaseBillEditor = ({ id, isNew }: PurchaseBillEditorProps) => {
     try {
       const payload = { ...docData, ...overrides, items };
       const response = isNew
-        ? await api.post(`/admin/${config.apiBase}`, payload)
-        : await api.put(`/admin/${config.apiBase}/${id}`, payload);
+        ? await api.post<PurchaseBillFormData>(`/admin/${config.apiBase}`, payload)
+        : await api.put<PurchaseBillFormData>(`/admin/${config.apiBase}/${id}`, payload);
       const saved = response.data;
       toast.success(isNew ? `${config.label} created successfully.` : `${docLabel} updated.`);
       setDocData(saved);
-      setItems(normalizeQIAItems(saved.items || items));
+      setItems(normalizeQIAItems((saved.items as unknown as Record<string, unknown>[]) || items));
       setIsDirty(false);
       setSavedAt(new Date());
       config.invalidateQueries.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
@@ -205,8 +221,9 @@ export const PurchaseBillEditor = ({ id, isNew }: PurchaseBillEditorProps) => {
         navigate(`${getBasePath()}/${config.listRoute}/${saved.id}`, { replace: true });
       }
       return saved;
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Save failed. Please check the form.');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Save failed. Please check the form.');
       return null;
     } finally {
       setSaving(false);
@@ -217,12 +234,13 @@ export const PurchaseBillEditor = ({ id, isNew }: PurchaseBillEditorProps) => {
     if (!docData.id) return;
     setDuplicating(true);
     try {
-      const res = await api.post(`/admin/${config.apiBase}/${docData.id}/duplicate`);
+      const res = await api.post<{ id: number }>(`/admin/${config.apiBase}/${docData.id}/duplicate`);
       toast.success(`${config.label} duplicated.`);
       config.invalidateQueries.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
       navigate(`${getBasePath()}/${config.listRoute}/${res.data.id}`);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Duplicate failed.');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Duplicate failed.');
     } finally {
       setDuplicating(false);
     }
@@ -236,8 +254,9 @@ export const PurchaseBillEditor = ({ id, isNew }: PurchaseBillEditorProps) => {
       toast.success(`${config.label} deleted.`);
       config.invalidateQueries.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
       navigate(`${getBasePath()}/${config.listRoute}`);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Delete failed.');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Delete failed.');
     }
   };
 
@@ -293,7 +312,7 @@ export const PurchaseBillEditor = ({ id, isNew }: PurchaseBillEditorProps) => {
   const canPreview = !!docData.id;
   const attachments = docData.attachments || [];
 
-  const ActionRow = ({ icon: Icon, label, onClick, disabled }: { icon: any; label: string; onClick: () => void; disabled?: boolean }) => (
+  const ActionRow = ({ icon: Icon, label, onClick, disabled }: { icon: LucideIcon; label: string; onClick: () => void; disabled?: boolean }) => (
     <button
       type="button"
       onClick={onClick}
@@ -320,7 +339,7 @@ export const PurchaseBillEditor = ({ id, isNew }: PurchaseBillEditorProps) => {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {canPreview ? (
-            <DownloadButton id={docData.id} type="purchase-bill" mode="view" variant="outline" label="Preview" />
+            <DownloadButton id={docData.id!} type="purchase-bill" mode="view" variant="outline" label="Preview" />
           ) : (
             <Button variant="outline" size="sm" disabled className="h-8 px-3 rounded-lg text-[12px] font-medium border-brand-border">
               <Eye size={13} className="mr-1.5" /> Preview
@@ -386,7 +405,7 @@ export const PurchaseBillEditor = ({ id, isNew }: PurchaseBillEditorProps) => {
                   <div className="relative">
                     <Input
                       readOnly
-                      value={!isNew ? (docData[config.numberField] || '') : (nextNumberPreview || '')}
+                      value={!isNew ? (displayNumber || '') : (nextNumberPreview || '')}
                       placeholder="Auto-generated"
                       className="h-9 bg-brand-bg/50 border-brand-border rounded-lg text-[13px] pr-8 text-brand-primary font-medium"
                     />
@@ -409,7 +428,10 @@ export const PurchaseBillEditor = ({ id, isNew }: PurchaseBillEditorProps) => {
                   </label>
                   <Input
                     type="date"
-                    value={docData[config.dateFields[0].key] ? docData[config.dateFields[0].key].split('T')[0] : ''}
+                    value={(() => {
+                      const raw = docData[config.dateFields[0].key];
+                      return typeof raw === 'string' ? raw.split('T')[0] : '';
+                    })()}
                     onChange={(e) => updateDoc({ [config.dateFields[0].key]: e.target.value })}
                     className="h-9 bg-brand-bg/50 border-brand-border rounded-lg text-[13px] text-brand-primary"
                   />

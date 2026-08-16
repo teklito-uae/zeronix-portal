@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Logo } from '@/components/shared/Logo';
 import { PhoneInput } from '@/components/shared/PhoneInput';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import {
   CheckCircle2, Eye, EyeOff, Mail, Clock,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { isAxiosError } from 'axios';
 import api from '@/lib/axios';
 
 const STEPS = [
@@ -36,7 +37,6 @@ const INDUSTRIES = [
 ];
 
 export const CustomerRegister = () => {
-  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -100,9 +100,10 @@ export const CustomerRegister = () => {
       });
 
       setSubmitted(true);
-    } catch (err: any) {
+    } catch (err) {
+      const message = isAxiosError<{ message?: string }>(err) ? err.response?.data?.message : undefined;
       toast.error('Registration Failed', {
-        description: err.response?.data?.message || 'Please check your inputs and try again.'
+        description: message || 'Please check your inputs and try again.'
       });
     } finally {
       setLoading(false);

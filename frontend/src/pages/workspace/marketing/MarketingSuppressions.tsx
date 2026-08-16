@@ -20,6 +20,7 @@ import {
 import { Plus, Ban } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/axios';
+import type { AxiosError } from 'axios';
 import type { MarketingSuppression } from '@/types';
 
 const TYPE_LABELS: Record<string, string> = {
@@ -54,8 +55,9 @@ export const MarketingSuppressions = () => {
               await api.delete(`/admin/marketing/suppressions/${row.original.id}`);
               queryClient.invalidateQueries({ queryKey: ['marketing/suppressions'] });
               toast.success('Suppression removed');
-            } catch (err: any) {
-              toast.error(err.response?.data?.message || 'Failed to remove suppression');
+            } catch (err) {
+              const axiosErr = err as AxiosError<{ message?: string }>;
+              toast.error(axiosErr.response?.data?.message || 'Failed to remove suppression');
             }
           }}
         />
@@ -71,14 +73,15 @@ export const MarketingSuppressions = () => {
     }
     setSaving(true);
     try {
-      const res = await api.post('/admin/marketing/suppressions', { kind, values: list, notes: notes || undefined });
+      const res = await api.post<{ message?: string }>('/admin/marketing/suppressions', { kind, values: list, notes: notes || undefined });
       toast.success(res.data.message);
       queryClient.invalidateQueries({ queryKey: ['marketing/suppressions'] });
       setDialogOpen(false);
       setValues('');
       setNotes('');
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to add suppressions');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Failed to add suppressions');
     } finally {
       setSaving(false);
     }
@@ -114,7 +117,7 @@ export const MarketingSuppressions = () => {
           <div className="flex-1 overflow-y-auto space-y-3 p-6">
             <div className="space-y-1.5">
               <Label className="text-[12px]">Kind</Label>
-              <Select value={kind} onValueChange={(v) => setKind(v as any)}>
+              <Select value={kind} onValueChange={(v: 'email' | 'domain') => setKind(v)}>
                 <SelectTrigger className="h-9 text-[13px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="email" className="text-[13px]">Email addresses</SelectItem>

@@ -5,9 +5,9 @@ import { MarketingLayout } from '@/components/marketing/MarketingLayout';
 import { PageLoader } from '@/components/shared/PageLoader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Pagination } from '@/components/shared/Pagination';
-import { Activity as ActivityIcon, Send, MousePointerClick, Radio, UserMinus, AlertTriangle } from 'lucide-react';
+import { Activity as ActivityIcon, Send, MousePointerClick, Radio, UserMinus, AlertTriangle, type LucideIcon } from 'lucide-react';
 
-const ICONS: Record<string, any> = {
+const ICONS: Record<string, LucideIcon> = {
   sent: Send,
   open: Radio,
   click: MousePointerClick,
@@ -16,13 +16,28 @@ const ICONS: Record<string, any> = {
   failure: AlertTriangle,
 };
 
+interface ActivityItem {
+  id: number;
+  kind: string;
+  action: string;
+  description?: string;
+  user?: string;
+  created_at: string;
+}
+
+interface ActivityResponse {
+  data: ActivityItem[];
+  total?: number;
+  last_page?: number;
+}
+
 export const MarketingActivity = () => {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
 
   const { data, isLoading } = useQuery({
     queryKey: ['marketing/activity', page, perPage],
-    queryFn: async () => (await api.get('/admin/marketing/activity', { params: { page, per_page: perPage } })).data,
+    queryFn: async () => (await api.get<ActivityResponse>('/admin/marketing/activity', { params: { page, per_page: perPage } })).data,
     refetchInterval: 20000,
   });
 
@@ -36,7 +51,7 @@ export const MarketingActivity = () => {
         <EmptyState icon={ActivityIcon} title="No activity yet" description="Admin actions and send events will appear here." />
       ) : (
         <div className="bg-brand-white border border-brand-border rounded-xl divide-y divide-brand-border">
-          {items.map((item: any) => {
+          {items.map((item: ActivityItem) => {
             const Icon = item.kind === 'event' ? ICONS[item.action] || ActivityIcon : ActivityIcon;
             return (
               <div key={item.id} className="flex items-start gap-3 px-4 py-3">

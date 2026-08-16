@@ -25,7 +25,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useQuery } from '@tanstack/react-query';
-import type { Customer, Product } from '@/types';
+import type { AxiosError } from 'axios';
+import type { Customer, Product, Delivery, DeliveryItem } from '@/types';
 import { ArrowLeft, Save, Plus, Trash2, Loader2, Calendar, User, Truck, CheckCircle2, FileCheck2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -33,6 +34,8 @@ interface DeliveryEditorProps {
   id?: string;
   isNew: boolean;
 }
+
+type DeliveryLineItem = Partial<DeliveryItem> & { product_name?: string; quantity: number };
 
 /**
  * Delivery Editor. Stock only moves when a delivery is explicitly marked
@@ -43,14 +46,14 @@ export const DeliveryEditor = ({ id, isNew }: DeliveryEditorProps) => {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
 
-  const [docData, setDocData] = useState<any>({
+  const [docData, setDocData] = useState<Partial<Delivery>>({
     status: 'pending',
     customer_id: undefined,
     delivery_date: new Date().toISOString().split('T')[0],
     notes: '',
   });
 
-  const [items, setItems] = useState<any[]>([{ product_id: undefined, product_name: '', quantity: 1 }]);
+  const [items, setItems] = useState<DeliveryLineItem[]>([{ product_id: undefined, product_name: '', quantity: 1 }]);
 
   const docLabel = isNew ? 'New Delivery' : (docData.delivery_number || `#${id}`);
 
@@ -76,9 +79,9 @@ export const DeliveryEditor = ({ id, isNew }: DeliveryEditorProps) => {
   const fetchDocument = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`/admin/deliveries/${id}`);
+      const response = await api.get<Delivery>(`/admin/deliveries/${id}`);
       setDocData(response.data);
-      setItems((response.data.items || []).map((item: any) => ({ ...item, quantity: Number(item.quantity) })));
+      setItems((response.data.items || []).map((item) => ({ ...item, quantity: Number(item.quantity) })));
     } catch {
       toast.error('Failed to load delivery');
     } finally {
@@ -103,8 +106,9 @@ export const DeliveryEditor = ({ id, isNew }: DeliveryEditorProps) => {
       }
       queryClient.invalidateQueries({ queryKey: ['deliveries'] });
       navigate(`${getBasePath()}/deliveries`);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Transaction failed. Please verify all fields.');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Transaction failed. Please verify all fields.');
     } finally {
       setLoading(false);
     }
@@ -113,13 +117,14 @@ export const DeliveryEditor = ({ id, isNew }: DeliveryEditorProps) => {
   const handleMarkDelivered = async () => {
     setLoading(true);
     try {
-      const res = await api.post(`/admin/deliveries/${id}/mark-delivered`);
-      setDocData((prev: any) => ({ ...prev, ...res.data }));
+      const res = await api.post<Partial<Delivery>>(`/admin/deliveries/${id}/mark-delivered`);
+      setDocData((prev) => ({ ...prev, ...res.data }));
       queryClient.invalidateQueries({ queryKey: ['deliveries'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
       toast.success('Delivery marked as delivered — stock updated.');
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to mark delivered.');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Failed to mark delivered.');
     } finally {
       setLoading(false);
     }
@@ -128,12 +133,13 @@ export const DeliveryEditor = ({ id, isNew }: DeliveryEditorProps) => {
   const handleConvertToInvoice = async () => {
     setLoading(true);
     try {
-      const res = await api.post(`/admin/deliveries/${id}/convert-to-invoice`);
+      const res = await api.post<{ id: number }>(`/admin/deliveries/${id}/convert-to-invoice`);
       toast.success('Invoice created.');
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       navigate(`${getBasePath()}/invoices/${res.data.id}`);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to create invoice.');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Failed to create invoice.');
     } finally {
       setLoading(false);
     }
@@ -142,7 +148,7 @@ export const DeliveryEditor = ({ id, isNew }: DeliveryEditorProps) => {
   const linkedInvoice = docData.invoice || docData.invoices?.[0];
   const canInvoice = !isNew && docData.status === 'delivered' && !linkedInvoice;
 
-  const updateItem = (i: number, patch: any) => {
+  const updateItem = (i: number, patch: Partial<DeliveryLineItem>) => {
     const next = [...items];
     next[i] = { ...next[i], ...patch };
     setItems(next);

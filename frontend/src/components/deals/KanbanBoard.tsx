@@ -18,7 +18,7 @@ import type { MoveDealPayload } from '@/api/dealsApi';
 import { useDealsColumnsStore } from '@/store/useDealsColumnsStore';
 import { useDealsDragStore } from '@/store/useDealsDragStore';
 import type { DealsFilters } from '@/store/useDealsFiltersStore';
-import { KANBAN_COLUMNS } from './KanbanColumn.config';
+import { KANBAN_COLUMNS, stageQueryKeyFor } from './KanbanColumn.config';
 import { KanbanColumn } from './KanbanColumn';
 import { DealCard } from './DealCard';
 import { usePipelineStats } from '@/hooks/useDeals';
@@ -42,6 +42,8 @@ function findContainerForDealId(columns: Record<string, number[]>, dealId: numbe
   return Object.keys(columns).find((key) => columns[key]?.includes(dealId));
 }
 
+type MoveVars = { id: number; sourceColumnKey: string | null; targetColumnKey: string } & MoveDealPayload;
+
 /**
  * Owns the DndContext for the whole board: sensors, collision detection,
  * live cross-column reordering (onDragOver), and the optimistic move
@@ -57,8 +59,6 @@ export function KanbanBoard({
 }: KanbanBoardProps) {
   const queryClient = useQueryClient();
 
-  const draggingDealId = useDealsDragStore((s) => s.draggingDealId);
-  const draggingFromStage = useDealsDragStore((s) => s.draggingFromStage);
   const setDragging = useDealsDragStore((s) => s.setDragging);
   const reorderWithinColumn = useDealsColumnsStore((s) => s.reorderWithinColumn);
   const moveCardAcrossColumns = useDealsColumnsStore((s) => s.moveCardAcrossColumns);
@@ -105,16 +105,47 @@ export function KanbanBoard({
   // the optimistic rollback needs direct access to the drag snapshot ref and
   // drag-store cleanup that live only in this component — less invasive
   // than threading per-call options through the shared hook.
+  //
+  // The columns store is already updated optimistically (onDragOver/
+  // handleMoveToStage), so on success we just patch the moved deal into the
+  // ['deals','byId',id] cache from the response and invalidate only the
+  // two affected columns' queries + pipeline stats — NOT the whole ['deals']
+  // tree, which previously refetched every column's infinite-query pages at
+  // once on every drop and was the main source of post-drop lag.
   const moveMutation = useMutation({
-    mutationFn: ({ id, ...payload }: { id: number } & MoveDealPayload) => dealsApi.moveDeal(id, payload),
+    mutationFn: (vars: MoveVars) =>
+      dealsApi.moveDeal(vars.id, {
+        stage: vars.stage,
+        before_id: vars.before_id,
+        after_id: vars.after_id,
+        lost_reason: vars.lost_reason,
+        lost_notes: vars.lost_notes,
+        cancellation_reason: vars.cancellation_reason,
+      }),
+    onSuccess: (deal, variables) => {
+      queryClient.setQueryData(['deals', 'byId', variables.id], deal);
+    },
     onError: () => {
       restoreSnapshot();
       toast.error('Failed to move deal — reverted.');
     },
-    onSettled: () => {
-      if (useDealsDragStore.getState().draggingDealId === null) {
-        queryClient.invalidateQueries({ queryKey: ['deals'] });
-      }
+    onSettled: (_data, _error, variables) => {
+      if (useDealsDragStore.getState().draggingDealId !== null) return;
+
+      queryClient.invalidateQueries({ queryKey: ['deals', 'pipeline-stats'] });
+
+      const affectedColumnKeys = new Set(
+        [variables?.sourceColumnKey, variables?.targetColumnKey].filter((k): k is string => !!k)
+      );
+      const affectedStageValues = new Set(
+        KANBAN_COLUMNS.filter((c) => affectedColumnKeys.has(c.key)).map(stageQueryKeyFor)
+      );
+      queryClient.invalidateQueries({
+        predicate: (query) =>
+          query.queryKey[0] === 'deals' &&
+          query.queryKey[1] === 'column' &&
+          affectedStageValues.has(query.queryKey[2] as string),
+      });
     },
   });
 
@@ -124,7 +155,14 @@ export function KanbanBoard({
   );
 
   const performMove = useCallback(
-    (dealId: number, stage: DealStage, beforeId: number | null, afterId: number | null) => {
+    (
+      dealId: number,
+      stage: DealStage,
+      beforeId: number | null,
+      afterId: number | null,
+      sourceColumnKey: string | null,
+      targetColumnKey: string
+    ) => {
       const deal = getDealById(dealId);
       const alreadyClosedLost = deal?.stage === 'lost' || deal?.stage === 'cancelled';
 
@@ -136,7 +174,14 @@ export function KanbanBoard({
         return;
       }
 
-      moveMutation.mutate({ id: dealId, stage, before_id: beforeId, after_id: afterId });
+      moveMutation.mutate({
+        id: dealId,
+        stage,
+        before_id: beforeId,
+        after_id: afterId,
+        sourceColumnKey,
+        targetColumnKey,
+      });
     },
     [getDealById, moveMutation, onRequireLostReason]
   );
@@ -215,8 +260,9 @@ export function KanbanBoard({
       const index = targetIds.indexOf(dealId);
       const beforeId = index > 0 ? targetIds[index - 1] : null;
       const afterId = index >= 0 && index < targetIds.length - 1 ? targetIds[index + 1] : null;
+      const sourceColumnKey = snapshotRef.current ? findContainerForDealId(snapshotRef.current, dealId) ?? null : null;
 
-      performMove(dealId, targetConfig.writeStage, beforeId, afterId);
+      performMove(dealId, targetConfig.writeStage, beforeId, afterId, sourceColumnKey, targetConfig.key);
       cleanupDrag();
     },
     [performMove, restoreSnapshot, cleanupDrag]
@@ -241,7 +287,7 @@ export function KanbanBoard({
       moveCardAcrossColumns(fromKey, targetConfig.key, dealId, targetIds.length);
 
       const beforeId = targetIds.length > 0 ? targetIds[targetIds.length - 1] : null;
-      performMove(dealId, stage, beforeId, null);
+      performMove(dealId, stage, beforeId, null, fromKey, targetConfig.key);
       snapshotRef.current = null;
     },
     [moveCardAcrossColumns, performMove]

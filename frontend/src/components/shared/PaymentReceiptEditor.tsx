@@ -16,7 +16,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import api from '@/lib/axios';
-import type { Customer, Invoice } from '@/types';
+import type { AxiosError } from 'axios';
+import type { Customer, Invoice, PaymentReceipt } from '@/types';
 import { ArrowLeft, Save, Loader2, Calendar, User, FileCheck2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -40,7 +41,7 @@ export const PaymentReceiptEditor = ({ id, isNew }: PaymentReceiptEditorProps) =
   const currency = useCurrencyStore((s) => s.currency);
   const [loading, setLoading] = useState(false);
 
-  const [docData, setDocData] = useState<any>({
+  const [docData, setDocData] = useState<Partial<PaymentReceipt>>({
     customer_id: undefined,
     invoice_id: undefined,
     amount: 0,
@@ -84,7 +85,7 @@ export const PaymentReceiptEditor = ({ id, isNew }: PaymentReceiptEditorProps) =
   const fetchDocument = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`/admin/payment-receipts/${id}`);
+      const response = await api.get<PaymentReceipt>(`/admin/payment-receipts/${id}`);
       const data = response.data;
       setDocData({
         ...data,
@@ -99,12 +100,12 @@ export const PaymentReceiptEditor = ({ id, isNew }: PaymentReceiptEditorProps) =
 
   const handleInvoiceChange = (value: string) => {
     if (value === 'none') {
-      setDocData((prev: any) => ({ ...prev, invoice_id: undefined }));
+      setDocData((prev) => ({ ...prev, invoice_id: undefined }));
       return;
     }
     const invoiceId = Number(value);
     const invoice = linkableInvoices.find((inv) => inv.id === invoiceId);
-    setDocData((prev: any) => ({
+    setDocData((prev) => ({
       ...prev,
       invoice_id: invoiceId,
       amount: invoice ? Number(invoice.balance) : prev.amount,
@@ -136,8 +137,9 @@ export const PaymentReceiptEditor = ({ id, isNew }: PaymentReceiptEditorProps) =
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
       navigate(`${getBasePath()}/payment-receipts`);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Save failed. Please check the form.');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Save failed. Please check the form.');
     } finally {
       setLoading(false);
     }
@@ -189,7 +191,7 @@ export const PaymentReceiptEditor = ({ id, isNew }: PaymentReceiptEditorProps) =
           </Label>
           <Select
             value={docData.customer_id ? String(docData.customer_id) : ''}
-            onValueChange={(v) => setDocData((prev: any) => ({ ...prev, customer_id: Number(v), invoice_id: undefined }))}
+            onValueChange={(v) => setDocData((prev) => ({ ...prev, customer_id: Number(v), invoice_id: undefined }))}
           >
             <SelectTrigger className="h-11 bg-brand-white border-brand-border rounded-xl text-sm shadow-sm">
               <SelectValue placeholder="Select customer…" />
@@ -252,7 +254,7 @@ export const PaymentReceiptEditor = ({ id, isNew }: PaymentReceiptEditorProps) =
           <Label className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle ml-1">Payment Method *</Label>
           <Select
             value={docData.payment_method || 'bank'}
-            onValueChange={(v) => setDocData({ ...docData, payment_method: v })}
+            onValueChange={(v: 'cash' | 'bank') => setDocData({ ...docData, payment_method: v })}
           >
             <SelectTrigger className="h-11 bg-brand-white border-brand-border rounded-xl text-sm shadow-sm">
               <SelectValue />

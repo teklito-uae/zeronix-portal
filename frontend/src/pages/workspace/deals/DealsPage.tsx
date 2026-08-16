@@ -234,6 +234,7 @@ export default function DealsPage() {
   const [listPerPage, setListPerPage] = useState(10);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: resets to page 1 whenever any filter changes, so a stale page number from a previous filter set doesn't produce an out-of-range/empty page.
     setListPage(1);
   }, [stageFilter, filters.search, filters.ownerId, filters.companyId, filters.tagId, filters.priority]);
 

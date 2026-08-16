@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
+import type { AxiosError } from 'axios';
 import { toast } from 'sonner';
 import { Loader2, Paperclip, UploadCloud, X, Download } from 'lucide-react';
 import type { QuoteAttachment } from '@/types';
@@ -47,7 +48,7 @@ export const AttachmentsPanel = ({ type, docId, isNew, attachments, apiBase }: A
       toast.success('Attachment uploaded.');
       invalidate();
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Upload failed.'),
+    onError: (err: AxiosError<{ message?: string }>) => toast.error(err.response?.data?.message || 'Upload failed.'),
   });
 
   const remove = useMutation({
@@ -56,7 +57,7 @@ export const AttachmentsPanel = ({ type, docId, isNew, attachments, apiBase }: A
       toast.success('Attachment removed.');
       invalidate();
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to remove attachment.'),
+    onError: (err: AxiosError<{ message?: string }>) => toast.error(err.response?.data?.message || 'Failed to remove attachment.'),
   });
 
   const handleFiles = (files: FileList | null) => {

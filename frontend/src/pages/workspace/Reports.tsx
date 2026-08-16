@@ -17,8 +17,72 @@ import { BarChart3, TrendingUp, TrendingDown, DollarSign, Users, Clock } from 'l
 import { useCurrencyStore } from '@/store/useCurrencyStore';
 import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 import type { CurrencyCode } from '@/lib/currency';
+import type { Invoice } from '@/types';
 
 type Tab = 'sales' | 'staff' | 'pnl' | 'aging' | 'crm';
+
+// ── /admin/reports/* response shapes ────────────────────────────────────────
+interface SalesReport {
+  totals?: { total_invoiced?: number; total_paid?: number; count?: number };
+  data?: Invoice[];
+}
+
+interface StaffSalesRow {
+  user_id: number;
+  user_name: string;
+  invoice_count: number;
+  total_sales: number;
+}
+
+interface ProfitLossReport {
+  revenue?: number;
+  cost_of_goods?: number;
+  expenses?: number;
+  gross_profit?: number;
+  net_profit?: number;
+}
+
+interface ReceivablesAgingReport {
+  current?: number;
+  '1_30'?: number;
+  '31_60'?: number;
+  '61_90'?: number;
+  '90_plus'?: number;
+}
+
+interface TopCustomerRow {
+  id: number;
+  name: string;
+  company?: string | null;
+  total_invoiced?: number;
+}
+
+interface CrmDashboardReport {
+  total_leads?: number;
+  converted_leads?: number;
+  conversion_rate?: number;
+  enquiries_by_status?: Record<string, number>;
+  leads_by_status?: Record<string, number>;
+  top_customers?: TopCustomerRow[];
+}
+
+interface EnquiriesBySourceRow {
+  source?: string | null;
+  count: number;
+}
+
+interface PipelineRow {
+  status: string;
+  count: number;
+  total?: number;
+}
+
+interface PipelineSummaryReport {
+  quotations?: PipelineRow[];
+  sales_orders?: PipelineRow[];
+  deliveries?: PipelineRow[];
+  invoices?: PipelineRow[];
+}
 
 export const Reports = () => {
   const currency = useCurrencyStore((s) => s.currency);
@@ -33,43 +97,43 @@ export const Reports = () => {
 
   const { data: salesData, isLoading: salesLoading } = useQuery({
     queryKey: ['reports', 'sales', params],
-    queryFn: async () => (await api.get('/admin/reports/sales', { params })).data,
+    queryFn: async () => (await api.get<SalesReport>('/admin/reports/sales', { params })).data,
     enabled: activeTab === 'sales',
   });
 
   const { data: staffData, isLoading: staffLoading } = useQuery({
     queryKey: ['reports', 'sales-by-staff', params],
-    queryFn: async () => (await api.get('/admin/reports/sales-by-staff', { params })).data,
+    queryFn: async () => (await api.get<StaffSalesRow[]>('/admin/reports/sales-by-staff', { params })).data,
     enabled: activeTab === 'staff',
   });
 
   const { data: pnlData, isLoading: pnlLoading } = useQuery({
     queryKey: ['reports', 'profit-loss', params],
-    queryFn: async () => (await api.get('/admin/reports/profit-loss', { params })).data,
+    queryFn: async () => (await api.get<ProfitLossReport>('/admin/reports/profit-loss', { params })).data,
     enabled: activeTab === 'pnl' && isAdmin,
   });
 
   const { data: agingData, isLoading: agingLoading } = useQuery({
     queryKey: ['reports', 'receivables-aging'],
-    queryFn: async () => (await api.get('/admin/reports/receivables-aging')).data,
+    queryFn: async () => (await api.get<ReceivablesAgingReport>('/admin/reports/receivables-aging')).data,
     enabled: activeTab === 'aging',
   });
 
   const { data: crmDashboardData, isLoading: crmDashboardLoading } = useQuery({
     queryKey: ['reports', 'crm-dashboard', params],
-    queryFn: async () => (await api.get('/admin/reports/crm-dashboard', { params })).data,
+    queryFn: async () => (await api.get<CrmDashboardReport>('/admin/reports/crm-dashboard', { params })).data,
     enabled: activeTab === 'crm',
   });
 
   const { data: enquiriesBySourceData, isLoading: enquiriesBySourceLoading } = useQuery({
     queryKey: ['reports', 'enquiries-by-source'],
-    queryFn: async () => (await api.get('/admin/reports/enquiries-by-source')).data,
+    queryFn: async () => (await api.get<EnquiriesBySourceRow[]>('/admin/reports/enquiries-by-source')).data,
     enabled: activeTab === 'crm',
   });
 
   const { data: pipelineSummaryData, isLoading: pipelineSummaryLoading } = useQuery({
     queryKey: ['reports', 'pipeline-summary'],
-    queryFn: async () => (await api.get('/admin/reports/pipeline-summary')).data,
+    queryFn: async () => (await api.get<PipelineSummaryReport>('/admin/reports/pipeline-summary')).data,
     enabled: activeTab === 'crm',
   });
 
@@ -142,7 +206,7 @@ export const Reports = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(salesData?.data || []).map((inv: any) => (
+                  {(salesData?.data || []).map((inv) => (
                     <TableRow key={inv.id}>
                       <TableCell className="font-mono text-[12px]">{inv.invoice_number}</TableCell>
                       <TableCell className="text-[13px]">{inv.customer?.name || '—'}</TableCell>
@@ -179,7 +243,7 @@ export const Reports = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(staffData || []).map((row: any) => (
+                  {(staffData || []).map((row) => (
                     <TableRow key={row.user_id}>
                       <TableCell className="text-[13px] font-medium">{row.user_name}</TableCell>
                       <TableCell className="text-center text-[13px]">{row.invoice_count}</TableCell>
@@ -228,7 +292,7 @@ export const Reports = () => {
                   label="Total Enquiries"
                   value={String(
                     Object.values(crmDashboardData?.enquiries_by_status || {}).reduce(
-                      (sum: number, count: any) => sum + Number(count), 0
+                      (sum: number, count: number) => sum + Number(count), 0
                     )
                   )}
                 />
@@ -245,7 +309,7 @@ export const Reports = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {Object.entries(crmDashboardData?.leads_by_status || {}).map(([status, count]: [string, any]) => (
+                      {Object.entries(crmDashboardData?.leads_by_status || {}).map(([status, count]) => (
                         <TableRow key={status}>
                           <TableCell className="text-[13px] uppercase">{status}</TableCell>
                           <TableCell className="text-right text-[13px]">{String(count)}</TableCell>
@@ -265,7 +329,7 @@ export const Reports = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(enquiriesBySourceData || []).map((row: any, idx: number) => (
+                      {(enquiriesBySourceData || []).map((row, idx: number) => (
                         <TableRow key={row.source ?? idx}>
                           <TableCell className="text-[13px]">{row.source || 'Unknown'}</TableCell>
                           <TableCell className="text-right text-[13px]">{row.count}</TableCell>
@@ -287,7 +351,7 @@ export const Reports = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(crmDashboardData?.top_customers || []).map((c: any) => (
+                    {(crmDashboardData?.top_customers || []).map((c) => (
                       <TableRow key={c.id}>
                         <TableCell className="text-[13px] font-medium">{c.name}</TableCell>
                         <TableCell className="text-[13px]">{c.company || '—'}</TableCell>
@@ -331,7 +395,7 @@ const PipelineTable = ({
   showTotal,
 }: {
   title: string;
-  rows: any[] | undefined;
+  rows: PipelineRow[] | undefined;
   currency: CurrencyCode;
   showTotal: boolean;
 }) => (
@@ -346,7 +410,7 @@ const PipelineTable = ({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {(rows || []).map((row: any) => (
+        {(rows || []).map((row) => (
           <TableRow key={row.status}>
             <TableCell className="text-[13px] uppercase">{row.status}</TableCell>
             <TableCell className="text-center text-[13px]">{row.count}</TableCell>

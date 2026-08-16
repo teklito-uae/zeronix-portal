@@ -11,15 +11,15 @@ import {
 } from '@/components/ui/select';
 import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { useResourceMutation } from '@/hooks/useApi';
-import type { Product } from '@/types';
+import type { Product, Brand, Category } from '@/types';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
 
 interface ProductModalProps {
   isOpen: boolean;
   onClose: () => void;
   editingProduct: Product | null;
-  brands: any[];
-  categories: any[];
+  brands: Brand[];
+  categories: Category[];
 }
 
 /**
@@ -152,7 +152,7 @@ export const ProductModal = ({ isOpen, onClose, editingProduct, brands, categori
                 <SelectValue placeholder="Choose brand" />
               </SelectTrigger>
               <SelectContent className="bg-admin-surface border-admin-border rounded-xl shadow-xl">
-                {brands.map((b: any) => <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>)}
+                {brands.map((b) => <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -164,7 +164,7 @@ export const ProductModal = ({ isOpen, onClose, editingProduct, brands, categori
                 <SelectValue placeholder="Choose category" />
               </SelectTrigger>
               <SelectContent className="bg-admin-surface border-admin-border rounded-xl shadow-xl">
-                {categories.map((c: any) => (
+                {categories.map((c) => (
                   <SelectItem key={c.id} value={String(c.id)}>
                     {c.parent_id ? `  └ ${c.name}` : c.name}
                   </SelectItem>

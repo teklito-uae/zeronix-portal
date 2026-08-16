@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { AxiosError } from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getBasePath } from '@/hooks/useBasePath';
@@ -13,7 +14,7 @@ import { PageLoader } from '@/components/shared/PageLoader';
 import { SEO } from '@/components/shared/SEO';
 import { Pagination } from '@/components/shared/Pagination';
 import api from '@/lib/axios';
-import type { Quote } from '@/types';
+import type { Quote, PaginatedResponse } from '@/types';
 import { Search, Building2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -53,7 +54,9 @@ export const QuotesSplitView = () => {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const { data: resourceData, isLoading } = useResourceList<Quote>('quotes', {
+  const { data: resourceData, isLoading } = useResourceList<
+    PaginatedResponse<Quote> & { status_counts?: Record<string, number>; all_count?: number }
+  >('quotes', {
     search: search || undefined,
     status: activeTab !== 'all' ? activeTab : undefined,
     page,
@@ -79,7 +82,7 @@ export const QuotesSplitView = () => {
       toast.success('Quote email sent');
       queryClient.invalidateQueries({ queryKey: ['quotes'] });
     },
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to send email'),
+    onError: (e: AxiosError<{ message?: string }>) => toast.error(e.response?.data?.message || 'Failed to send email'),
   });
 
   const handleRowClick = (row: Quote) => {

@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import api from '@/lib/axios';
 import { getBasePath } from '@/hooks/useBasePath';
 import type { Deal } from '@/types';
+import type { ApiError } from '@/hooks/useApi';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/shared/Spinner';
@@ -80,7 +81,7 @@ export const DealQuotesTab = ({ deal }: DealQuotesTabProps) => {
       invalidateDeal();
       toast.success('Quote created');
     },
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to create quote'),
+    onError: (e: ApiError) => toast.error(e.response?.data?.message || 'Failed to create quote'),
   });
 
   const approveQuote = useMutation({
@@ -89,7 +90,7 @@ export const DealQuotesTab = ({ deal }: DealQuotesTabProps) => {
       invalidateDeal();
       toast.success('Quote approved');
     },
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to approve quote'),
+    onError: (e: ApiError) => toast.error(e.response?.data?.message || 'Failed to approve quote'),
   });
 
   const convertQuote = useMutation({
@@ -99,7 +100,7 @@ export const DealQuotesTab = ({ deal }: DealQuotesTabProps) => {
       toast.success('Sales order created');
       navigate(`${getBasePath()}/sales-orders/${res.data.id}`);
     },
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to convert quote'),
+    onError: (e: ApiError) => toast.error(e.response?.data?.message || 'Failed to convert quote'),
   });
 
   return (

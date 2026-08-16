@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getBasePath } from '@/hooks/useBasePath';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
+import type { AxiosError } from 'axios';
 import { Button } from '@/components/ui/button';
 import { SEO } from '@/components/shared/SEO';
 import {
@@ -26,6 +27,8 @@ interface ParsedLeadRow {
 
 type Step = 1 | 2 | 3;
 
+type ParsedLeadRowFromApi = Omit<ParsedLeadRow, 'action'>;
+
 // ── Step Indicator ────────────────────────────────────────────────────────────
 
 const StepIndicator = ({ current }: { current: Step }) => {
@@ -45,17 +48,17 @@ const StepIndicator = ({ current }: { current: Step }) => {
             <div className="flex flex-col items-center gap-1">
               <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all border-2 ${
                 done ? 'bg-emerald-500 border-emerald-500 text-white' :
-                active ? 'bg-zeronix-blue border-zeronix-blue text-white' :
-                'bg-admin-bg border-admin-border text-admin-text-muted'
+                active ? 'bg-brand-accent border-brand-accent text-white' :
+                'bg-brand-bg border-brand-border text-brand-subtle'
               }`}>
                 {done ? <CheckCircle2 size={16} /> : <Icon size={16} />}
               </div>
-              <span className={`text-[10px] font-bold whitespace-nowrap ${active ? 'text-zeronix-blue' : done ? 'text-emerald-600' : 'text-admin-text-muted'}`}>
+              <span className={`text-[10px] font-bold whitespace-nowrap ${active ? 'text-brand-accent' : done ? 'text-emerald-600' : 'text-brand-subtle'}`}>
                 {s.label}
               </span>
             </div>
             {i < steps.length - 1 && (
-              <div className={`flex-1 h-0.5 mx-2 mb-5 rounded-full ${done ? 'bg-emerald-500' : 'bg-admin-border'}`} />
+              <div className={`flex-1 h-0.5 mx-2 mb-5 rounded-full ${done ? 'bg-emerald-500' : 'bg-brand-border'}`} />
             )}
           </div>
         );
@@ -115,7 +118,7 @@ export const LeadImport = () => {
       const fd = new FormData();
       fd.append('file', file);
       const res = await api.post(`/admin/leads/import/preview`, fd);
-      const parsed: ParsedLeadRow[] = res.data.rows.map((r: any) => ({
+      const parsed: ParsedLeadRow[] = res.data.rows.map((r: ParsedLeadRowFromApi) => ({
         ...r,
         action: r.conflict_type === 'already_customer' ? 'skip' : r.conflict_type === 'duplicate_lead' ? 'merge' : 'create',
       }));
@@ -126,8 +129,9 @@ export const LeadImport = () => {
       } else {
         toast.success(`${res.data.total} contacts parsed — review before importing`);
       }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Preview failed');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Preview failed');
     } finally {
       setIsPreviewing(false);
     }
@@ -141,14 +145,15 @@ export const LeadImport = () => {
       const res = await api.post(`/admin/leads/import/commit`, { rows });
       setResults(res.data.results);
       setStep(3);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Import failed');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Import failed');
     } finally {
       setIsCommitting(false);
     }
   };
 
-  const updateRow = (idx: number, field: keyof ParsedLeadRow, value: any) => {
+  const updateRow = <K extends keyof ParsedLeadRow>(idx: number, field: K, value: ParsedLeadRow[K]) => {
     setRows(prev => prev.map((r, i) => i === idx ? { ...r, [field]: value } : r));
   };
 
@@ -164,8 +169,8 @@ export const LeadImport = () => {
       {/* Drop zone */}
       <div className="space-y-4">
         <div>
-          <h3 className="text-sm font-bold text-admin-text-primary mb-1">1. Select File</h3>
-          <p className="text-xs text-admin-text-muted">Supports .csv, .vcf (vCard) and .json formats</p>
+          <h3 className="text-sm font-bold text-brand-primary mb-1">1. Select File</h3>
+          <p className="text-xs text-brand-subtle">Supports .csv, .vcf (vCard) and .json formats</p>
         </div>
         <div
           onDragOver={e => { e.preventDefault(); setDragOver(true); }}
@@ -173,8 +178,8 @@ export const LeadImport = () => {
           onDrop={onDrop}
           onClick={() => fileInputRef.current?.click()}
           className={`relative border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 text-center select-none ${
-            dragOver ? 'border-zeronix-blue bg-zeronix-blue/5 scale-[1.01]' :
-            file ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-admin-border hover:border-zeronix-blue/40 hover:bg-admin-bg/50 bg-admin-surface'
+            dragOver ? 'border-brand-accent bg-brand-accent/5 scale-[1.01]' :
+            file ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-brand-border hover:border-brand-accent/40 hover:bg-brand-bg/50 bg-brand-white'
           }`}
         >
           <input
@@ -189,8 +194,8 @@ export const LeadImport = () => {
               <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-3">
                 <FileText size={28} className="text-emerald-500" />
               </div>
-              <p className="text-sm font-bold text-admin-text-primary">{file.name}</p>
-              <p className="text-xs text-admin-text-muted mt-1">{(file.size / 1024).toFixed(1)} KB</p>
+              <p className="text-sm font-bold text-brand-primary">{file.name}</p>
+              <p className="text-xs text-brand-subtle mt-1">{(file.size / 1024).toFixed(1)} KB</p>
               <button
                 onClick={e => { e.stopPropagation(); setFile(null); setRows([]); }}
                 className="mt-3 text-[11px] text-red-500 hover:underline flex items-center gap-1"
@@ -200,14 +205,14 @@ export const LeadImport = () => {
             </>
           ) : (
             <>
-              <div className="w-14 h-14 rounded-2xl bg-admin-bg flex items-center justify-center mb-3 border border-admin-border">
-                <Upload size={26} className={dragOver ? 'text-zeronix-blue' : 'text-admin-text-muted'} />
+              <div className="w-14 h-14 rounded-2xl bg-brand-bg flex items-center justify-center mb-3 border border-brand-border">
+                <Upload size={26} className={dragOver ? 'text-brand-accent' : 'text-brand-subtle'} />
               </div>
-              <p className="text-sm font-bold text-admin-text-primary">Drop file here</p>
-              <p className="text-xs text-admin-text-muted mt-1">or click to browse</p>
+              <p className="text-sm font-bold text-brand-primary">Drop file here</p>
+              <p className="text-xs text-brand-subtle mt-1">or click to browse</p>
               <div className="flex gap-2 mt-4">
                 {['.csv', '.vcf', '.json'].map(ext => (
-                  <span key={ext} className="px-2 py-0.5 bg-admin-bg border border-admin-border rounded-full text-[10px] font-bold text-admin-text-muted">
+                  <span key={ext} className="px-2 py-0.5 bg-brand-bg border border-brand-border rounded-full text-[10px] font-bold text-brand-subtle">
                     {ext}
                   </span>
                 ))}
@@ -217,16 +222,16 @@ export const LeadImport = () => {
         </div>
 
         {/* Sample format hints */}
-        <div className="bg-admin-bg border border-admin-border rounded-xl p-4 space-y-2">
-          <p className="text-[11px] font-bold text-admin-text-muted uppercase tracking-wider">CSV Format Example</p>
-          <pre className="text-[10px] text-admin-text-secondary font-mono overflow-x-auto">{`name,company,phone,email,notes
+        <div className="bg-brand-bg border border-brand-border rounded-xl p-4 space-y-2">
+          <p className="text-[11px] font-bold text-brand-subtle uppercase tracking-wider">CSV Format Example</p>
+          <pre className="text-[10px] text-brand-secondary font-mono overflow-x-auto">{`name,company,phone,email,notes
 Ahmed Al Rashid,Al Noor LLC,+971501234567,ahmed@alnoor.ae,Met at expo`}</pre>
-          <p className="text-[10px] text-admin-text-muted">First row must be a header. Columns like "full name", "first name/last name", "mobile" and "organization" are also recognized.</p>
+          <p className="text-[10px] text-brand-subtle">First row must be a header. Columns like "full name", "first name/last name", "mobile" and "organization" are also recognized.</p>
         </div>
 
-        <div className="bg-admin-bg border border-admin-border rounded-xl p-4 space-y-2">
-          <p className="text-[11px] font-bold text-admin-text-muted uppercase tracking-wider">JSON Format Example</p>
-          <pre className="text-[10px] text-admin-text-secondary font-mono overflow-x-auto">{`[
+        <div className="bg-brand-bg border border-brand-border rounded-xl p-4 space-y-2">
+          <p className="text-[11px] font-bold text-brand-subtle uppercase tracking-wider">JSON Format Example</p>
+          <pre className="text-[10px] text-brand-secondary font-mono overflow-x-auto">{`[
   {
     "name": "Ahmed Al Rashid",
     "company": "Al Noor LLC",
@@ -239,8 +244,8 @@ Ahmed Al Rashid,Al Noor LLC,+971501234567,ahmed@alnoor.ae,Met at expo`}</pre>
 
       <div className="space-y-5 flex flex-col justify-between">
         <div className="space-y-2">
-          <h3 className="text-sm font-bold text-admin-text-primary">2. Preview & Import</h3>
-          <p className="text-xs text-admin-text-muted">
+          <h3 className="text-sm font-bold text-brand-primary">2. Preview & Import</h3>
+          <p className="text-xs text-brand-subtle">
             We'll parse the file and flag any contacts whose email or phone number already exist
             as a lead or customer, so you can review, edit, or remove each row before anything is
             saved. Duplicates are checked again right before the data is written to the database.
@@ -250,7 +255,7 @@ Ahmed Al Rashid,Al Noor LLC,+971501234567,ahmed@alnoor.ae,Met at expo`}</pre>
         <Button
           onClick={handlePreview}
           disabled={!file || isPreviewing}
-          className="w-full h-12 bg-zeronix-blue hover:bg-zeronix-blue-hover text-white font-bold rounded-xl shadow-lg shadow-zeronix-blue/20 text-sm"
+          className="w-full h-12 bg-brand-accent hover:bg-brand-accent-hover text-white font-bold rounded-xl shadow-lg shadow-brand-accent/20 text-sm"
         >
           {isPreviewing ? (
             <><Loader2 size={16} className="animate-spin mr-2" /> Analyzing file...</>
@@ -267,9 +272,9 @@ Ahmed Al Rashid,Al Noor LLC,+971501234567,ahmed@alnoor.ae,Met at expo`}</pre>
   const renderStep2 = () => (
     <div className="space-y-4">
       {/* Summary bar */}
-      <div className="flex flex-wrap items-center gap-3 p-4 bg-admin-bg border border-admin-border rounded-xl">
-        <div className="flex items-center gap-1.5 text-xs font-bold text-admin-text-primary">
-          <Users size={14} className="text-zeronix-blue" />
+      <div className="flex flex-wrap items-center gap-3 p-4 bg-brand-bg border border-brand-border rounded-xl">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-brand-primary">
+          <Users size={14} className="text-brand-accent" />
           <span>{rows.length} contacts</span>
         </div>
         {conflictCount > 0 && (
@@ -280,79 +285,79 @@ Ahmed Al Rashid,Al Noor LLC,+971501234567,ahmed@alnoor.ae,Met at expo`}</pre>
         <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded-lg">
           <CheckCircle2 size={12} /> {toImport} to import
         </div>
-        <div className="ml-auto text-[11px] text-admin-text-muted">
+        <div className="ml-auto text-[11px] text-brand-subtle">
           {rows.filter(r => r.action === 'skip').length} skipped
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-admin-surface border border-admin-border rounded-xl overflow-hidden">
+      <div className="bg-brand-white border border-brand-border rounded-xl overflow-hidden">
         <div className="overflow-x-auto max-h-[480px] overflow-y-auto">
           <table className="w-full text-xs">
-            <thead className="sticky top-0 bg-admin-bg border-b border-admin-border">
+            <thead className="sticky top-0 bg-brand-bg border-b border-brand-border">
               <tr>
-                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-admin-text-muted uppercase tracking-wider w-8">#</th>
-                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-admin-text-muted uppercase tracking-wider">Name</th>
-                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-admin-text-muted uppercase tracking-wider">Email</th>
-                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-admin-text-muted uppercase tracking-wider">Phone</th>
-                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-admin-text-muted uppercase tracking-wider">Phone 2</th>
-                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-admin-text-muted uppercase tracking-wider">Company</th>
-                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-admin-text-muted uppercase tracking-wider">Notes</th>
-                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-admin-text-muted uppercase tracking-wider">Status</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-brand-subtle uppercase tracking-wider w-8">#</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-brand-subtle uppercase tracking-wider">Name</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-brand-subtle uppercase tracking-wider">Email</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-brand-subtle uppercase tracking-wider">Phone</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-brand-subtle uppercase tracking-wider">Phone 2</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-brand-subtle uppercase tracking-wider">Company</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-brand-subtle uppercase tracking-wider">Notes</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-brand-subtle uppercase tracking-wider">Status</th>
                 <th className="w-8 px-2"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-admin-border">
+            <tbody className="divide-y divide-brand-border">
               {rows.map((row, idx) => (
                 <tr
                   key={idx}
                   className={`transition-colors ${
                     row.conflict_type === 'duplicate_lead' && row.action !== 'skip' ? 'bg-amber-500/5' :
-                    row.action === 'skip' ? 'opacity-40 bg-admin-bg/30' :
-                    'hover:bg-admin-bg/30'
+                    row.action === 'skip' ? 'opacity-40 bg-brand-bg/30' :
+                    'hover:bg-brand-bg/30'
                   }`}
                 >
-                  <td className="px-4 py-2 text-admin-text-muted font-mono">{idx + 1}</td>
+                  <td className="px-4 py-2 text-brand-subtle font-mono">{idx + 1}</td>
                   <td className="px-4 py-2">
                     <input
                       value={row.name}
                       onChange={e => updateRow(idx, 'name', e.target.value)}
-                      className="w-full bg-transparent border-b border-transparent hover:border-admin-border focus:border-zeronix-blue outline-none text-admin-text-primary font-medium py-0.5"
+                      className="w-full bg-transparent border-b border-transparent hover:border-brand-border focus:border-brand-accent outline-none text-brand-primary font-medium py-0.5"
                     />
                   </td>
                   <td className="px-4 py-2">
                     <input
                       value={row.email || ''}
                       onChange={e => updateRow(idx, 'email', e.target.value)}
-                      className="w-full bg-transparent border-b border-transparent hover:border-admin-border focus:border-zeronix-blue outline-none text-admin-text-secondary py-0.5"
+                      className="w-full bg-transparent border-b border-transparent hover:border-brand-border focus:border-brand-accent outline-none text-brand-secondary py-0.5"
                     />
                   </td>
                   <td className="px-4 py-2">
                     <input
                       value={row.phone || ''}
                       onChange={e => updateRow(idx, 'phone', e.target.value)}
-                      className="w-full bg-transparent border-b border-transparent hover:border-admin-border focus:border-zeronix-blue outline-none text-admin-text-secondary py-0.5"
+                      className="w-full bg-transparent border-b border-transparent hover:border-brand-border focus:border-brand-accent outline-none text-brand-secondary py-0.5"
                     />
                   </td>
                   <td className="px-4 py-2">
                     <input
                       value={row.phone_2 || ''}
                       onChange={e => updateRow(idx, 'phone_2', e.target.value)}
-                      className="w-full bg-transparent border-b border-transparent hover:border-admin-border focus:border-zeronix-blue outline-none text-admin-text-secondary py-0.5"
+                      className="w-full bg-transparent border-b border-transparent hover:border-brand-border focus:border-brand-accent outline-none text-brand-secondary py-0.5"
                     />
                   </td>
                   <td className="px-4 py-2">
                     <input
                       value={row.company || ''}
                       onChange={e => updateRow(idx, 'company', e.target.value)}
-                      className="w-full bg-transparent border-b border-transparent hover:border-admin-border focus:border-zeronix-blue outline-none text-admin-text-secondary py-0.5"
+                      className="w-full bg-transparent border-b border-transparent hover:border-brand-border focus:border-brand-accent outline-none text-brand-secondary py-0.5"
                     />
                   </td>
                   <td className="px-4 py-2">
                     <input
                       value={row.notes || ''}
                       onChange={e => updateRow(idx, 'notes', e.target.value)}
-                      className="w-full bg-transparent border-b border-transparent hover:border-admin-border focus:border-zeronix-blue outline-none text-admin-text-secondary py-0.5"
+                      className="w-full bg-transparent border-b border-transparent hover:border-brand-border focus:border-brand-accent outline-none text-brand-secondary py-0.5"
                     />
                   </td>
                   <td className="px-4 py-2">
@@ -362,7 +367,7 @@ Ahmed Al Rashid,Al Noor LLC,+971501234567,ahmed@alnoor.ae,Met at expo`}</pre>
                         className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all ${
                           row.action === 'merge'
                             ? 'bg-amber-500/10 border-amber-500/40 text-amber-600'
-                            : 'bg-admin-bg border-admin-border text-admin-text-muted'
+                            : 'bg-brand-bg border-brand-border text-brand-subtle'
                         }`}
                         title={row.action === 'merge' ? 'Click to skip' : 'Click to merge with existing lead'}
                       >
@@ -371,7 +376,7 @@ Ahmed Al Rashid,Al Noor LLC,+971501234567,ahmed@alnoor.ae,Met at expo`}</pre>
                     ) : row.conflict_type === 'already_customer' ? (
                       <span
                         title="Already a customer — this row will always be skipped"
-                        className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-admin-bg border border-admin-border text-admin-text-muted w-fit cursor-not-allowed select-none"
+                        className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-bg border border-brand-border text-brand-subtle w-fit cursor-not-allowed select-none"
                       >
                         <Ban size={10} /> Already a customer — will skip
                       </span>
@@ -384,7 +389,7 @@ Ahmed Al Rashid,Al Noor LLC,+971501234567,ahmed@alnoor.ae,Met at expo`}</pre>
                   <td className="px-2 py-2">
                     <button
                       onClick={() => removeRow(idx)}
-                      className="p-1 text-admin-text-muted hover:text-red-500 transition-colors rounded"
+                      className="p-1 text-brand-subtle hover:text-red-500 transition-colors rounded"
                     >
                       <Trash2 size={13} />
                     </button>
@@ -397,13 +402,13 @@ Ahmed Al Rashid,Al Noor LLC,+971501234567,ahmed@alnoor.ae,Met at expo`}</pre>
       </div>
 
       <div className="flex gap-3 justify-between">
-        <Button variant="outline" onClick={() => { setStep(1); setRows([]); }} className="border-admin-border text-admin-text-secondary rounded-xl">
+        <Button variant="outline" onClick={() => { setStep(1); setRows([]); }} className="border-brand-border text-brand-secondary rounded-xl">
           <ArrowLeft size={15} className="mr-2" /> Back
         </Button>
         <Button
           onClick={handleCommit}
           disabled={isCommitting || toImport === 0}
-          className="bg-zeronix-blue hover:bg-zeronix-blue-hover text-white font-bold rounded-xl px-8 shadow-lg shadow-zeronix-blue/20"
+          className="bg-brand-accent hover:bg-brand-accent-hover text-white font-bold rounded-xl px-8 shadow-lg shadow-brand-accent/20"
         >
           {isCommitting ? (
             <><Loader2 size={15} className="animate-spin mr-2" /> Importing...</>
@@ -423,23 +428,23 @@ Ahmed Al Rashid,Al Noor LLC,+971501234567,ahmed@alnoor.ae,Met at expo`}</pre>
         <CheckCircle2 size={40} className="text-emerald-500" />
       </div>
       <div>
-        <h3 className="text-xl font-bold text-admin-text-primary">Import Complete!</h3>
-        <p className="text-sm text-admin-text-muted mt-1">Your leads have been processed successfully.</p>
+        <h3 className="text-xl font-bold text-brand-primary">Import Complete!</h3>
+        <p className="text-sm text-brand-subtle mt-1">Your leads have been processed successfully.</p>
       </div>
 
       {results && (
         <div className="grid grid-cols-3 gap-4 w-full max-w-md">
           <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-center">
             <p className="text-xl md:text-2xl font-black text-emerald-600">{results.created}</p>
-            <p className="text-xs text-admin-text-muted mt-1 font-bold uppercase">Created</p>
+            <p className="text-xs text-brand-subtle mt-1 font-bold uppercase">Created</p>
           </div>
           <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-center">
             <p className="text-xl md:text-2xl font-black text-blue-600">{results.merged}</p>
-            <p className="text-xs text-admin-text-muted mt-1 font-bold uppercase">Merged</p>
+            <p className="text-xs text-brand-subtle mt-1 font-bold uppercase">Merged</p>
           </div>
-          <div className="bg-admin-bg border border-admin-border rounded-xl p-4 text-center">
-            <p className="text-xl md:text-2xl font-black text-admin-text-secondary">{results.skipped}</p>
-            <p className="text-xs text-admin-text-muted mt-1 font-bold uppercase">Skipped</p>
+          <div className="bg-brand-bg border border-brand-border rounded-xl p-4 text-center">
+            <p className="text-xl md:text-2xl font-black text-brand-secondary">{results.skipped}</p>
+            <p className="text-xs text-brand-subtle mt-1 font-bold uppercase">Skipped</p>
           </div>
         </div>
       )}
@@ -459,13 +464,13 @@ Ahmed Al Rashid,Al Noor LLC,+971501234567,ahmed@alnoor.ae,Met at expo`}</pre>
         <Button
           variant="outline"
           onClick={() => { setStep(1); setFile(null); setRows([]); setResults(null); }}
-          className="border-admin-border text-admin-text-secondary rounded-xl"
+          className="border-brand-border text-brand-secondary rounded-xl"
         >
           Import More
         </Button>
         <Button
           onClick={() => navigate(`${getBasePath()}/leads`)}
-          className="bg-zeronix-blue hover:bg-zeronix-blue-hover text-white font-bold rounded-xl px-6"
+          className="bg-brand-accent hover:bg-brand-accent-hover text-white font-bold rounded-xl px-6"
         >
           <Users size={15} className="mr-2" /> View Leads
         </Button>
@@ -483,21 +488,21 @@ Ahmed Al Rashid,Al Noor LLC,+971501234567,ahmed@alnoor.ae,Met at expo`}</pre>
       <div className="flex items-center gap-3">
         <button
           onClick={() => navigate(`${getBasePath()}/leads`)}
-          className="p-2 rounded-xl border border-admin-border bg-admin-surface hover:bg-admin-bg transition-colors text-admin-text-muted hover:text-admin-text-primary"
+          className="p-2 rounded-xl border border-brand-border bg-brand-white hover:bg-brand-bg transition-colors text-brand-subtle hover:text-brand-primary"
         >
           <ArrowLeft size={16} />
         </button>
-        <div className="p-2.5 bg-zeronix-blue/10 rounded-xl text-zeronix-blue">
+        <div className="p-2.5 bg-brand-accent/10 rounded-xl text-brand-accent">
           <Upload size={20} />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-admin-text-primary tracking-tight">Import Leads</h2>
-          <p className="text-xs text-admin-text-muted mt-0.5">Upload CSV, VCF, or JSON to bulk-import leads</p>
+          <h2 className="text-xl font-bold text-brand-primary tracking-tight">Import Leads</h2>
+          <p className="text-xs text-brand-subtle mt-0.5">Upload CSV, VCF, or JSON to bulk-import leads</p>
         </div>
       </div>
 
       {/* Card */}
-      <div className="bg-admin-surface border border-admin-border rounded-2xl p-8 shadow-sm">
+      <div className="bg-brand-white border border-brand-border rounded-2xl p-8 shadow-sm">
         <StepIndicator current={step} />
         {step === 1 && renderStep1()}
         {step === 2 && renderStep2()}

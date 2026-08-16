@@ -23,7 +23,7 @@ api.interceptors.request.use((config) => {
   // auto-generates the multipart/form-data boundary. Without this, the
   // global 'application/json' override strips the boundary and PHP sees no file.
   if (config.data instanceof FormData && config.headers) {
-    delete (config.headers as any)['Content-Type'];
+    delete config.headers['Content-Type'];
   }
 
   const isCustomerRoute = config.url?.includes('/customer/');
@@ -49,20 +49,25 @@ api.interceptors.request.use((config) => {
   return Promise.reject(error);
 });
 
-// Response interceptor to trigger notification checks on any admin API activity
+// Response interceptor to trigger notification checks on admin/customer mutations.
+// Scoped to write methods only (GET requests can't create a notification), so
+// browsing list/dashboard pages doesn't fire an extra notifications call per request.
+const MUTATING_METHODS = new Set(['post', 'put', 'patch', 'delete']);
+
 api.interceptors.response.use((response) => {
   const url = response.config.url || '';
-  
-  // If an API call was made (excluding the notification fetch itself to prevent loops)
-  // we refetch the notifications query so it instantly updates.
-  if (url.includes('/admin/') && !url.includes('/notifications')) {
-    queryClient.refetchQueries({ queryKey: ['unread-notifications', 'admin'] });
+  const method = response.config.method?.toLowerCase() || '';
+
+  if (!MUTATING_METHODS.has(method) || url.includes('/notifications')) {
+    return response;
   }
-  
-  if (url.includes('/customer/') && !url.includes('/notifications')) {
+
+  if (url.includes('/admin/')) {
+    queryClient.refetchQueries({ queryKey: ['topbar-notifications', 'admin'] });
+  } else if (url.includes('/customer/')) {
     queryClient.refetchQueries({ queryKey: ['unread-notifications', 'customer'] });
   }
-  
+
   return response;
 }, (error) => {
   return Promise.reject(error);

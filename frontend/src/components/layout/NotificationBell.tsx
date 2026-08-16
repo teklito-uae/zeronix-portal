@@ -12,6 +12,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import type { AppNotification, NotificationsResponse } from '@/types';
 
 interface NotificationBellProps {
   side?: 'top' | 'right' | 'bottom' | 'left';
@@ -35,9 +36,19 @@ export const NotificationBell = ({ side = 'bottom', align = 'end', triggerClassN
   const [notifOpen, setNotifOpen] = useState(false);
 
   const { data: unreadNotifs } = useQuery({
-    queryKey: ['unread-notifications', isCustomer ? 'customer' : 'admin'],
-    queryFn: async () => {
-      const endpoint = isCustomer ? '/customer/notifications/unread' : `${getBasePath()}/notifications/unread`;
+    queryKey: ['unread-notifications', 'customer'],
+    queryFn: async (): Promise<AppNotification[]> => (await api.get('/customer/notifications/unread')).data,
+    enabled: !!user && isCustomer,
+    refetchInterval: 600000, // Poll every 10 minutes to reduce DB load
+    staleTime: 600000, // Consider data fresh for 10 minutes
+    refetchOnWindowFocus: false, // Don't refetch when switching tabs
+    refetchOnMount: false, // Don't refetch every time the component remounts
+  });
+
+  const { data: allNotifs } = useQuery({
+    queryKey: ['topbar-notifications', isCustomer ? 'customer' : 'admin'],
+    queryFn: async (): Promise<NotificationsResponse> => {
+      const endpoint = isCustomer ? '/customer/notifications' : `${getBasePath()}/notifications`;
       return (await api.get(endpoint)).data;
     },
     enabled: !!user,
@@ -47,15 +58,7 @@ export const NotificationBell = ({ side = 'bottom', align = 'end', triggerClassN
     refetchOnMount: false, // Don't refetch every time the component remounts
   });
 
-  const { data: allNotifs } = useQuery({
-    queryKey: ['topbar-notifications', isCustomer ? 'customer' : 'admin'],
-    queryFn: async () => {
-      const endpoint = isCustomer ? '/customer/notifications' : `${getBasePath()}/notifications`;
-      return (await api.get(endpoint)).data;
-    },
-    enabled: !!user && notifOpen,
-    staleTime: 30000,
-  });
+  const unread = isCustomer ? unreadNotifs : allNotifs?.notifications?.filter((n) => !n.read_at);
 
   const markAllReadMutation = useMutation({
     mutationFn: () => {
@@ -63,7 +66,6 @@ export const NotificationBell = ({ side = 'bottom', align = 'end', triggerClassN
       return api.post(endpoint);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['unread-notifications'] });
       queryClient.invalidateQueries({ queryKey: ['topbar-notifications'] });
       toast.success('All notifications marked as read');
     },
@@ -75,12 +77,11 @@ export const NotificationBell = ({ side = 'bottom', align = 'end', triggerClassN
       return api.post(endpoint);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['unread-notifications'] });
       queryClient.invalidateQueries({ queryKey: ['topbar-notifications'] });
     },
   });
 
-  const getNotifIcon = (type: string) => {
+  const getNotifIcon = (type: string | undefined) => {
     switch (type) {
       case 'success': return <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />;
       case 'error':   return <AlertTriangle size={14} className="text-red-500 shrink-0" />;
@@ -90,8 +91,8 @@ export const NotificationBell = ({ side = 'bottom', align = 'end', triggerClassN
   };
 
   useEffect(() => {
-    if (unreadNotifs && unreadNotifs.length > lastNotifCount) {
-      const newNotif = unreadNotifs[0];
+    if (unread && unread.length > lastNotifCount) {
+      const newNotif = unread[0];
       const notifUrl = isCustomer ? `/portal/${companySlug}/notifications` : `${getBasePath()}/notifications`;
 
       toast(newNotif.data?.title || 'New Notification', {
@@ -102,21 +103,22 @@ export const NotificationBell = ({ side = 'bottom', align = 'end', triggerClassN
           onClick: () => navigate(newNotif.data?.action_url || notifUrl)
         }
       });
-      setLastNotifCount(unreadNotifs.length);
-    } else if (unreadNotifs) {
-      setLastNotifCount(unreadNotifs.length);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: fires a toast (external system) when unread count grows, and setLastNotifCount tracks the previous count as the comparison baseline for that side effect — not state derivable from render.
+      setLastNotifCount(unread.length);
+    } else if (unread) {
+      setLastNotifCount(unread.length);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [unreadNotifs, lastNotifCount, navigate]);
+  }, [unread, lastNotifCount, navigate]);
 
   return (
     <Popover open={notifOpen} onOpenChange={setNotifOpen}>
       <PopoverTrigger asChild>
         <button className={cn('p-2 rounded-lg hover:bg-brand-white border border-transparent hover:border-brand-border transition-colors text-brand-muted hover:text-brand-secondary relative', triggerClassName)}>
           <Mail size={16} />
-          {user && (unreadNotifs?.length || 0) > 0 && (
+          {user && (unread?.length || 0) > 0 && (
             <span className="absolute top-1 right-1 h-3 w-3 text-[8px] font-bold text-brand-white flex items-center justify-center rounded-full bg-brand-danger shadow-sm">
-              {unreadNotifs.length}
+              {unread?.length ?? 0}
             </span>
           )}
         </button>
@@ -127,14 +129,14 @@ export const NotificationBell = ({ side = 'bottom', align = 'end', triggerClassN
           <div className="flex items-center gap-2">
             <Bell size={14} className="text-brand-accent" />
             <span className="text-[13px] font-bold text-brand-primary">Notifications</span>
-            {(unreadNotifs?.length || 0) > 0 && (
+            {(unread?.length || 0) > 0 && (
               <span className="bg-brand-danger text-brand-white text-[9px] font-black px-1.5 py-0.5 rounded-full">
-                {unreadNotifs.length}
+                {unread?.length ?? 0}
               </span>
             )}
           </div>
           <div className="flex items-center gap-2">
-            {(unreadNotifs?.length || 0) > 0 && (
+            {(unread?.length || 0) > 0 && (
               <button
                 onClick={() => markAllReadMutation.mutate()}
                 className="text-[11px] font-bold text-brand-accent hover:opacity-70 transition-opacity flex items-center gap-1"
@@ -156,7 +158,7 @@ export const NotificationBell = ({ side = 'bottom', align = 'end', triggerClassN
               <p className="text-[11px] text-brand-muted mt-0.5">You're all caught up!</p>
             </div>
           ) : (
-            allNotifs.notifications.slice(0, 5).map((notif: any) => (
+            allNotifs.notifications.slice(0, 5).map((notif) => (
               <div
                 key={notif.id}
                 className={`flex items-start gap-3 px-4 py-3 hover:bg-brand-surface transition-colors group ${
@@ -180,7 +182,7 @@ export const NotificationBell = ({ side = 'bottom', align = 'end', triggerClassN
                 <div className="flex flex-col items-end gap-1.5 shrink-0">
                   {notif.data?.action_url && (
                     <button
-                      onClick={() => { navigate(notif.data.action_url); setNotifOpen(false); }}
+                      onClick={() => { navigate(notif.data.action_url as string); setNotifOpen(false); }}
                       className="text-brand-accent hover:opacity-70 transition-opacity"
                       title="View"
                     >

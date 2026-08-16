@@ -24,15 +24,16 @@ import { Avatar } from '@/components/shared/Avatar';
 import { Plus, Filter, Pencil, Trash2, RefreshCw, Users2 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/axios';
-import type { MarketingSegment } from '@/types';
+import type { MarketingSegment, PaginatedResponse } from '@/types';
+import type { AxiosError } from 'axios';
 
-const EMPTY_FORM = { name: '', description: '', source: 'customers' as 'customers' | 'leads' | 'contacts', filters: {} as Record<string, any> };
+const EMPTY_FORM = { name: '', description: '', source: 'customers' as 'customers' | 'leads' | 'contacts', filters: {} as Record<string, unknown> };
 
 export const MarketingSegments = () => {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
-  const { data, isLoading } = useResourceList<MarketingSegment>('marketing/segments', { page, per_page: perPage });
+  const { data, isLoading } = useResourceList<PaginatedResponse<MarketingSegment>>('marketing/segments', { page, per_page: perPage });
   const segments: MarketingSegment[] = data?.data || [];
   const total = data?.total || 0;
   const lastPage = data?.last_page || 1;
@@ -40,7 +41,7 @@ export const MarketingSegments = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<MarketingSegment | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [preview, setPreview] = useState<{ count: number; sample: any[] } | null>(null);
+  const [preview, setPreview] = useState<{ count: number; sample: unknown[] } | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<MarketingSegment | null>(null);
@@ -72,8 +73,9 @@ export const MarketingSegments = () => {
         });
         setPreview(res.data);
       }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Preview failed');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Preview failed');
     } finally {
       setPreviewing(false);
     }
@@ -95,8 +97,9 @@ export const MarketingSegments = () => {
       }
       queryClient.invalidateQueries({ queryKey: ['marketing/segments'] });
       setDialogOpen(false);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to save segment');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Failed to save segment');
     } finally {
       setSaving(false);
     }
@@ -108,8 +111,9 @@ export const MarketingSegments = () => {
       await api.delete(`/admin/marketing/segments/${deleteTarget.id}`);
       queryClient.invalidateQueries({ queryKey: ['marketing/segments'] });
       toast.success('Segment deleted');
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to delete segment');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Failed to delete segment');
     } finally {
       setDeleteTarget(null);
     }
@@ -186,7 +190,7 @@ export const MarketingSegments = () => {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[12px]">Source</Label>
-                <Select value={form.source} onValueChange={(v) => setForm({ ...form, source: v as any, filters: {} })}>
+                <Select value={form.source} onValueChange={(v) => setForm({ ...form, source: v as 'customers' | 'leads' | 'contacts', filters: {} })}>
                   <SelectTrigger className="h-9 text-[13px]"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="customers" className="text-[13px]">Customers</SelectItem>

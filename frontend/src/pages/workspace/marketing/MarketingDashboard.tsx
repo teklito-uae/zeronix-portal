@@ -18,13 +18,31 @@ import {
 } from 'recharts';
 import type { MarketingCampaign } from '@/types';
 
+interface DashboardTrendRow {
+  date: string;
+  sent: number;
+  opened: number;
+  clicked: number;
+}
+
+interface MarketingDashboardResponse {
+  stats: {
+    sent_30d?: number;
+    open_rate_30d?: number;
+    click_rate_30d?: number;
+    queue_depth?: number;
+  };
+  trend: DashboardTrendRow[];
+  recent_campaigns: MarketingCampaign[];
+}
+
 export const MarketingDashboard = () => {
   const navigate = useNavigate();
 
   const { data, isLoading } = useQuery({
     queryKey: ['marketing-dashboard'],
     queryFn: async () => {
-      const res = await api.get('/admin/marketing/dashboard');
+      const res = await api.get<MarketingDashboardResponse>('/admin/marketing/dashboard');
       return res.data;
     },
     refetchInterval: 30000,
@@ -39,7 +57,7 @@ export const MarketingDashboard = () => {
   }
 
   const stats = data?.stats || {};
-  const trend = (data?.trend || []).map((row: any) => ({
+  const trend = (data?.trend || []).map((row) => ({
     date: row.date?.slice(5),
     sent: row.sent,
     opened: row.opened,

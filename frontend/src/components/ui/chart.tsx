@@ -64,7 +64,7 @@ ChartContainer.displayName = "ChartContainer"
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
-    ([_, config]) => config.theme || config.color
+    ([, config]) => config.theme || config.color
   )
 
   if (!colorConfig.length) {
@@ -89,9 +89,22 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
 
 const ChartTooltip = RechartsPrimitive.Tooltip
 
+// Recharts' own tooltip/legend payload types are awkward to reuse directly
+// (heavily generic over value/name types), so this mirrors what the
+// shadcn/ui chart primitive actually reads off each payload entry.
+type ChartPayloadItem = {
+  value?: number | string;
+  name?: string | number;
+  dataKey?: string | number;
+  color?: string;
+  fill?: string;
+  payload?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 type ChartTooltipContentProps = {
   active?: boolean;
-  payload?: any[];
+  payload?: ChartPayloadItem[];
   label?: string | number;
   className?: string;
   hideLabel?: boolean;
@@ -100,8 +113,14 @@ type ChartTooltipContentProps = {
   nameKey?: string;
   labelKey?: string;
   labelClassName?: string;
-  formatter?: (value: any, name: any, item: any, index: number, payload: any[]) => React.ReactNode;
-  labelFormatter?: (value: any, payload: any[]) => React.ReactNode;
+  formatter?: (
+    value: ChartPayloadItem["value"],
+    name: ChartPayloadItem["name"],
+    item: ChartPayloadItem,
+    index: number,
+    payload: ChartPayloadItem[]
+  ) => React.ReactNode;
+  labelFormatter?: (value: unknown, payload: ChartPayloadItem[]) => React.ReactNode;
   color?: string;
 }
 
@@ -110,10 +129,10 @@ const ChartTooltipContent = React.forwardRef<HTMLDivElement, ChartTooltipContent
   const { config } = useChart();
   const tooltipLabel = React.useMemo(() => {
     if (hideLabel || !active || !payload?.length) return null;
-    const [item] = payload as any[];
+    const [item] = payload;
     const key = `${labelKey || item.dataKey || item.name || "value"}`;
     const itemConfig = getPayloadConfigFromPayload(config, item, key);
-    const value = !labelKey && typeof label === "string" ? (config as any)[label]?.label || label : itemConfig?.label;
+    const value = !labelKey && typeof label === "string" ? config[label]?.label || label : itemConfig?.label;
     if (labelFormatter) {
       return (
         <div className={cn("font-medium", labelClassName)}>
@@ -130,7 +149,7 @@ const ChartTooltipContent = React.forwardRef<HTMLDivElement, ChartTooltipContent
     <div ref={ref} className={cn("grid min-w-[8rem] items-start gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs shadow-xl", className)}>
       {!nestLabel ? tooltipLabel : null}
       <div className="grid gap-1.5">
-        {payload.map((item: any, index: number) => {
+        {payload.map((item, index: number) => {
           const key = `${nameKey || item.name || item.dataKey || "value"}`;
           const itemConfig = getPayloadConfigFromPayload(config, item, key);
           const indicatorColor = color || item.payload?.fill || item.color;
@@ -184,7 +203,7 @@ type ChartLegendContentProps = {
   className?: string;
   hideIcon?: boolean;
   nameKey?: string;
-  payload?: Array<{ value?: any; dataKey?: string; color?: string; [key: string]: any }>;
+  payload?: ChartPayloadItem[];
   verticalAlign?: "top" | "bottom" | "middle";
 }
 
@@ -194,7 +213,7 @@ const ChartLegendContent = React.forwardRef<HTMLDivElement, ChartLegendContentPr
   if (!payload?.length) return null;
   return (
     <div ref={ref} className={cn("flex items-center justify-center gap-4", verticalAlign === "top" ? "pb-3" : "pt-3", className)}>
-      {payload.map((item: any, index: number) => {
+      {payload.map((item, index: number) => {
         const key = `${nameKey || item.dataKey || "value"}`;
         const itemConfig = getPayloadConfigFromPayload(config, item, key);
         return (

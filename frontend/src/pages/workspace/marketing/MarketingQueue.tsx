@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
+import type { AxiosError } from 'axios';
 import { toast } from 'sonner';
 import { MarketingLayout } from '@/components/marketing/MarketingLayout';
 import { StatCard } from '@/components/shared/StatCard';
@@ -16,6 +17,30 @@ import { Search, RefreshCw, X, ListOrdered, Clock, AlertTriangle, Ban } from 'lu
 
 const STATUS_TABS = ['all', 'pending', 'queued', 'sending', 'deferred', 'failed', 'bounced'];
 
+interface QueueRow {
+  id: number;
+  name?: string;
+  email: string;
+  last_error?: string;
+  campaign?: { id: number; name: string; user?: { name?: string } };
+  status: string;
+  attempts: number;
+  updated_at: string;
+}
+
+interface QueueResponse {
+  data: QueueRow[];
+  total?: number;
+  last_page?: number;
+  stats?: {
+    pending?: number;
+    queued?: number;
+    deferred?: number;
+    failed?: number;
+    bounced?: number;
+  };
+}
+
 export const MarketingQueue = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -28,7 +53,7 @@ export const MarketingQueue = () => {
     queryKey: ['marketing/queue', status, search, page, perPage],
     queryFn: async () =>
       (
-        await api.get('/admin/marketing/queue', {
+        await api.get<QueueResponse>('/admin/marketing/queue', {
           params: { status: status === 'all' ? undefined : status, search: search || undefined, page, per_page: perPage },
         })
       ).data,
@@ -43,8 +68,9 @@ export const MarketingQueue = () => {
       await api.post(`/admin/marketing/queue/${recipientId}/${action}`);
       toast.success(action === 'retry' ? 'Queued for retry' : 'Message cancelled');
       queryClient.invalidateQueries({ queryKey: ['marketing/queue'] });
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Action failed');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Action failed');
     }
   };
 
@@ -96,7 +122,7 @@ export const MarketingQueue = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((r: any) => (
+              {rows.map((r: QueueRow) => (
                 <TableRow key={r.id}>
                   <TableCell>
                     <p className="text-[13px] font-medium">{r.name || r.email}</p>

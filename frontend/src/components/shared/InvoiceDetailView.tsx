@@ -20,8 +20,8 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { TRANSACTION_CONFIGS, type TransactionConversionConfig } from '@/lib/transactionTypes';
 import { computeDocTotals, normalizeLineItems } from '@/lib/lineItemMath';
 import api from '@/lib/axios';
-import type { Invoice, QuoteAttachment, ActivityLogEntry } from '@/types';
-import { useAuthStore } from '@/store/useAuthStore';
+import type { AxiosError } from 'axios';
+import type { Invoice, QuoteAttachment, ActivityLogEntry, Deal, PaginatedResponse } from '@/types';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
 import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 import {
@@ -40,7 +40,6 @@ import {
   Clock,
   ChevronDown,
   Plus,
-  Lock,
   Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -84,7 +83,6 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const admin = useAuthStore((s) => s.admin);
   const currency = useCurrencyStore((s) => s.currency);
 
   const [activeTab, setActiveTab] = useState('items');
@@ -112,13 +110,6 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
   // (Partially Paid / Paid) and is no longer editable — enforced server-side too.
   const hasPayment = !!data && Number(data.amount_paid) > 0;
 
-  const isLocked = data && config.isLocked ? config.isLocked(data, admin?.role) : false;
-  // Mirrors InvoicePolicy::delete — staff may only delete their own invoice
-  // before it's been accepted; admins are unrestricted.
-  const canDelete =
-    !!data &&
-    (admin?.role === 'admin' || (data.user_id === admin?.id && ['draft', 'sent'].includes(data.status)));
-
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: [config.apiBase, id] });
     queryClient.invalidateQueries({ queryKey: [config.apiBase] });
@@ -129,17 +120,17 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
       payload: Partial<Pick<Invoice, 'status' | 'tags' | 'due_date' | 'deal_id' | 'payment_terms'>>
     ) => api.patch(`/admin/invoices/${id}/quick-update`, payload),
     onSuccess: () => invalidate(),
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Update failed.'),
+    onError: (err: AxiosError<{ message?: string }>) => toast.error(err.response?.data?.message || 'Update failed.'),
   });
 
   const duplicateMutation = useMutation({
-    mutationFn: async () => (await api.post(`/admin/invoices/${id}/duplicate`)).data,
-    onSuccess: (result: any) => {
+    mutationFn: async () => (await api.post<Invoice>(`/admin/invoices/${id}/duplicate`)).data,
+    onSuccess: (result) => {
       toast.success('Invoice duplicated.');
       queryClient.invalidateQueries({ queryKey: [config.apiBase] });
       navigate(`${getBasePath()}/invoices/${result.id}`);
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Duplicate failed.'),
+    onError: (err: AxiosError<{ message?: string }>) => toast.error(err.response?.data?.message || 'Duplicate failed.'),
   });
 
   const uploadAttachment = useMutation({
@@ -152,7 +143,7 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
       toast.success('Attachment uploaded.');
       invalidate();
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Upload failed.'),
+    onError: (err: AxiosError<{ message?: string }>) => toast.error(err.response?.data?.message || 'Upload failed.'),
   });
 
   const deleteAttachment = useMutation({
@@ -161,12 +152,13 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
       toast.success('Attachment removed.');
       invalidate();
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to remove attachment.'),
+    onError: (err: AxiosError<{ message?: string }>) => toast.error(err.response?.data?.message || 'Failed to remove attachment.'),
   });
 
   const { data: dealOptions } = useQuery({
     queryKey: ['deals-for-invoice', data?.customer_id],
-    queryFn: async () => (await api.get('/admin/deals', { params: { customer_id: data?.customer_id, per_page: 50 } })).data,
+    queryFn: async () =>
+      (await api.get<PaginatedResponse<Deal>>('/admin/deals', { params: { customer_id: data?.customer_id, per_page: 50 } })).data,
     enabled: !!data?.customer_id && !data?.deal_id,
   });
 
@@ -178,8 +170,9 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
       toast.success(`${conversion.label} succeeded.`);
       config.invalidateQueries.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
       navigate(`${getBasePath()}${conversion.resultRoute(res.data)}`);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Conversion failed.');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Conversion failed.');
     }
   };
 
@@ -378,7 +371,7 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
                       </TableCell>
                     </TableRow>
                   )}
-                  {normalizedItems.map((item: any, idx: number) => {
+                  {(data?.items || []).map((item, idx) => {
                     const showSubtitle = item.product_name && item.product_name !== item.description;
                     return (
                       <TableRow key={item.id ?? idx} className="border-brand-border">
@@ -813,7 +806,7 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
                 <option value="" disabled>
                   Link a deal…
                 </option>
-                {dealOptions.data.map((d: any) => (
+                {dealOptions.data.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.title}
                   </option>

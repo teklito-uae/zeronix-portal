@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { InputGroup, InputGroupInput, InputGroupAddon, InputGroupButton } from '@/components/ui/input-group';
 import { Loader2, AlertCircle, Clock, CheckCircle2, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { isAxiosError } from 'axios';
 import api from '@/lib/axios';
 
 const FEATURES = [
@@ -68,10 +69,12 @@ export const UnifiedLogin = () => {
           setError({ message: 'Invalid workspace response' });
         }
       }
-    } catch (err: any) {
-      if (err.response?.status === 403) {
-        setError({ message: err.response?.data?.message || 'Your account is pending approval.', pending: true });
-      } else if (isWorkspace && err.response?.status === 401) {
+    } catch (err) {
+      const status = isAxiosError<{ message?: string }>(err) ? err.response?.status : undefined;
+      const message = isAxiosError<{ message?: string }>(err) ? err.response?.data?.message : undefined;
+      if (status === 403) {
+        setError({ message: message || 'Your account is pending approval.', pending: true });
+      } else if (isWorkspace && status === 401) {
         // If workspace login fails, try portal as fallback if not explicitly platform
         try {
           const fallbackRes = await api.post('/customer/login', { email, password });
@@ -81,11 +84,11 @@ export const UnifiedLogin = () => {
             navigate(`/portal/${customer.company_id || 'company'}/dashboard`);
             return;
           }
-        } catch (fallbackErr) {
+        } catch {
           setError({ message: 'Invalid email or password' });
         }
       } else {
-        setError({ message: err.response?.data?.message || 'Invalid email or password' });
+        setError({ message: message || 'Invalid email or password' });
       }
     } finally {
       setLoading(false);
@@ -137,7 +140,7 @@ export const UnifiedLogin = () => {
               <Field>
                 <div className="flex items-center justify-between">
                   <FieldLabel htmlFor="password">Password</FieldLabel>
-                  <Link to="#" className="text-xs text-brand-accent hover:text-brand-accent-hover font-medium">Forgot password?</Link>
+                  <Link to="/forgot-password" className="text-xs text-brand-accent hover:text-brand-accent-hover font-medium">Forgot password?</Link>
                 </div>
                 <InputGroup className="h-11 rounded-lg">
                   <InputGroupInput

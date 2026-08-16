@@ -1,10 +1,5 @@
 import { cn } from '@/lib/utils';
-
-export const getInitials = (name?: string | null) => {
-  if (!name) return '?';
-  const parts = name.trim().split(/\s+/);
-  return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || name.slice(0, 2).toUpperCase();
-};
+import { getInitials } from './Avatar.config';
 
 /**
  * Deterministic name -> color, so the same person/company always renders the

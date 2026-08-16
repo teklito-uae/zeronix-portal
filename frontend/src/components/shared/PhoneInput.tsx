@@ -1,7 +1,7 @@
 import ReactPhoneInput, { isPossiblePhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import { cn } from '@/lib/utils';
-import { forwardRef, useState } from 'react';
+import { forwardRef, useState, type ComponentRef } from 'react';
 
 interface PhoneInputProps {
   value?: string;
@@ -16,7 +16,7 @@ interface PhoneInputProps {
  * number including "+<country code>"; validity is checked against the
  * libphonenumber worldwide numbering plans as they type.
  */
-export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
+export const PhoneInput = forwardRef<ComponentRef<typeof ReactPhoneInput>, PhoneInputProps>(
   ({ value, onChange, className, placeholder = 'e.g. +1 415 555 2671' }, ref) => {
     const [touched, setTouched] = useState(false);
     const invalid = touched && !!value && !isPossiblePhoneNumber(value);
@@ -38,7 +38,7 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
             className
           )}
           placeholder={placeholder}
-          ref={ref as any}
+          ref={ref}
         />
         {invalid && (
           <p className="text-[11px] text-brand-danger ml-1">Enter a valid international phone number.</p>

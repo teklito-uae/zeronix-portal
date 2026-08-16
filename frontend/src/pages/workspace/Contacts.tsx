@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import type { AxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -12,10 +13,10 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { Avatar } from '@/components/shared/Avatar';
 import { ContactDetailPanel } from '@/components/shared/ContactDetailPanel';
 import { ContactFormSheet } from '@/components/shared/ContactFormSheet';
-import { Users, Star, Building2, UserCircle2, ShieldCheck, Layers, Tag as TagIcon } from 'lucide-react';
+import { Users, Star, Building2, ShieldCheck, Layers, Tag as TagIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useResourceList } from '@/hooks/useApi';
-import type { CustomerContact, Customer, Tag } from '@/types';
+import type { CustomerContact, Customer, Tag, PaginatedResponse } from '@/types';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
 import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 import { toTitleCase } from '@/lib/utils';
@@ -39,12 +40,12 @@ export const Contacts = () => {
   const [selectedContactId, setSelectedContactId] = useState<number | null>(null);
 
   // Companies for the Company filter dropdown
-  const { data: companiesData } = useResourceList<Customer>('customers', { per_page: 100 });
+  const { data: companiesData } = useResourceList<PaginatedResponse<Customer>>('customers', { per_page: 100 });
   const companies = companiesData?.data || [];
 
-  // Tags for the Tags filter dropdown
-  const { data: tagsData } = useResourceList<Tag>('tags', {});
-  const allTags: Tag[] = (tagsData as any) || [];
+  // Tags for the Tags filter dropdown (`/admin/tags` returns a plain array)
+  const { data: tagsData } = useResourceList<Tag[]>('tags', {});
+  const allTags: Tag[] = tagsData || [];
 
   // Distinct departments for the Department filter
   const { data: departmentsData } = useResourceList<string[]>('contacts/departments', {});
@@ -76,13 +77,13 @@ export const Contacts = () => {
   const deleteMutation = useMutation({
     mutationFn: async (contact: CustomerContact) => api.delete(`/admin/customers/${contact.customer_id}/contacts/${contact.id}`),
     onSuccess: (_res, contact) => { invalidateAll(contact.customer_id); toast.success('Contact deleted'); },
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to delete contact'),
+    onError: (e: AxiosError<{ message?: string }>) => toast.error(e.response?.data?.message || 'Failed to delete contact'),
   });
 
   const setPrimaryMutation = useMutation({
     mutationFn: async (contact: CustomerContact) => api.post(`/admin/customers/${contact.customer_id}/contacts/${contact.id}/set-primary`),
     onSuccess: (_res, contact) => { invalidateAll(contact.customer_id); toast.success('Primary contact updated'); },
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to update primary contact'),
+    onError: (e: AxiosError<{ message?: string }>) => toast.error(e.response?.data?.message || 'Failed to update primary contact'),
   });
 
   const openAdd = () => {
@@ -103,7 +104,7 @@ export const Contacts = () => {
         <div className="flex items-center gap-2.5">
           <Avatar name={row.original.full_name} className="h-8 w-8 text-[11px] flex-shrink-0" />
           <div className="flex items-center gap-2 min-w-0">
-            <p className="text-sm font-bold text-admin-text-primary truncate">{toTitleCase(row.original.full_name)}</p>
+            <p className="text-sm font-bold text-brand-primary truncate">{toTitleCase(row.original.full_name)}</p>
             {row.original.is_primary && (
               <span className="text-[10px] font-bold text-brand-accent bg-brand-accent-light px-1.5 py-0.5 rounded flex items-center gap-1 flex-shrink-0">
                 <Star size={10} /> PRIMARY
@@ -116,12 +117,12 @@ export const Contacts = () => {
     {
       accessorKey: 'designation',
       header: 'Designation',
-      cell: ({ row }) => <span className="text-xs text-admin-text-secondary">{row.original.designation || '—'}</span>,
+      cell: ({ row }) => <span className="text-xs text-brand-secondary">{row.original.designation || '—'}</span>,
     },
     {
       accessorKey: 'department',
       header: 'Department',
-      cell: ({ row }) => <span className="text-xs text-admin-text-secondary">{row.original.department || '—'}</span>,
+      cell: ({ row }) => <span className="text-xs text-brand-secondary">{row.original.department || '—'}</span>,
     },
     {
       id: 'company',
@@ -133,7 +134,7 @@ export const Contacts = () => {
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); navigate(`${getBasePath()}/companies/${row.original.customer_id}`); }}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-zeronix-blue hover:underline"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-accent hover:underline"
           >
             <Building2 size={12} /> {label}
           </button>
@@ -143,23 +144,23 @@ export const Contacts = () => {
     {
       accessorKey: 'email',
       header: 'Email',
-      cell: ({ row }) => <span className="text-xs text-admin-text-secondary">{row.original.email || '—'}</span>,
+      cell: ({ row }) => <span className="text-xs text-brand-secondary">{row.original.email || '—'}</span>,
     },
     {
       accessorKey: 'phone',
       header: 'Phone',
-      cell: ({ row }) => <span className="text-xs text-admin-text-secondary">{row.original.phone || row.original.mobile || '—'}</span>,
+      cell: ({ row }) => <span className="text-xs text-brand-secondary">{row.original.phone || row.original.mobile || '—'}</span>,
     },
     {
       accessorKey: 'deals_count',
       header: 'Total Deals',
-      cell: ({ row }) => <span className="text-xs font-bold text-admin-text-secondary">{row.original.deals_count ?? 0}</span>,
+      cell: ({ row }) => <span className="text-xs font-bold text-brand-secondary">{row.original.deals_count ?? 0}</span>,
     },
     {
       accessorKey: 'lifetime_value',
       header: 'Lifetime Value',
       cell: ({ row }) => (
-        <span className="text-xs font-bold text-admin-text-primary">
+        <span className="text-xs font-bold text-brand-primary">
           <CurrencyAmount amount={row.original.lifetime_value ?? 0} currency={currency} />
         </span>
       ),
@@ -173,7 +174,7 @@ export const Contacts = () => {
             ACTIVE
           </span>
         ) : (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider bg-admin-bg text-admin-text-muted border border-admin-border">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider bg-brand-bg text-brand-subtle border border-brand-border">
             INACTIVE
           </span>
         )

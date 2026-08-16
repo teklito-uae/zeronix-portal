@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { AxiosError } from 'axios';
 import { toast } from 'sonner';
 import api from '@/lib/axios';
 import { getBasePath } from '@/hooks/useBasePath';
@@ -43,7 +44,7 @@ import { LinkedDocumentSummaryCard } from '@/components/shared/LinkedDocumentSum
 import { SupplierPaymentModal } from '@/components/shared/SupplierPaymentModal';
 import { useResourceList, useResourceDetail, useResourceMutation } from '@/hooks/useApi';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
-import type { SupplierPaymentReceipt } from '@/types';
+import type { SupplierPaymentReceipt, PaginatedResponse } from '@/types';
 import { Expenses } from './Expenses';
 import {
   Banknote,
@@ -175,7 +176,7 @@ export const PaymentsMade = () => {
 
               <div className="space-y-1.5">
                 <Label className="text-[12px] font-medium text-brand-secondary ml-1">Method</Label>
-                <Select value={form.payment_method} onValueChange={(v: any) => setForm({ ...form, payment_method: v })}>
+                <Select value={form.payment_method} onValueChange={(v: 'cash' | 'bank') => setForm({ ...form, payment_method: v })}>
                   <SelectTrigger className="h-[36px] bg-brand-white border-brand-border/50 text-[13px] rounded-lg">
                     <SelectValue />
                   </SelectTrigger>
@@ -258,7 +259,7 @@ const SupplierPaymentsSplitView = ({ onCreate, onEdit }: SupplierPaymentsSplitVi
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const { data: resourceData, isLoading } = useResourceList<SupplierPaymentReceipt>('supplier-payment-receipts', {
+  const { data: resourceData, isLoading } = useResourceList<PaginatedResponse<SupplierPaymentReceipt>>('supplier-payment-receipts', {
     search: search || undefined,
     page,
     per_page: perPage,
@@ -413,7 +414,7 @@ const SupplierReceiptDetailPane = ({ id, onEdit, onDeleted }: SupplierReceiptDet
       toast.success('Payment receipt email sent');
       queryClient.invalidateQueries({ queryKey: ['supplier-payment-receipts'] });
     },
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to send email'),
+    onError: (e: AxiosError<{ message?: string }>) => toast.error(e.response?.data?.message || 'Failed to send email'),
   });
 
   const handleDelete = () => {
@@ -503,7 +504,7 @@ const SupplierReceiptDetailPane = ({ id, onEdit, onDeleted }: SupplierReceiptDet
             data.purchase_bill
               ? {
                   label: 'Purchase Bill',
-                  number: data.purchase_bill.bill_number,
+                  number: data.purchase_bill.bill_number || `#${data.purchase_bill_id}`,
                   onClick: () => navigate(`${getBasePath()}/purchases/${data.purchase_bill_id}`),
                 }
               : null

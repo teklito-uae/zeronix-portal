@@ -4,6 +4,7 @@ import { useBreadcrumb } from '@/hooks/useBreadcrumb';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useMemo, type ReactNode } from 'react';
 import api from '@/lib/axios';
+import type { AxiosError } from 'axios';
 import { PageTabs, type PageTab } from '@/components/shared/PageTabs';
 import { Button } from '@/components/ui/button';
 import { StatCard } from '@/components/shared/StatCard';
@@ -250,6 +251,7 @@ export const CompanyProfile = () => {
   useEffect(() => {
     if (data?.customer) {
       const c = data.customer;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: seeds the editable form from the fetched customer record whenever fresh server data lands.
       setForm({
         name: c.name,
         company: c.company || '',
@@ -286,7 +288,7 @@ export const CompanyProfile = () => {
       queryClient.invalidateQueries({ queryKey: ['customer', id] });
       toast.success('Client registered for portal access.');
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Access registration failure.'),
+    onError: (err: AxiosError<{ message?: string }>) => toast.error(err.response?.data?.message || 'Access registration failure.'),
   });
 
   if (isLoading) {
@@ -302,7 +304,7 @@ export const CompanyProfile = () => {
       accessorKey: 'quote_number',
       header: 'Instrument #',
       cell: ({ row }) => (
-        <span className="font-mono text-xs text-zeronix-blue font-bold uppercase">
+        <span className="font-mono text-xs text-brand-accent font-bold uppercase">
           {row.original.quote_number || `QT-${String(row.original.id).padStart(4, '0')}`}
         </span>
       ),
@@ -316,7 +318,7 @@ export const CompanyProfile = () => {
       accessorKey: 'total',
       header: 'Valuation',
       cell: ({ row }) => (
-        <span className="font-mono text-sm font-bold text-admin-text-primary">
+        <span className="font-mono text-sm font-bold text-brand-primary">
           <CurrencyAmount amount={row.original.total || 0} currency={currency} />
         </span>
       ),
@@ -329,7 +331,7 @@ export const CompanyProfile = () => {
       header: 'Deal',
       cell: ({ row }) => (
         <div>
-          <p className="font-mono text-xs text-zeronix-blue font-bold uppercase">
+          <p className="font-mono text-xs text-brand-accent font-bold uppercase">
             {row.original.deal_code || `DEAL-${String(row.original.id).padStart(4, '0')}`}
           </p>
           <p className="text-[12px] text-brand-secondary truncate max-w-[220px]">{row.original.title}</p>
@@ -345,7 +347,7 @@ export const CompanyProfile = () => {
       accessorKey: 'value',
       header: 'Value',
       cell: ({ row }) => (
-        <span className="font-mono text-sm font-bold text-admin-text-primary">
+        <span className="font-mono text-sm font-bold text-brand-primary">
           <CurrencyAmount amount={row.original.value || 0} currency={currency} />
         </span>
       ),
@@ -376,7 +378,7 @@ export const CompanyProfile = () => {
       accessorKey: 'invoice_number',
       header: 'Ledger #',
       cell: ({ row }) => (
-        <span className="font-mono text-xs text-zeronix-blue font-bold uppercase">
+        <span className="font-mono text-xs text-brand-accent font-bold uppercase">
           {row.original.invoice_number || `INV-${String(row.original.id).padStart(4, '0')}`}
         </span>
       ),
@@ -390,7 +392,7 @@ export const CompanyProfile = () => {
       accessorKey: 'total',
       header: 'Amount',
       cell: ({ row }) => (
-        <span className="font-mono text-sm font-bold text-admin-text-primary">
+        <span className="font-mono text-sm font-bold text-brand-primary">
           <CurrencyAmount amount={row.original.total || 0} currency={currency} />
         </span>
       ),
@@ -402,7 +404,7 @@ export const CompanyProfile = () => {
       accessorKey: 'order_number',
       header: 'Order #',
       cell: ({ row }) => (
-        <span className="font-mono text-xs text-zeronix-blue font-bold uppercase">
+        <span className="font-mono text-xs text-brand-accent font-bold uppercase">
           {row.original.order_number || `SO-${String(row.original.id).padStart(4, '0')}`}
         </span>
       ),
@@ -416,7 +418,7 @@ export const CompanyProfile = () => {
       accessorKey: 'total',
       header: 'Total',
       cell: ({ row }) => (
-        <span className="font-mono text-sm font-bold text-admin-text-primary">
+        <span className="font-mono text-sm font-bold text-brand-primary">
           <CurrencyAmount amount={row.original.total || 0} currency={currency} />
         </span>
       ),
@@ -460,7 +462,7 @@ export const CompanyProfile = () => {
                         ACTIVE
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider bg-admin-bg text-admin-text-muted border border-admin-border">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider bg-brand-bg text-brand-subtle border border-brand-border">
                         OFFLINE
                       </span>
                     )}

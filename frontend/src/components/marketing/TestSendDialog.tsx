@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import api from '@/lib/axios';
 import { Send } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
+import { isAxiosError } from 'axios';
 
 interface TestSendDialogProps {
   open: boolean;
@@ -27,8 +28,9 @@ export const TestSendDialog = ({ open, onOpenChange, endpoint }: TestSendDialogP
       const res = await api.post(endpoint, { to });
       toast.success(res.data.message || 'Test email sent');
       onOpenChange(false);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to send test email');
+    } catch (err) {
+      const message = isAxiosError<{ message?: string }>(err) ? err.response?.data?.message : undefined;
+      toast.error(message || 'Failed to send test email');
     } finally {
       setSending(false);
     }

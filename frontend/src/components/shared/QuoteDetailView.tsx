@@ -8,25 +8,23 @@ import { StatusBadge } from './StatusBadge';
 import { DownloadButton } from './DownloadButton';
 import { Avatar } from './Avatar';
 import { SharedStatusSelect } from './SharedStatusSelect';
-import { SharedTagBadge } from './SharedTagBadge';
 import { TagsManager } from './TagsManager';
 import { PhoneFlag } from './PhoneFlag';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { TRANSACTION_CONFIGS, type TransactionConversionConfig } from '@/lib/transactionTypes';
 import { computeDocTotals, normalizeLineItems } from '@/lib/lineItemMath';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
 import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 import api from '@/lib/axios';
-import type { Quote, QuoteAttachment, ActivityLogEntry } from '@/types';
+import type { AxiosError } from 'axios';
+import type { Quote, QuoteAttachment, ActivityLogEntry, Deal, PaginatedResponse } from '@/types';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Loader2,
@@ -37,7 +35,6 @@ import {
   Calendar,
   Package,
   Paperclip,
-  Upload,
   Download,
   X,
   Copy,
@@ -50,8 +47,6 @@ import {
   MessageSquare,
   History,
   Eye,
-  ChevronRight,
-  Phone,
   Mail,
   Building2
 } from 'lucide-react';
@@ -76,13 +71,6 @@ const detailTabs = [
 
 const formatDate = (value?: string | null) => (value ? new Date(value).toLocaleDateString() : '—');
 
-const formatFileSize = (bytes?: number) => {
-  if (!bytes && bytes !== 0) return '';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
-
 const storageBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api').replace(/\/api\/?$/, '');
 
 export const QuoteDetailView = ({ id, onSend, isSendPending, onDeleted }: QuoteDetailViewProps) => {
@@ -92,9 +80,6 @@ export const QuoteDetailView = ({ id, onSend, isSendPending, onDeleted }: QuoteD
   const currency = useCurrencyStore((s) => s.currency);
 
   const [activeTab, setActiveTab] = useState('items');
-  const [tagInput, setTagInput] = useState('');
-  const [isAddingTag, setIsAddingTag] = useState(false);
-  const tagInputRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading } = useResourceDetail<Quote>(config.apiBase, id);
   const { remove } = useResourceMutation(config.apiBase);
@@ -133,17 +118,17 @@ export const QuoteDetailView = ({ id, onSend, isSendPending, onDeleted }: QuoteD
         toast.success('Updated successfully.');
       }
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Update failed.'),
+    onError: (err: AxiosError<{ message?: string }>) => toast.error(err.response?.data?.message || 'Update failed.'),
   });
 
   const duplicateMutation = useMutation({
-    mutationFn: async () => (await api.post(`/admin/quotes/${id}/duplicate`)).data,
-    onSuccess: (result: any) => {
+    mutationFn: async () => (await api.post<Quote>(`/admin/quotes/${id}/duplicate`)).data,
+    onSuccess: (result) => {
       toast.success('Quote duplicated.');
       queryClient.invalidateQueries({ queryKey: [config.apiBase] });
       navigate(`${getBasePath()}/quotes/${result.id}`);
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Duplicate failed.'),
+    onError: (err: AxiosError<{ message?: string }>) => toast.error(err.response?.data?.message || 'Duplicate failed.'),
   });
 
   const uploadAttachment = useMutation({
@@ -156,7 +141,7 @@ export const QuoteDetailView = ({ id, onSend, isSendPending, onDeleted }: QuoteD
       toast.success('Attachment uploaded.');
       invalidate();
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Upload failed.'),
+    onError: (err: AxiosError<{ message?: string }>) => toast.error(err.response?.data?.message || 'Upload failed.'),
   });
 
   const deleteAttachment = useMutation({
@@ -165,12 +150,13 @@ export const QuoteDetailView = ({ id, onSend, isSendPending, onDeleted }: QuoteD
       toast.success('Attachment removed.');
       invalidate();
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to remove attachment.'),
+    onError: (err: AxiosError<{ message?: string }>) => toast.error(err.response?.data?.message || 'Failed to remove attachment.'),
   });
 
   const { data: dealOptions } = useQuery({
     queryKey: ['deals-for-quote', data?.customer_id],
-    queryFn: async () => (await api.get('/admin/deals', { params: { customer_id: data?.customer_id, per_page: 50 } })).data,
+    queryFn: async () =>
+      (await api.get<PaginatedResponse<Deal>>('/admin/deals', { params: { customer_id: data?.customer_id, per_page: 50 } })).data,
     enabled: !!data?.customer_id && !data?.deal_id,
   });
 
@@ -182,8 +168,9 @@ export const QuoteDetailView = ({ id, onSend, isSendPending, onDeleted }: QuoteD
       toast.success(`${conversion.label} succeeded.`);
       config.invalidateQueries.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
       navigate(`${getBasePath()}${conversion.resultRoute(res.data)}`);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Conversion failed.');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Conversion failed.');
     }
   };
 
@@ -375,7 +362,7 @@ export const QuoteDetailView = ({ id, onSend, isSendPending, onDeleted }: QuoteD
                         </TableCell>
                       </TableRow>
                     )}
-                    {normalizedItems.map((item: any, idx: number) => {
+                    {(data?.items || []).map((item, idx) => {
                       const showSubtitle = item.product_name && item.product_name !== item.description;
                       return (
                         <TableRow key={item.id ?? idx} className="border-brand-border">
@@ -628,7 +615,7 @@ export const QuoteDetailView = ({ id, onSend, isSendPending, onDeleted }: QuoteD
                   className="w-full h-8 rounded-lg border border-brand-border bg-brand-white px-2 text-[12px] text-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-border"
                 >
                   <option value="" disabled>Link a deal…</option>
-                  {dealOptions.data.map((d: any) => (
+                  {dealOptions.data.map((d) => (
                     <option key={d.id} value={d.id}>{d.title}</option>
                   ))}
                 </select>

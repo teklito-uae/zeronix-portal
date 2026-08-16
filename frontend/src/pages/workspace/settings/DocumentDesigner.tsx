@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/shared/Spinner';
 import { toast } from 'sonner';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
@@ -167,23 +166,24 @@ export const DocumentDesigner = () => {
     [templates, activeDocType]
   );
 
-  /* ── Auto-select first template on doc type change ── */
-
-  useEffect(() => {
-    if (filteredTemplates.length > 0) {
-      const def = filteredTemplates.find((t) => t.is_default) || filteredTemplates[0];
-      handleSelectTemplate(def);
-    } else {
-      setSelectedTemplate(null);
-      setTemplateForm({});
-    }
-  }, [activeDocType, filteredTemplates.length]);
-
   const handleSelectTemplate = (t: Template) => {
     setSelectedTemplate(t);
     setTemplateForm({ ...t });
     setEditorView('code');
   };
+
+  /* ── Auto-select first template on doc type change ── */
+
+  useEffect(() => {
+    if (filteredTemplates.length > 0) {
+      const def = filteredTemplates.find((t) => t.is_default) || filteredTemplates[0];
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: auto-selects the default template for the active doc type whenever the (memoized, server-derived) filtered template list changes.
+      handleSelectTemplate(def);
+    } else {
+      setSelectedTemplate(null);
+      setTemplateForm({});
+    }
+  }, [activeDocType, filteredTemplates]);
 
   /* ── Mutations ── */
 
@@ -236,15 +236,15 @@ export const DocumentDesigner = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-admin-surface/90 backdrop-blur-xl border border-white/5 p-6 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-brand-white border border-brand-border p-6 rounded-xl shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h3 className="text-lg font-bold text-admin-text-primary tracking-tight">Document Designer</h3>
-          <p className="text-xs text-admin-text-muted mt-1">Choose a document type, select a template, and customize. Brand settings apply automatically.</p>
+          <h3 className="text-lg font-bold text-brand-primary tracking-tight">Document Designer</h3>
+          <p className="text-xs text-brand-subtle mt-1">Choose a document type, select a template, and customize. Brand settings apply automatically.</p>
         </div>
         <Button
           onClick={handleSave}
           disabled={updateMutation.isPending || !selectedTemplate}
-          className="bg-gradient-to-r from-zeronix-blue to-blue-600 hover:from-blue-600 hover:to-zeronix-blue text-white h-10 px-8 rounded-xl shadow-lg shadow-zeronix-blue/30 transition-all duration-300"
+          className="bg-brand-accent hover:bg-brand-accent-hover text-white h-10 px-8 rounded-xl transition-colors"
         >
           {updateMutation.isPending ? <Spinner size={16} className="mr-2" /> : <Save size={16} className="mr-2" />}
           Save Template
@@ -255,9 +255,9 @@ export const DocumentDesigner = () => {
         {/* ── Left Sidebar: Doc Type + Template Picker ── */}
         <div className="xl:col-span-3 space-y-4">
           {/* Doc Type Switcher */}
-          <Card className="bg-admin-surface/80 backdrop-blur-xl border-white/5 rounded-2xl overflow-hidden shadow-xl">
-            <CardHeader className="bg-admin-bg/30 border-b border-white/5 p-4">
-              <div className="flex items-center gap-2 text-zeronix-blue">
+          <Card className="bg-brand-white border border-brand-border rounded-xl overflow-hidden shadow-sm">
+            <CardHeader className="bg-brand-bg border-b border-brand-border p-4">
+              <div className="flex items-center gap-2 text-brand-accent">
                 <Layout size={16} />
                 <CardTitle className="text-[11px] uppercase tracking-widest font-bold">Document Type</CardTitle>
               </div>
@@ -275,18 +275,18 @@ export const DocumentDesigner = () => {
                       className={cn(
                         'w-full text-left px-3 py-2.5 rounded-xl text-xs transition-all flex items-center justify-between group',
                         isActive
-                          ? 'bg-zeronix-blue text-white shadow-lg shadow-zeronix-blue/30 font-bold'
-                          : 'text-admin-text-secondary hover:text-admin-text-primary hover:bg-admin-bg/50'
+                          ? 'bg-brand-accent text-white shadow-lg shadow-brand-accent/30 font-bold'
+                          : 'text-brand-secondary hover:text-brand-primary hover:bg-brand-bg/50'
                       )}
                     >
                       <div className="flex items-center gap-2.5">
-                        <Icon size={15} className={isActive ? 'text-white' : 'text-admin-text-muted group-hover:text-zeronix-blue'} />
+                        <Icon size={15} className={isActive ? 'text-white' : 'text-brand-subtle group-hover:text-brand-accent'} />
                         <span className="tracking-wide">{dt.label}</span>
                       </div>
                       <span
                         className={cn(
                           'text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center',
-                          isActive ? 'bg-white/20 text-white' : 'bg-admin-bg text-admin-text-muted'
+                          isActive ? 'bg-white/20 text-white' : 'bg-brand-bg text-brand-subtle'
                         )}
                       >
                         {count}
@@ -299,16 +299,16 @@ export const DocumentDesigner = () => {
           </Card>
 
           {/* Template List for this Type */}
-          <Card className="bg-admin-surface/80 backdrop-blur-xl border-white/5 rounded-2xl overflow-hidden shadow-xl">
-            <CardHeader className="bg-admin-bg/30 border-b border-white/5 p-4">
-              <div className="flex items-center gap-2 text-zeronix-blue">
+          <Card className="bg-brand-white border border-brand-border rounded-xl overflow-hidden shadow-sm">
+            <CardHeader className="bg-brand-bg border-b border-brand-border p-4">
+              <div className="flex items-center gap-2 text-brand-accent">
                 <FileText size={16} />
                 <CardTitle className="text-[11px] uppercase tracking-widest font-bold">Templates</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="p-2">
               {filteredTemplates.length === 0 ? (
-                <p className="text-xs text-admin-text-muted text-center py-6 italic">No templates found</p>
+                <p className="text-xs text-brand-subtle text-center py-6 italic">No templates found</p>
               ) : (
                 <div className="space-y-1">
                   {filteredTemplates.map((t) => (
@@ -318,8 +318,8 @@ export const DocumentDesigner = () => {
                       className={cn(
                         'w-full text-left px-4 py-3 rounded-xl text-xs transition-all flex justify-between items-center group',
                         selectedTemplate?.id === t.id
-                          ? 'bg-zeronix-blue/10 text-zeronix-blue border border-zeronix-blue/20 font-bold'
-                          : 'hover:bg-admin-bg text-admin-text-secondary border border-transparent'
+                          ? 'bg-brand-accent/10 text-brand-accent border border-brand-accent/20 font-bold'
+                          : 'hover:bg-brand-bg text-brand-secondary border border-transparent'
                       )}
                     >
                       <div className="flex items-center gap-2">
@@ -327,13 +327,13 @@ export const DocumentDesigner = () => {
                           size={12}
                           className={cn(
                             'transition-transform',
-                            selectedTemplate?.id === t.id ? 'text-zeronix-blue rotate-90' : 'text-admin-text-muted'
+                            selectedTemplate?.id === t.id ? 'text-brand-accent rotate-90' : 'text-brand-subtle'
                           )}
                         />
                         {t.name}
                       </div>
                       {t.is_default && (
-                        <span className="text-[8px] bg-zeronix-blue text-white px-1.5 py-0.5 rounded-full font-bold flex items-center gap-0.5">
+                        <span className="text-[8px] bg-brand-accent text-white px-1.5 py-0.5 rounded-full font-bold flex items-center gap-0.5">
                           <Star size={8} />
                           DEFAULT
                         </span>
@@ -346,22 +346,22 @@ export const DocumentDesigner = () => {
           </Card>
 
           {/* Placeholders */}
-          <Card className="bg-admin-surface/80 backdrop-blur-xl border-white/5 rounded-2xl overflow-hidden shadow-xl">
-            <CardHeader className="bg-admin-bg/30 border-b border-white/5 p-4">
-              <div className="flex items-center gap-2 text-zeronix-blue">
+          <Card className="bg-brand-white border border-brand-border rounded-xl overflow-hidden shadow-sm">
+            <CardHeader className="bg-brand-bg border-b border-brand-border p-4">
+              <div className="flex items-center gap-2 text-brand-accent">
                 <Info size={16} />
                 <CardTitle className="text-[11px] uppercase tracking-widest font-bold">Variables</CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="p-3 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-admin-border">
+            <CardContent className="p-3 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-brand-border">
               <div className="grid grid-cols-1 gap-1">
                 {currentPlaceholders.map((p) => (
                   <div
                     key={p.key}
-                    className="flex items-center justify-between group p-2 rounded-lg hover:bg-admin-bg/50 transition-colors cursor-help border border-transparent hover:border-white/5"
+                    className="flex items-center justify-between group p-2 rounded-lg hover:bg-brand-bg/50 transition-colors cursor-help border border-transparent hover:border-brand-border"
                   >
-                    <span className="text-[9px] text-admin-text-muted font-bold tracking-wide truncate mr-2">{p.label}</span>
-                    <code className="text-[9px] text-zeronix-blue font-mono bg-zeronix-blue/10 px-1.5 py-0.5 rounded-md border border-zeronix-blue/20 shrink-0">
+                    <span className="text-[9px] text-brand-subtle font-bold tracking-wide truncate mr-2">{p.label}</span>
+                    <code className="text-[9px] text-brand-accent font-mono bg-brand-accent/10 px-1.5 py-0.5 rounded-md border border-brand-accent/20 shrink-0">
                       {p.key}
                     </code>
                   </div>
@@ -374,34 +374,34 @@ export const DocumentDesigner = () => {
         {/* ── Right: Editor ── */}
         <div className="xl:col-span-9 space-y-4">
           {!selectedTemplate ? (
-            <Card className="bg-admin-surface/80 backdrop-blur-xl border-white/5 rounded-2xl p-12 text-center shadow-xl">
-              <Layout size={48} className="mx-auto text-zeronix-blue opacity-50 mb-4" />
-              <h3 className="text-xl font-bold text-admin-text-primary mb-2">Select a Template</h3>
-              <p className="text-admin-text-muted text-sm">Choose a document type and template from the sidebar to begin editing.</p>
+            <Card className="bg-brand-white border border-brand-border rounded-xl p-12 text-center shadow-sm">
+              <Layout size={48} className="mx-auto text-brand-accent opacity-50 mb-4" />
+              <h3 className="text-xl font-bold text-brand-primary mb-2">Select a Template</h3>
+              <p className="text-brand-subtle text-sm">Choose a document type and template from the sidebar to begin editing.</p>
             </Card>
           ) : (
             <>
               {/* Template Info Row */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Name & Default */}
-                <Card className="md:col-span-1 bg-admin-surface/80 backdrop-blur-xl border-white/5 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+                <Card className="md:col-span-1 bg-brand-white border border-brand-border rounded-xl p-5 shadow-sm flex flex-col gap-4">
                   <div className="space-y-2">
-                    <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-widest">Template Name</Label>
+                    <Label className="text-[10px] uppercase font-bold text-brand-subtle tracking-widest">Template Name</Label>
                     <Input
                       value={templateForm.name || ''}
                       onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
-                      className="bg-admin-bg/50 border-admin-border/50 h-10 font-bold focus-visible:ring-zeronix-blue/30"
+                      className="bg-brand-bg/50 border-brand-border/50 h-10 font-bold focus-visible:ring-brand-accent/30"
                     />
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-admin-bg/30 rounded-xl border border-white/5 shadow-inner">
+                  <div className="flex items-center justify-between p-3 bg-brand-bg rounded-xl border border-brand-border shadow-inner">
                     <div className="space-y-0.5">
-                      <Label htmlFor="def-toggle" className="text-xs font-bold cursor-pointer text-admin-text-primary">Default Template</Label>
-                      <p className="text-[10px] text-admin-text-muted">Use as primary design</p>
+                      <Label htmlFor="def-toggle" className="text-xs font-bold cursor-pointer text-brand-primary">Default Template</Label>
+                      <p className="text-[10px] text-brand-subtle">Use as primary design</p>
                     </div>
                     <input
                       type="checkbox"
                       id="def-toggle"
-                      className="w-4 h-4 rounded border-admin-border text-zeronix-blue focus:ring-zeronix-blue/50 focus:ring-offset-admin-surface"
+                      className="w-4 h-4 rounded border-brand-border text-brand-accent focus:ring-brand-accent/50 focus:ring-offset-brand-white"
                       checked={templateForm.is_default || false}
                       onChange={(e) => setTemplateForm({ ...templateForm, is_default: e.target.checked })}
                     />
@@ -409,26 +409,26 @@ export const DocumentDesigner = () => {
                 </Card>
 
                 {/* Email Settings */}
-                <Card className="md:col-span-2 bg-admin-surface/80 backdrop-blur-xl border-white/5 rounded-2xl p-5 shadow-xl space-y-4">
-                  <div className="flex items-center gap-2 mb-1 pb-3 border-b border-white/5">
-                    <Mail size={16} className="text-zeronix-blue" />
+                <Card className="md:col-span-2 bg-brand-white border border-brand-border rounded-xl p-5 shadow-sm space-y-4">
+                  <div className="flex items-center gap-2 mb-1 pb-3 border-b border-brand-border">
+                    <Mail size={16} className="text-brand-accent" />
                     <h4 className="text-sm font-bold tracking-wide">Email Notification Settings</h4>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-widest">Email Subject Line</Label>
+                      <Label className="text-[10px] uppercase font-bold text-brand-subtle tracking-widest">Email Subject Line</Label>
                       <Input
                         value={templateForm.subject || ''}
                         onChange={(e) => setTemplateForm({ ...templateForm, subject: e.target.value })}
-                        className="bg-admin-bg/50 border-admin-border/50 h-10 text-xs focus-visible:ring-zeronix-blue/30"
+                        className="bg-brand-bg/50 border-brand-border/50 h-10 text-xs focus-visible:ring-brand-accent/30"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] uppercase font-bold text-admin-text-muted tracking-widest">Greeting & Message</Label>
+                      <Label className="text-[10px] uppercase font-bold text-brand-subtle tracking-widest">Greeting & Message</Label>
                       <Textarea
                         value={templateForm.email_body || ''}
                         onChange={(e) => setTemplateForm({ ...templateForm, email_body: e.target.value })}
-                        className="bg-admin-bg/50 border-admin-border/50 min-h-[72px] text-xs resize-none focus-visible:ring-zeronix-blue/30"
+                        className="bg-brand-bg/50 border-brand-border/50 min-h-[72px] text-xs resize-none focus-visible:ring-brand-accent/30"
                       />
                     </div>
                   </div>
@@ -436,7 +436,7 @@ export const DocumentDesigner = () => {
               </div>
 
               {/* Code / Preview Toggle Editor */}
-              <Card className="bg-[#0d1117] border border-admin-border rounded-2xl overflow-hidden shadow-2xl">
+              <Card className="bg-[#0d1117] border border-brand-border rounded-2xl overflow-hidden shadow-2xl">
                 {/* Tab Bar */}
                 <div className="bg-[#161b22] border-b border-[#30363d] px-6 py-3 flex items-center justify-between">
                   <div className="flex items-center gap-1">
@@ -454,7 +454,7 @@ export const DocumentDesigner = () => {
                         className={cn(
                           'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-bold transition-all',
                           editorView === 'code'
-                            ? 'bg-zeronix-blue text-white shadow-sm'
+                            ? 'bg-brand-accent text-white shadow-sm'
                             : 'text-[#8b949e] hover:text-[#c9d1d9]'
                         )}
                       >
@@ -466,7 +466,7 @@ export const DocumentDesigner = () => {
                         className={cn(
                           'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-bold transition-all',
                           editorView === 'preview'
-                            ? 'bg-zeronix-blue text-white shadow-sm'
+                            ? 'bg-brand-accent text-white shadow-sm'
                             : 'text-[#8b949e] hover:text-[#c9d1d9]'
                         )}
                       >
@@ -483,7 +483,7 @@ export const DocumentDesigner = () => {
                       </span>
                     )}
                     {editorView === 'preview' && (
-                      <span className="text-[10px] bg-zeronix-blue/20 text-zeronix-blue border border-zeronix-blue/30 px-2 py-0.5 rounded font-bold tracking-widest shadow-[0_0_10px_rgba(15,82,186,0.2)]">
+                      <span className="text-[10px] bg-brand-accent/20 text-brand-accent border border-brand-accent/30 px-2 py-0.5 rounded font-bold tracking-widest shadow-[0_0_10px_rgba(15,82,186,0.2)]">
                         A4 PORTRAIT
                       </span>
                     )}

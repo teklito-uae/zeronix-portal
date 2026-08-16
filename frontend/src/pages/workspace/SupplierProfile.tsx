@@ -15,7 +15,7 @@ import { PageLoader } from '@/components/shared/PageLoader';
 import { Pagination } from '@/components/shared/Pagination';
 import Avatar from 'boring-avatars';
 import { useThemeStore } from '@/store/useThemeStore';
-import { Mail, Phone, Globe, MapPin, UserCircle, Package } from 'lucide-react';
+import { Mail, Phone, Package } from 'lucide-react';
 
 /**
  * Supplier Profile Detail View

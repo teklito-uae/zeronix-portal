@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { AxiosError } from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getBasePath } from '@/hooks/useBasePath';
@@ -6,14 +7,13 @@ import { useResourceList } from '@/hooks/useApi';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Avatar } from '@/components/shared/Avatar';
 import { TransactionDetailView } from '@/components/shared/TransactionDetailView';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageLoader } from '@/components/shared/PageLoader';
 import { SEO } from '@/components/shared/SEO';
 import { Pagination } from '@/components/shared/Pagination';
 import api from '@/lib/axios';
-import type { Delivery } from '@/types';
-import { Search, Building2, Plus } from 'lucide-react';
+import type { Delivery, PaginatedResponse } from '@/types';
+import { Search, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -54,7 +54,7 @@ export const DeliveriesSplitView = () => {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const { data: resourceData, isLoading } = useResourceList<Delivery>('deliveries', {
+  const { data: resourceData, isLoading } = useResourceList<PaginatedResponse<Delivery>>('deliveries', {
     search: search || undefined,
     status: activeTab !== 'all' ? activeTab : undefined,
     page,
@@ -79,7 +79,7 @@ export const DeliveriesSplitView = () => {
       toast.success('Delivery email sent');
       queryClient.invalidateQueries({ queryKey: ['deliveries'] });
     },
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to send email'),
+    onError: (e: AxiosError<{ message?: string }>) => toast.error(e.response?.data?.message || 'Failed to send email'),
   });
 
   const handleRowClick = (row: Delivery) => {
@@ -99,7 +99,7 @@ export const DeliveriesSplitView = () => {
       <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[360px_1fr]">
         {/* Left column: compact list */}
         <div className="flex flex-col min-h-0 border-r border-brand-border/50 bg-brand-white">
-          {/* Search + New Delivery */}
+          {/* Search */}
           <div className="px-4 py-3 flex items-center gap-2 border-b border-brand-border/50 flex-shrink-0">
             <div className="relative flex-1 min-w-0">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-brand-subtle" size={13} />
@@ -110,14 +110,6 @@ export const DeliveriesSplitView = () => {
                 className="pl-8 h-[34px] text-[12px] bg-brand-white border-brand-border rounded-lg shadow-sm w-full"
               />
             </div>
-            <Button
-              size="icon"
-              onClick={() => navigate(`${getBasePath()}/deliveries/create`)}
-              className="h-[34px] w-[34px] rounded-lg shadow-sm flex-shrink-0"
-              title="New Delivery"
-            >
-              <Plus size={17} />
-            </Button>
           </div>
 
           {/* Tabs */}

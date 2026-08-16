@@ -93,30 +93,30 @@ export const PartySearch = ({ kind, endpoint, searchMode, value, selected, onSel
           role="combobox"
           disabled={disabled}
           aria-expanded={open}
-          className={cn("w-full justify-between h-11 bg-admin-bg border-admin-border text-sm text-left rounded-xl shadow-sm font-normal", className)}
+          className={cn("w-full justify-between h-11 bg-brand-bg border-brand-border text-sm text-left rounded-xl shadow-sm font-normal", className)}
         >
           <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
             {isCompanyStyle ? (
               activeOption ? (
                 <Avatar name={labelFor(activeOption)} className="h-6 w-6 text-[10px] shrink-0" />
               ) : (
-                <Icon className="shrink-0 text-admin-text-muted" size={15} />
+                <Icon className="shrink-0 text-brand-subtle" size={15} />
               )
             ) : (
-              <Icon className={cn("shrink-0", activeOption ? "text-zeronix-blue" : "text-admin-text-muted")} size={15} />
+              <Icon className={cn("shrink-0", activeOption ? "text-brand-accent" : "text-brand-subtle")} size={15} />
             )}
-            <span className="flex-1 truncate text-sm text-admin-text-primary">
+            <span className="flex-1 truncate text-sm text-brand-primary">
               {activeOption ? labelFor(activeOption) : (placeholder || `Search ${kind}s…`)}
             </span>
             {!isCompanyStyle && activeOption?.company && (
-              <span className="text-[11px] text-admin-text-muted opacity-60 truncate hidden sm:inline">{activeOption.company}</span>
+              <span className="text-[11px] text-brand-subtle opacity-60 truncate hidden sm:inline">{activeOption.company}</span>
             )}
           </div>
           <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-admin-surface border-admin-border shadow-md rounded-md overflow-hidden" align="start">
-        <Command shouldFilter={searchMode === 'client'} className="bg-admin-surface">
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-brand-white border-brand-border shadow-md rounded-md overflow-hidden" align="start">
+        <Command shouldFilter={searchMode === 'client'} className="bg-brand-white">
           <CommandInput
             placeholder={`Type to search ${kind}s…`}
             value={search}
@@ -124,7 +124,7 @@ export const PartySearch = ({ kind, endpoint, searchMode, value, selected, onSel
             className="h-9 border-none text-sm"
           />
           <CommandList className="max-h-[280px]">
-            <CommandEmpty className="py-4 text-center text-sm text-admin-text-muted">
+            <CommandEmpty className="py-4 text-center text-sm text-brand-subtle">
               {searchMode === 'server' && isFetching ? 'Searching…' : `No ${kind}s found.`}
             </CommandEmpty>
             <CommandGroup className="px-1">
@@ -138,12 +138,12 @@ export const PartySearch = ({ kind, endpoint, searchMode, value, selected, onSel
                   {isCompanyStyle ? (
                     <Avatar name={labelFor(opt)} className="h-7 w-7 text-[11px] shrink-0" />
                   ) : (
-                    <Icon size={13} className={cn(value === opt.id ? "text-zeronix-blue" : "text-admin-text-muted")} />
+                    <Icon size={13} className={cn(value === opt.id ? "text-brand-accent" : "text-brand-subtle")} />
                   )}
                   <div className="flex flex-col flex-1 min-w-0">
-                    <span className="font-medium text-admin-text-primary truncate">{labelFor(opt)}</span>
+                    <span className="font-medium text-brand-primary truncate">{labelFor(opt)}</span>
                     {!isCompanyStyle && (opt.company || opt.contact_person) && (
-                      <span className="text-[11px] text-admin-text-muted mt-0.5 truncate">{opt.company || opt.contact_person}</span>
+                      <span className="text-[11px] text-brand-subtle mt-0.5 truncate">{opt.company || opt.contact_person}</span>
                     )}
                   </div>
                   {!!opt.outstanding_balance && Number(opt.outstanding_balance) > 0 && (

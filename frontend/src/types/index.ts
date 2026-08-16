@@ -9,6 +9,29 @@ export type InvoiceStatus = 'draft' | 'sent' | 'accepted' | 'on_hold' | 'cancell
 export type InvoicePaymentStatus = 'unpaid' | 'partially_paid' | 'paid' | 'overdue';
 export type PurchaseBillStatus = 'unpaid' | 'partial' | 'paid' | 'cancelled';
 
+/**
+ * Standard paginated-list envelope returned by controller `index()` methods
+ * across the backend, e.g.:
+ *   return response()->json([
+ *     'data' => $items->items(),
+ *     'total' => $items->total(),
+ *     'current_page' => $items->currentPage(),
+ *     'last_page' => $items->lastPage(),
+ *     'per_page' => $items->perPage(),
+ *   ]);
+ * Not every `/admin/*` list endpoint uses this shape — a few (e.g.
+ * `/admin/tags`, `/admin/customers/industries`, `/admin/contacts/departments`)
+ * return a plain array instead. Check the specific controller before assuming
+ * this envelope applies.
+ */
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  current_page: number;
+  last_page: number;
+  per_page: number;
+}
+
 // ── Core Models ────────────────────────────────────────
 
 export interface User {
@@ -405,7 +428,7 @@ export interface ActivityLogEntry {
   subject_type?: string;
   subject_id?: number;
   description: string;
-  properties?: { changes?: Record<string, any> } | null;
+  properties?: { changes?: Record<string, unknown> } | null;
   created_at?: string;
   user?: User;
   customer?: Customer;
@@ -817,7 +840,7 @@ export interface MarketingSegment {
   name: string;
   description?: string | null;
   source: 'leads' | 'customers' | 'contacts';
-  filters: Record<string, any> | null;
+  filters: Record<string, unknown> | null;
   cached_count?: number | null;
   counted_at?: string | null;
   user?: { id: number; name: string } | null;
@@ -827,7 +850,7 @@ export interface MarketingSegment {
 export interface MarketingAudienceSource {
   type: 'segment' | 'customers' | 'leads' | 'contacts' | 'manual' | 'csv';
   id?: number;
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
   recipients?: { email: string; name?: string }[];
 }
 
@@ -895,6 +918,26 @@ export interface MarketingSuppression {
   notes?: string | null;
   creator?: { id: number; name: string } | null;
   created_at?: string;
+}
+
+// ── Notifications ───────────────────────────────────────
+
+/** Laravel database-notification envelope (`notifications` table). */
+export interface AppNotification {
+  id: string;
+  data: {
+    type?: 'success' | 'error' | 'warning' | 'info' | string;
+    title?: string;
+    message?: string;
+    action_url?: string;
+  };
+  read_at?: string | null;
+  created_at: string;
+}
+
+export interface NotificationsResponse {
+  notifications: AppNotification[];
+  unread_count: number;
 }
 
 export interface MarketingVariableGroup {

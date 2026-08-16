@@ -32,7 +32,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
-import type { Lead, User } from '@/types';
+import type { Lead, User, PaginatedResponse, LeadStatus } from '@/types';
+import type { AxiosError } from 'axios';
 import { UserPlus, Building2, Mail, Phone, ArrowRightLeft, Users, Upload, ChevronDown, RefreshCw, FileUp, Trash2, X, Tags } from 'lucide-react';
 import { Spinner } from '@/components/shared/Spinner';
 import { toTitleCase } from '@/lib/utils';
@@ -71,7 +72,7 @@ const SOURCE_BADGE_STYLES: Record<string, string> = {
   vcf_import: 'text-[#0EA5E9] bg-[#0EA5E91F]',
   json_import: 'text-[#0EA5E9] bg-[#0EA5E91F]',
 };
-const sourceBadgeStyle = (s: string) => SOURCE_BADGE_STYLES[s] || 'text-admin-text-secondary bg-admin-surface-hover';
+const sourceBadgeStyle = (s: string) => SOURCE_BADGE_STYLES[s] || 'text-brand-secondary bg-brand-bg';
 
 const LEAD_STATUSES = ['new', 'contacted', 'qualified', 'lost', 'unresponsive', 'converted'];
 
@@ -109,8 +110,8 @@ export const Leads = () => {
     name: '', company: '', email: '', phone: '', phone_2: '', source: 'manual', status: 'new', notes: '', user_id: '',
   });
 
-  const { data: staffData } = useResourceList<User>('users', { per_page: 100 });
-  const staffMembers = (staffData?.data || []).filter((u: any) => u.role !== 'customer');
+  const { data: staffData } = useResourceList<PaginatedResponse<User>>('users', { per_page: 100 });
+  const staffMembers = (staffData?.data || []).filter((u) => u.role !== 'customer');
 
   const { create, update, remove, bulkUpdate } = useResourceMutation('leads');
 
@@ -121,7 +122,7 @@ export const Leads = () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       toast.success('Lead converted to Customer');
     },
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to convert lead'),
+    onError: (e: AxiosError<{ message?: string }>) => toast.error(e.response?.data?.message || 'Failed to convert lead'),
   });
 
   // No dedicated bulk-delete endpoint exists for leads, so each selected
@@ -158,7 +159,7 @@ export const Leads = () => {
   };
 
   const handleSave = async () => {
-    const payload: any = { ...form, user_id: form.user_id ? Number(form.user_id) : null };
+    const payload: Partial<Lead> = { ...form, status: form.status as LeadStatus, user_id: form.user_id ? Number(form.user_id) : null };
     if (editingLead) {
       await update.mutateAsync({ id: editingLead.id, data: payload });
     } else {
@@ -219,7 +220,7 @@ export const Leads = () => {
       cell: ({ row }) => {
         const owner = row.original.owner;
         if (!owner) return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider bg-admin-bg text-admin-text-muted border border-admin-border">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider bg-brand-bg text-brand-subtle border border-brand-border">
             UNASSIGNED
           </span>
         );
@@ -235,8 +236,8 @@ export const Leads = () => {
       accessorKey: 'deals_count',
       header: 'Activity',
       cell: ({ row }) => (
-        <div className="text-xs font-bold text-admin-text-secondary">
-          {row.original.deals_count || 0} <span className="text-[10px] text-admin-text-muted font-medium ml-0.5">Deals</span>
+        <div className="text-xs font-bold text-brand-secondary">
+          {row.original.deals_count || 0} <span className="text-[10px] text-brand-subtle font-medium ml-0.5">Deals</span>
         </div>
       ),
     },
@@ -344,7 +345,7 @@ export const Leads = () => {
                 <Upload size={13} /> Import <ChevronDown size={13} />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 bg-admin-surface border-admin-border rounded-xl shadow-xl p-1">
+            <DropdownMenuContent align="end" className="w-56 bg-brand-white border-brand-border rounded-xl shadow-xl p-1">
               <DropdownMenuItem onClick={() => navigate(`${getBasePath()}/leads/import`)} className="rounded-lg cursor-pointer">
                 <FileUp size={14} className="mr-2" /> Upload File (.vcf/.json/.csv)
               </DropdownMenuItem>
@@ -429,7 +430,7 @@ export const Leads = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="unassigned" className="text-[13px]">Unassigned</SelectItem>
-                    {staffMembers.map((s: any) => (
+                    {staffMembers.map((s: User) => (
                       <SelectItem key={s.id} value={String(s.id)} className="text-[13px]">
                         <span className="flex items-center gap-2">
                           <Avatar size={18} name={s.name} variant="beam" colors={avatarColorsFor(s)} />
@@ -491,7 +492,7 @@ export const Leads = () => {
                   <SelectValue placeholder="Select a staff member" />
                 </SelectTrigger>
                 <SelectContent className="bg-brand-white border-brand-border/50 rounded-xl shadow-lg">
-                  {staffMembers.map((s: any) => (
+                  {staffMembers.map((s: User) => (
                     <SelectItem key={s.id} value={String(s.id)}>
                       {toTitleCase(s.name)} <span className="text-brand-subtle text-xs">({s.role})</span>
                     </SelectItem>

@@ -66,6 +66,7 @@ export function DataTable<TData, TValue>({
       const selectedRows = table.getFilteredSelectedRowModel().rows.map(r => r.original);
       onSelectionChange(selectedRows);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `table` (from useReactTable below) is a new object every render, so adding it here would fire this effect on every render instead of only when `rowSelection` actually changes; `onSelectionChange` is expected to be a stable-enough parent callback.
   }, [rowSelection]);
 
   // Inject checkbox column if enabled
@@ -104,6 +105,7 @@ export function DataTable<TData, TValue>({
       ]
     : columns;
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- @tanstack/react-table's useReactTable() returns a new object with unmemoizable row-model functions every render by design; the Compiler correctly skips memoizing this component, which is expected here rather than a bug to work around.
   const table = useReactTable({
     data,
     columns: finalColumns,
@@ -251,7 +253,7 @@ export function DataTable<TData, TValue>({
                         <div
                           className={
                             header.column.getCanSort()
-                              ? 'flex items-center gap-1 cursor-pointer select-none hover:text-admin-text-primary transition-colors'
+                              ? 'flex items-center gap-1 cursor-pointer select-none hover:text-brand-primary transition-colors'
                               : ''
                           }
                           onClick={header.column.getToggleSortingHandler()}
@@ -328,7 +330,7 @@ export function DataTable<TData, TValue>({
               size="icon"
               onClick={() => table.setPageIndex(0)}
               disabled={!table.getCanPreviousPage()}
-              className="h-8 w-8 text-admin-text-muted hover:text-admin-text-primary hover:bg-admin-surface-hover disabled:opacity-30"
+              className="h-8 w-8 text-brand-subtle hover:text-brand-primary hover:bg-brand-bg disabled:opacity-30"
             >
               <ChevronsLeft size={16} />
             </Button>
@@ -337,11 +339,11 @@ export function DataTable<TData, TValue>({
               size="icon"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
-              className="h-8 w-8 text-admin-text-muted hover:text-admin-text-primary hover:bg-admin-surface-hover disabled:opacity-30"
+              className="h-8 w-8 text-brand-subtle hover:text-brand-primary hover:bg-brand-bg disabled:opacity-30"
             >
               <ChevronLeft size={16} />
             </Button>
-            <span className="px-3 text-sm text-admin-text-secondary">
+            <span className="px-3 text-sm text-brand-secondary">
               {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
             </span>
             <Button
@@ -349,7 +351,7 @@ export function DataTable<TData, TValue>({
               size="icon"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
-              className="h-8 w-8 text-admin-text-muted hover:text-admin-text-primary hover:bg-admin-surface-hover disabled:opacity-30"
+              className="h-8 w-8 text-brand-subtle hover:text-brand-primary hover:bg-brand-bg disabled:opacity-30"
             >
               <ChevronRight size={16} />
             </Button>
@@ -358,7 +360,7 @@ export function DataTable<TData, TValue>({
               size="icon"
               onClick={() => table.setPageIndex(table.getPageCount() - 1)}
               disabled={!table.getCanNextPage()}
-              className="h-8 w-8 text-admin-text-muted hover:text-admin-text-primary hover:bg-admin-surface-hover disabled:opacity-30"
+              className="h-8 w-8 text-brand-subtle hover:text-brand-primary hover:bg-brand-bg disabled:opacity-30"
             >
               <ChevronsRight size={16} />
             </Button>

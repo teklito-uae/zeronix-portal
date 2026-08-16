@@ -1,5 +1,6 @@
 import { getBasePath } from '@/hooks/useBasePath';
 import { useState } from 'react';
+import type { AxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -46,7 +47,7 @@ export const Invoices = () => {
       toast.success('Invoice email sent'); 
       queryClient.invalidateQueries({ queryKey: ['invoices'] }); 
     },
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to send email'),
+    onError: (e: AxiosError<{ message?: string }>) => toast.error(e.response?.data?.message || 'Failed to send email'),
   });
 
   const columns: ColumnDef<Invoice>[] = [

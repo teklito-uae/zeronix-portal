@@ -31,6 +31,7 @@ export const CategoryFormDialog = ({ open, onOpenChange, category }: CategoryFor
   useEffect(() => {
     if (!open) return;
     if (category) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: this persistent dialog instance resets/seeds its form each time it opens or a different category is passed in to edit; no mount/unmount to hook into instead.
       setForm({
         name: category.name,
         description: category.description || '',

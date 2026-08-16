@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { AxiosError } from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getBasePath } from '@/hooks/useBasePath';
@@ -12,7 +13,7 @@ import { PageLoader } from '@/components/shared/PageLoader';
 import { SEO } from '@/components/shared/SEO';
 import { Pagination } from '@/components/shared/Pagination';
 import api from '@/lib/axios';
-import type { PaymentReceipt } from '@/types';
+import type { PaymentReceipt, PaginatedResponse } from '@/types';
 import { Search, Building2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -52,7 +53,7 @@ export const PaymentReceiptsSplitView = () => {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const { data: resourceData, isLoading } = useResourceList<PaymentReceipt>('payment-receipts', {
+  const { data: resourceData, isLoading } = useResourceList<PaginatedResponse<PaymentReceipt>>('payment-receipts', {
     search: search || undefined,
     payment_method: activeTab !== 'all' ? activeTab : undefined,
     page,
@@ -77,7 +78,7 @@ export const PaymentReceiptsSplitView = () => {
       toast.success('Payment Receipt email sent');
       queryClient.invalidateQueries({ queryKey: ['payment-receipts'] });
     },
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to send email'),
+    onError: (e: AxiosError<{ message?: string }>) => toast.error(e.response?.data?.message || 'Failed to send email'),
   });
 
   const handleRowClick = (row: PaymentReceipt) => {

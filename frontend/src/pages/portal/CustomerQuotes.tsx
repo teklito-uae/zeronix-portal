@@ -16,6 +16,7 @@ import { SEO } from '@/components/shared/SEO';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
 import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 import { Pagination } from '@/components/shared/Pagination';
+import type { ApiError } from '@/hooks/useApi';
 
 const QUOTE_STATUSES = [
   { label: 'Draft', value: 'draft' },
@@ -39,7 +40,7 @@ export const CustomerQuotes = () => {
   const { data: quotesData, isLoading } = useQuery<PaginatedResponse<Quote>>({
     queryKey: ['customer-quotes', page, perPage, search, status],
     queryFn: async () => {
-      const params: any = { page, search, per_page: perPage };
+      const params: Record<string, string | number> = { page, search, per_page: perPage };
       if (status !== 'all') params.status = status;
       const res = await api.get('/customer/quotes', { params });
       return res.data;
@@ -56,7 +57,7 @@ export const CustomerQuotes = () => {
       queryClient.invalidateQueries({ queryKey: ['customer-quotes'] });
       // We don't manually invalidate notifications here because Topbar interceptor handles it
     },
-    onError: (error: any) => {
+    onError: (error: ApiError) => {
       toast.error(error.response?.data?.message || 'Failed to update quote status');
     }
   });
@@ -66,7 +67,7 @@ export const CustomerQuotes = () => {
       accessorKey: 'quote_number',
       header: 'Quote #',
       cell: ({ row }) => (
-        <span className="font-mono text-sm text-zeronix-blue font-medium">
+        <span className="font-mono text-sm text-brand-accent font-medium">
           {row.original.quote_number || `QT-${String(row.original.id).padStart(5, '0')}`}
         </span>
       ),
@@ -80,7 +81,7 @@ export const CustomerQuotes = () => {
       accessorKey: 'total',
       header: 'Total Amount',
       cell: ({ row }) => (
-        <span className="font-mono text-sm font-medium text-admin-text-primary">
+        <span className="font-mono text-sm font-medium text-brand-primary">
           <CurrencyAmount amount={row.original.total} currency={currency} />
         </span>
       ),
@@ -89,7 +90,7 @@ export const CustomerQuotes = () => {
       accessorKey: 'created_at',
       header: 'Date',
       cell: ({ row }) => (
-        <div className="flex items-center gap-1.5 text-xs text-admin-text-muted">
+        <div className="flex items-center gap-1.5 text-xs text-brand-subtle">
           <Calendar size={13} />
           {row.original.created_at ? new Date(row.original.created_at).toLocaleDateString() : '—'}
         </div>
@@ -99,7 +100,7 @@ export const CustomerQuotes = () => {
       accessorKey: 'valid_until',
       header: 'Expires',
       cell: ({ row }) => (
-        <div className="flex items-center gap-1.5 text-xs text-admin-text-muted">
+        <div className="flex items-center gap-1.5 text-xs text-brand-subtle">
           <Calendar size={13} />
           {row.original.valid_until ? new Date(row.original.valid_until).toLocaleDateString() : '—'}
         </div>
@@ -124,37 +125,37 @@ export const CustomerQuotes = () => {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-zeronix-blue/10 rounded-lg">
-            <FileText size={20} className="text-zeronix-blue" />
+          <div className="p-2 bg-brand-accent/10 rounded-lg">
+            <FileText size={20} className="text-brand-accent" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-admin-text-primary">My Quotations</h2>
-            <p className="text-xs text-admin-text-muted">Review and accept your project quotes.</p>
+            <h2 className="text-xl font-bold text-brand-primary">My Quotations</h2>
+            <p className="text-xs text-brand-subtle">Review and accept your project quotes.</p>
           </div>
         </div>
-        <Button onClick={() => navigate(`/portal/${company}/products`)} className="bg-zeronix-blue hover:bg-zeronix-blue-hover text-white h-9 rounded-md text-sm font-medium px-4">
+        <Button onClick={() => navigate(`/portal/${company}/products`)} className="bg-brand-accent hover:bg-brand-accent-hover text-white h-9 rounded-md text-sm font-medium px-4">
           <Package size={14} className="mr-2" /> Request New Quote
         </Button>
       </div>
 
       {/* Search & Filters */}
-      <div className="bg-admin-surface border border-admin-border rounded-xl p-3 flex flex-wrap items-center gap-2 shadow-sm">
+      <div className="bg-brand-white border border-brand-border rounded-xl p-3 flex flex-wrap items-center gap-2 shadow-sm">
         <div className="relative max-w-sm flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-admin-text-muted" size={14} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-subtle" size={14} />
           <Input
             placeholder="Search by quote number…"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="pl-9 h-10 bg-admin-bg border-admin-border text-sm rounded-lg focus:ring-zeronix-blue/20"
+            className="pl-9 h-10 bg-brand-bg border-brand-border text-sm rounded-lg focus:ring-brand-accent/20"
           />
         </div>
         <div className="flex items-center gap-2">
-          <Filter size={13} className="text-admin-text-muted" />
+          <Filter size={13} className="text-brand-subtle" />
           <Select value={status} onValueChange={(v) => { setStatus(v); setPage(1); }}>
-            <SelectTrigger className="h-10 w-40 bg-admin-bg border-admin-border text-xs rounded-lg font-medium">
+            <SelectTrigger className="h-10 w-40 bg-brand-bg border-brand-border text-xs rounded-lg font-medium">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
-            <SelectContent className="bg-admin-surface border-admin-border">
+            <SelectContent className="bg-brand-white border-brand-border">
               <SelectItem value="all">All Statuses</SelectItem>
               {QUOTE_STATUSES.map((s) => (
                 <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
@@ -165,11 +166,11 @@ export const CustomerQuotes = () => {
       </div>
 
       {/* Table Container */}
-      <div className="bg-admin-surface border border-admin-border rounded-xl overflow-hidden shadow-sm">
+      <div className="bg-brand-white border border-brand-border rounded-xl overflow-hidden shadow-sm">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-24 gap-3">
-            <Loader2 className="animate-spin text-zeronix-blue" size={32} />
-            <p className="text-xs font-medium text-admin-text-muted uppercase tracking-widest">Fetching quotes...</p>
+            <Loader2 className="animate-spin text-brand-accent" size={32} />
+            <p className="text-xs font-medium text-brand-subtle uppercase tracking-widest">Fetching quotes...</p>
           </div>
         ) : quotesData?.data && quotesData.data.length > 0 ? (
           <DataTable
@@ -177,9 +178,9 @@ export const CustomerQuotes = () => {
             data={quotesData.data}
             hidePagination={true}
             renderRowDetails={(quote) => (
-              <div className="p-4 bg-admin-bg/50 rounded-lg m-2 border border-admin-border space-y-4">
+              <div className="p-4 bg-brand-bg/50 rounded-lg m-2 border border-brand-border space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-[10px] font-bold text-admin-text-muted uppercase tracking-widest">Quote Items Summary</h4>
+                  <h4 className="text-[10px] font-bold text-brand-subtle uppercase tracking-widest">Quote Items Summary</h4>
                   {(quote.status === 'sent' || quote.status === 'draft') && (
                     <div className="flex gap-2">
                       <Button
@@ -204,9 +205,9 @@ export const CustomerQuotes = () => {
                 </div>
                 <div className="space-y-2">
                   {quote.items?.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-sm p-2 bg-admin-surface rounded border border-admin-border">
-                      <span className="text-admin-text-primary font-medium">{item.product_name || item.description}</span>
-                      <span className="text-admin-text-secondary">Qty: {item.quantity}</span>
+                    <div key={idx} className="flex justify-between items-center text-sm p-2 bg-brand-white rounded border border-brand-border">
+                      <span className="text-brand-primary font-medium">{item.product_name || item.description}</span>
+                      <span className="text-brand-secondary">Qty: {item.quantity}</span>
                     </div>
                   ))}
                 </div>
@@ -214,12 +215,12 @@ export const CustomerQuotes = () => {
             )}
           />
         ) : (
-          <div className="flex flex-col items-center justify-center p-20 text-center bg-admin-surface">
-            <div className="w-16 h-16 bg-admin-bg rounded-full flex items-center justify-center mb-4 border border-admin-border">
-              <FileText size={32} className="text-admin-text-muted/40" />
+          <div className="flex flex-col items-center justify-center p-20 text-center bg-brand-white">
+            <div className="w-16 h-16 bg-brand-bg rounded-full flex items-center justify-center mb-4 border border-brand-border">
+              <FileText size={32} className="text-brand-subtle/40" />
             </div>
-            <h3 className="text-lg font-bold text-admin-text-primary mb-1">No Quotes Found</h3>
-            <p className="text-sm text-admin-text-secondary max-w-[250px] mx-auto leading-relaxed">
+            <h3 className="text-lg font-bold text-brand-primary mb-1">No Quotes Found</h3>
+            <p className="text-sm text-brand-secondary max-w-[250px] mx-auto leading-relaxed">
               We couldn't find any quotes matching your criteria. Start a new request to get started.
             </p>
           </div>

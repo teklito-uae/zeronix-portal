@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { AxiosError } from 'axios';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import api from '@/lib/axios';
@@ -30,7 +31,7 @@ export const PaymentReceipts = () => {
       toast.success('Receipt email dispatched successfully');
       queryClient.invalidateQueries({ queryKey: ['payment-receipts'] });
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ message?: string }>) => {
       toast.error(err.response?.data?.message || 'Failed to dispatch email');
     },
     onSettled: () => setSendingId(null)
@@ -43,7 +44,7 @@ export const PaymentReceipts = () => {
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <ShieldCheck size={14} className="text-emerald-500" />
-          <span className="font-mono text-xs font-black text-zeronix-blue bg-zeronix-blue/5 px-2 py-0.5 rounded border border-zeronix-blue/10">
+          <span className="font-mono text-xs font-black text-brand-accent bg-brand-accent/5 px-2 py-0.5 rounded border border-brand-accent/10">
             {row.original.receipt_number}
           </span>
         </div>
@@ -54,8 +55,8 @@ export const PaymentReceipts = () => {
       header: 'Payee',
       cell: ({ row }) => (
         <div className="max-w-[200px]">
-          <p className="text-sm font-bold text-admin-text-primary truncate">{row.original.customer?.name}</p>
-          <p className="text-[10px] font-bold text-admin-text-muted uppercase tracking-widest truncate">
+          <p className="text-sm font-bold text-brand-primary truncate">{row.original.customer?.name}</p>
+          <p className="text-[10px] font-bold text-brand-subtle uppercase tracking-widest truncate">
             {row.original.customer?.company || 'PRIVATE ACCOUNT'}
           </p>
         </div>
@@ -66,10 +67,10 @@ export const PaymentReceipts = () => {
       header: 'Related Ref.',
       cell: ({ row }) => (
         row.original.invoice
-          ? <span className="text-[10px] font-black text-admin-text-secondary bg-admin-bg px-2 py-0.5 rounded-full border border-admin-border">
+          ? <span className="text-[10px] font-black text-brand-secondary bg-brand-bg px-2 py-0.5 rounded-full border border-brand-border">
               {row.original.invoice.invoice_number}
             </span>
-          : <span className="text-admin-text-muted text-[10px] font-bold opacity-30">—</span>
+          : <span className="text-brand-subtle text-[10px] font-bold opacity-30">—</span>
       ),
     },
     {
@@ -77,7 +78,7 @@ export const PaymentReceipts = () => {
       header: 'Settlement Amount',
       cell: ({ row }) => (
         <div className="text-right pr-4">
-          <p className="font-mono text-sm font-black text-admin-text-primary">
+          <p className="font-mono text-sm font-black text-brand-primary">
             <CurrencyAmount amount={row.original.amount} currency={currency} />
           </p>
           <p className={cn("text-[9px] font-black uppercase tracking-widest flex items-center justify-end gap-1 mt-0.5", row.original.payment_method === 'cash' ? "text-emerald-500" : "text-indigo-500")}>
@@ -91,7 +92,7 @@ export const PaymentReceipts = () => {
       accessorKey: 'payment_date',
       header: 'Settlement Date',
       cell: ({ row }) => (
-        <div className="flex items-center gap-1.5 text-xs font-bold text-admin-text-muted uppercase tracking-tighter">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-brand-subtle uppercase tracking-tighter">
           <Calendar size={12} className="opacity-50" />
           {new Date(row.original.payment_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
         </div>

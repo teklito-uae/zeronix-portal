@@ -33,23 +33,9 @@
   --color-brand-info-bg: #DBEAFE;
   --color-brand-info-text: #1E40AF;
 
-  /* Legacy Colors for gradual migration */
-  --color-zeronix-blue: #10B981;
-  --color-zeronix-blue-hover: #059669;
-  --color-zeronix-green: #23F78C;
-  --color-zeronix-green-dim: rgba(35, 247, 140, 0.12);
   --color-success: #10B981;
   --color-warning: #F59E0B;
   --color-danger: #EF4444;
-  --color-admin-bg: var(--admin-bg);
-  --color-admin-surface: var(--admin-surface);
-  --color-admin-surface-hover: var(--admin-surface-hover);
-  --color-admin-sidebar-bg: var(--admin-sidebar-bg);
-  --color-admin-sidebar-active: var(--brand-accent);
-  --color-admin-border: var(--admin-border);
-  --color-admin-text-primary: var(--admin-text-primary);
-  --color-admin-text-secondary: var(--admin-text-secondary);
-  --color-admin-text-muted: var(--admin-text-muted);
 
   /* shadcn base tokens (hsl triplets defined in :root/.dark below) */
   --color-background: hsl(var(--background));
@@ -171,16 +157,6 @@
     --brand-accent-light: #EEF2FF;
     --brand-accent-mid: #A5B4FC;
 
-    /* Legacy variables for graceful degradation */
-    --admin-bg: #F4F6FA;
-    --admin-surface: #FFFFFF;
-    --admin-surface-hover: #F0F4FF;
-    --admin-sidebar-bg: #FFFFFF;
-    --admin-border: #E2E8F0;
-    --admin-text-primary: #0F1629;
-    --admin-text-secondary: #4A5568;
-    --admin-text-muted: #94A3B8;
-
     /* 2.7 Global CSS Variables (shadcn + layout) */
     --background: 0 0% 100%;
     --foreground: 220 13% 13%;
@@ -223,16 +199,6 @@
     --brand-accent-hover: #818CF8;
     --brand-accent-light: #312E81;
     --brand-accent-mid: #4C46B6;
-
-    /* Legacy variables */
-    --admin-bg: #0B131C;
-    --admin-surface: #152331;
-    --admin-surface-hover: #1E2E3E;
-    --admin-sidebar-bg: #0B131C;
-    --admin-border: #2A3847;
-    --admin-text-primary: #F9FAFB;
-    --admin-text-secondary: #D1D5DB;
-    --admin-text-muted: #6B7280;
 
     /* 2.7 Global CSS Variables (shadcn + layout) for Dark Mode */
     --background: 215 28% 14%;

@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import api from '@/lib/axios';
 import type { UseMutationResult } from '@tanstack/react-query';
 import type { Deal, DealSource } from '@/types';
+import type { ApiError } from '@/hooks/useApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -69,6 +70,7 @@ export const DealOverviewTab = ({ deal, updateDeal }: DealOverviewTabProps) => {
   // Re-sync local editable state whenever a fresh deal payload lands
   // (e.g. after any mutation invalidates ['deals', deal.id]).
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: these are editable local fields (user types into them) seeded from the `deal` prop and resynced only when a new deal payload lands from the server; can't be computed via useMemo without wiping in-progress edits on every render.
     setValue(String(deal.value ?? ''));
     setExpectedClose(toDateInput(deal.expected_close_date));
     setSource(deal.source);
@@ -87,7 +89,7 @@ export const DealOverviewTab = ({ deal, updateDeal }: DealOverviewTabProps) => {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
       queryClient.invalidateQueries({ queryKey: ['deals', deal.id] });
     },
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to convert lead'),
+    onError: (e: ApiError) => toast.error(e.response?.data?.message || 'Failed to convert lead'),
   });
 
   const forecastValue = deal.forecast_value ?? (deal.value * (deal.probability || 0)) / 100;
@@ -153,7 +155,7 @@ export const DealOverviewTab = ({ deal, updateDeal }: DealOverviewTabProps) => {
       )}
 
       {deal.stage === 'cancelled' && (
-        <div className="p-3 bg-admin-bg border border-admin-border rounded-lg space-y-1">
+        <div className="p-3 bg-brand-bg border border-brand-border rounded-lg space-y-1">
           <p className="text-[11px] font-semibold text-brand-secondary uppercase tracking-wide">Cancellation Reason</p>
           <p className="text-[13px] text-brand-primary whitespace-pre-wrap">{deal.cancellation_reason || '—'}</p>
         </div>

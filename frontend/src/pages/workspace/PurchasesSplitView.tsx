@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { PageLoader } from '@/components/shared/PageLoader';
 import { SEO } from '@/components/shared/SEO';
 import { Pagination } from '@/components/shared/Pagination';
-import type { PurchaseBill } from '@/types';
+import type { PurchaseBill, PaginatedResponse } from '@/types';
 import { Search, Building2, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -50,7 +50,7 @@ export const PurchasesSplitView = () => {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const { data: resourceData, isLoading } = useResourceList<PurchaseBill>('purchase-bills', {
+  const { data: resourceData, isLoading } = useResourceList<PaginatedResponse<PurchaseBill>>('purchase-bills', {
     search: search || undefined,
     status: activeTab !== 'all' ? activeTab : undefined,
     page,

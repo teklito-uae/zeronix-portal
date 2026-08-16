@@ -9,13 +9,15 @@ import { Button } from '@/components/ui/button';
 import { TRANSACTION_CONFIGS } from '@/lib/transactionTypes';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
 import { CURRENCIES } from '@/lib/currency';
-import type { Supplier, SupplierProduct, User } from '@/types';
+import type { Supplier, SupplierProduct, User, PurchaseBill } from '@/types';
 import { MapPin, Mail, MoreHorizontal, UserPlus, Hash, UserCircle2 } from 'lucide-react';
 import { PhoneFlag } from '@/components/shared/PhoneFlag';
 
+type SupplierPanelDocData = Omit<Partial<PurchaseBill>, 'status'> & { status?: string } & Record<string, unknown>;
+
 interface SupplierPanelProps {
-  docData: any;
-  onUpdate: (patch: any) => void;
+  docData: SupplierPanelDocData;
+  onUpdate: (patch: Partial<SupplierPanelDocData>) => void;
   onSupplierProductsChange: (products: SupplierProduct[]) => void;
   disabled?: boolean;
 }

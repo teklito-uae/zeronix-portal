@@ -20,6 +20,7 @@ import { DownloadButton } from './DownloadButton';
 import { PartySearch } from './PartySearch';
 import { LineItemsEditor, type EditableLineItem } from './LineItemsEditor';
 import api from '@/lib/axios';
+import type { AxiosError } from 'axios';
 import { TRANSACTION_CONFIGS, type TransactionType, type TransactionConversionConfig } from '@/lib/transactionTypes';
 import { computeDocTotals, normalizeLineItems } from '@/lib/lineItemMath';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
@@ -34,6 +35,35 @@ interface TransactionEditorProps {
   isNew: boolean;
 }
 
+interface TransactionPartyRelation {
+  id: number;
+  name: string;
+  company?: string;
+  contact_person?: string;
+}
+
+/**
+ * Shared create/edit form doc for Quotes, Invoices, Sales Orders, and
+ * Purchase Bills — read/written through `TRANSACTION_CONFIGS`-driven dynamic
+ * keys (`config.party.idField`, `config.dateFields[].key`, etc), so its shape
+ * is genuinely polymorphic across the four document types. Fields accessed
+ * via a non-literal dynamic key resolve to `unknown` and are narrowed at the
+ * point of use; the party id/contact fields are named explicitly since
+ * `config.party.idField`/`contactIdField` are literal-typed unions.
+ */
+type TransactionFormData = {
+  id?: number;
+  status?: string;
+  notes?: string;
+  date?: string;
+  closing_ratio?: number | string;
+  customer_id?: number;
+  supplier_id?: number;
+  customer_contact_id?: number;
+  customer?: TransactionPartyRelation;
+  supplier?: TransactionPartyRelation;
+} & Record<string, unknown>;
+
 /**
  * Unified create/edit shell for Quotes, Invoices, Sales Orders, and Purchase
  * Bills — driven by TRANSACTION_CONFIGS so the four document types share one
@@ -47,8 +77,8 @@ export const TransactionEditor = ({ type, id, isNew }: TransactionEditorProps) =
   const currency = useCurrencyStore((s) => s.currency);
   const [loading, setLoading] = useState(false);
 
-  const buildDefaultDoc = () => {
-    const base: any = {
+  const buildDefaultDoc = (): TransactionFormData => {
+    const base: TransactionFormData = {
       status: config.defaultStatus,
       [config.party.idField]: undefined,
       date: new Date().toISOString().split('T')[0],
@@ -60,10 +90,12 @@ export const TransactionEditor = ({ type, id, isNew }: TransactionEditorProps) =
     return base;
   };
 
-  const [docData, setDocData] = useState<any>(buildDefaultDoc);
+  const [docData, setDocData] = useState<TransactionFormData>(buildDefaultDoc);
   const [items, setItems] = useState<EditableLineItem[]>([]);
 
-  const docLabel = isNew ? config.newTitle : (docData[config.numberField] || `#${id}`);
+  const numberFieldValue = docData[config.numberField];
+  const displayNumber = typeof numberFieldValue === 'string' || typeof numberFieldValue === 'number' ? numberFieldValue : undefined;
+  const docLabel = isNew ? config.newTitle : String(displayNumber || `#${id}`);
 
   useBreadcrumb([
     { label: config.pluralLabel, href: `${getBasePath()}/${config.listRoute}` },
@@ -88,7 +120,7 @@ export const TransactionEditor = ({ type, id, isNew }: TransactionEditorProps) =
     const contactField = config.party.contactIdField;
     if (!docData[contactField] && contactsList.length > 0) {
       const primary = contactsList.find((c) => c.is_primary) || contactsList[0];
-      setDocData((prev: any) => ({ ...prev, [contactField]: primary.id }));
+      setDocData((prev) => ({ ...prev, [contactField]: primary.id }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contactsList]);
@@ -101,7 +133,7 @@ export const TransactionEditor = ({ type, id, isNew }: TransactionEditorProps) =
   const fetchDocument = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`/admin/${config.apiBase}/${id}`);
+      const response = await api.get<TransactionFormData & { items?: EditableLineItem[] }>(`/admin/${config.apiBase}/${id}`);
       const data = response.data;
       setDocData(data);
       setItems(normalizeLineItems(data.items || []));
@@ -131,8 +163,9 @@ export const TransactionEditor = ({ type, id, isNew }: TransactionEditorProps) =
       }
       config.invalidateQueries.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
       navigate(`${getBasePath()}/${config.listRoute}`);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Save failed. Please check the form.');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Save failed. Please check the form.');
     } finally {
       setLoading(false);
     }
@@ -147,8 +180,9 @@ export const TransactionEditor = ({ type, id, isNew }: TransactionEditorProps) =
       toast.success(`${conversion.label} succeeded.`);
       config.invalidateQueries.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
       navigate(`${getBasePath()}${conversion.resultRoute(res.data)}`);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Conversion failed.');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Conversion failed.');
     } finally {
       setLoading(false);
     }
@@ -181,9 +215,9 @@ export const TransactionEditor = ({ type, id, isNew }: TransactionEditorProps) =
           </Button>
           <div className="flex items-center gap-2.5">
             <h1 className="text-xl font-bold text-brand-primary tracking-tight">
-              {isNew ? config.newTitle : `${config.label.toUpperCase()} ${docData[config.numberField] || '#' + id}`}
+              {isNew ? config.newTitle : `${config.label.toUpperCase()} ${displayNumber || '#' + id}`}
             </h1>
-            {!isNew && <StatusBadge status={docData.status} />}
+            {!isNew && <StatusBadge status={docData.status || ''} />}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
@@ -233,7 +267,7 @@ export const TransactionEditor = ({ type, id, isNew }: TransactionEditorProps) =
                   contact_person: partyRelation.contact_person,
                 } : undefined}
                 placeholder={`Select ${config.party.label.toLowerCase()}…`}
-                onSelect={(party) => setDocData((prev: any) => ({
+                onSelect={(party) => setDocData((prev) => ({
                   ...prev,
                   [config.party.idField]: party.id,
                   ...(config.party.contactIdField ? { [config.party.contactIdField]: undefined } : {}),
@@ -321,19 +355,23 @@ export const TransactionEditor = ({ type, id, isNew }: TransactionEditorProps) =
               />
             </div>
 
-            {config.dateFields.map((f) => (
-              <div key={f.key} className="space-y-1.5">
-                <Label className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle ml-1 flex items-center gap-1.5">
-                  <Calendar size={12} /> {f.label}
-                </Label>
-                <Input
-                  type="date"
-                  value={docData[f.key] ? docData[f.key].split('T')[0] : ''}
-                  onChange={(e) => setDocData({ ...docData, [f.key]: e.target.value })}
-                  className="h-10 bg-brand-white border-brand-border rounded-xl text-sm shadow-sm"
-                />
-              </div>
-            ))}
+            {config.dateFields.map((f) => {
+              const rawValue = docData[f.key];
+              const fieldValue = typeof rawValue === 'string' ? rawValue : '';
+              return (
+                <div key={f.key} className="space-y-1.5">
+                  <Label className="text-[10px] font-bold uppercase tracking-wider text-brand-subtle ml-1 flex items-center gap-1.5">
+                    <Calendar size={12} /> {f.label}
+                  </Label>
+                  <Input
+                    type="date"
+                    value={fieldValue ? fieldValue.split('T')[0] : ''}
+                    onChange={(e) => setDocData({ ...docData, [f.key]: e.target.value })}
+                    className="h-10 bg-brand-white border-brand-border rounded-xl text-sm shadow-sm"
+                  />
+                </div>
+              );
+            })}
 
             {config.hasClosingRatio && (
               <div className="space-y-1.5">

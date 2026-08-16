@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { DataTable } from './DataTable';
 import { useResourceList } from '@/hooks/useApi';
+import type { PaginatedResponse } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -50,7 +51,7 @@ interface ResourceListingPageProps<T> {
   tabs?: { id: string; label: string }[];
   activeTab?: string;
   onTabChange?: (tabId: string) => void;
-  baseFilters?: Record<string, any>;
+  baseFilters?: Record<string, string | number | boolean | undefined>;
   customContent?: React.ReactNode;
   topContent?: React.ReactNode;
   enableRowSelection?: boolean;
@@ -72,7 +73,6 @@ export function ResourceListingPage<T extends { id: number }>({
   onCreateClick,
   extraActions,
   leftActions,
-  icon,
   tabs,
   activeTab,
   onTabChange,
@@ -111,7 +111,7 @@ export function ResourceListingPage<T extends { id: number }>({
     ...baseFilters,
   };
 
-  const { data: resourceData, isLoading } = useResourceList<T>(resource, queryParams);
+  const { data: resourceData, isLoading } = useResourceList<PaginatedResponse<T>>(resource, queryParams);
 
   const data = resourceData?.data || [];
   const total = resourceData?.total || 0;

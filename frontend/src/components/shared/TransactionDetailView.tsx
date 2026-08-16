@@ -20,6 +20,7 @@ import { computeDocTotals, normalizeLineItems } from '@/lib/lineItemMath';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
 import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 import api from '@/lib/axios';
+import type { AxiosError } from 'axios';
 import { Loader2, Send, Pencil, MoreHorizontal, Trash2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -33,6 +34,60 @@ interface TransactionDetailViewProps {
   onDeleted?: () => void;
 }
 
+interface TransactionPartyInfo {
+  name?: string;
+  company?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+}
+
+interface TransactionInvoiceSummary {
+  id: number;
+  invoice_number?: string;
+  date?: string;
+  due_date?: string;
+  total?: number;
+  amount_paid?: number;
+  balance?: number;
+  payment_status?: string;
+}
+
+interface TransactionLineItem {
+  id?: number;
+  description?: string;
+  product_name?: string;
+  quantity: number | string;
+  unit_price: number | string;
+  tax_percent?: number | string;
+  total?: number | string;
+}
+
+/**
+ * This view renders six different transaction types (quote/invoice/sales
+ * order/purchase bill/delivery/payment receipt) through one config-driven
+ * template, including access via dynamic keys (`config.numberField`,
+ * `dateFields[].key`). The record shape is genuinely polymorphic across
+ * those types, so this captures the fields actually read here; anything
+ * accessed via a non-literal dynamic key resolves to `unknown` and is
+ * narrowed at the point of use.
+ */
+type TransactionRecord = {
+  id: number;
+  status?: string;
+  date?: string;
+  notes?: string | null;
+  receipt_number?: string;
+  amount?: number | string;
+  payment_date?: string;
+  payment_method?: string;
+  reference_id?: string;
+  invoice?: TransactionInvoiceSummary | null;
+  items?: TransactionLineItem[];
+  customer?: TransactionPartyInfo;
+  supplier?: TransactionPartyInfo;
+} & Record<string, unknown>;
+
 /**
  * Read-only detail pane for the right column of a Zoho-Books-style
  * master-detail layout. Sibling to TransactionEditor (the always-editable
@@ -44,7 +99,7 @@ export const TransactionDetailView = ({ type, id, onSend, isSendPending, onDelet
   const queryClient = useQueryClient();
   const currency = useCurrencyStore((s) => s.currency);
 
-  const { data, isLoading } = useResourceDetail<any>(config.apiBase, id);
+  const { data, isLoading } = useResourceDetail<TransactionRecord>(config.apiBase, id);
   const { remove } = useResourceMutation(config.apiBase);
 
   const normalizedItems = useMemo(() => normalizeLineItems(data?.items || []), [data]);
@@ -61,8 +116,9 @@ export const TransactionDetailView = ({ type, id, onSend, isSendPending, onDelet
       toast.success(`${conversion.label} succeeded.`);
       config.invalidateQueries.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
       navigate(`${getBasePath()}${conversion.resultRoute(res.data)}`);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Conversion failed.');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Conversion failed.');
     }
   };
 
@@ -87,15 +143,21 @@ export const TransactionDetailView = ({ type, id, onSend, isSendPending, onDelet
     );
   }
 
+  // `numberField` and each `dateFields[].key` are plain `string`s (not a
+  // literal union), so indexing `data` with them resolves to `unknown` —
+  // narrow here rather than at each render site.
+  const numberFieldValue = data[config.numberField];
+  const displayNumber = typeof numberFieldValue === 'string' || typeof numberFieldValue === 'number' ? numberFieldValue : undefined;
+
   return (
     <div className="p-4 md:p-6 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="flex items-center gap-2.5">
           <h1 className="text-xl font-bold text-brand-primary tracking-tight">
-            {config.label.toUpperCase()} {data[config.numberField] || `#${id}`}
+            {config.label.toUpperCase()} {displayNumber || `#${id}`}
           </h1>
-          {type !== 'payment-receipt' && <StatusBadge status={data.status} />}
+          {type !== 'payment-receipt' && <StatusBadge status={data.status || ''} />}
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           {config.pdf && type === 'payment-receipt' && (
@@ -168,7 +230,7 @@ export const TransactionDetailView = ({ type, id, onSend, isSendPending, onDelet
             paymentDate={data.payment_date}
             paymentMethod={data.payment_method}
             referenceId={data.reference_id}
-            linkedDocument={data.invoice ? { label: 'Invoice', number: data.invoice.invoice_number } : null}
+            linkedDocument={data.invoice ? { label: 'Invoice', number: data.invoice.invoice_number || '' } : null}
             notes={data.notes}
           />
 
@@ -182,7 +244,7 @@ export const TransactionDetailView = ({ type, id, onSend, isSendPending, onDelet
             balance={Number(data.invoice?.balance || 0)}
             status={data.invoice?.payment_status}
             currency={currency}
-            onClick={data.invoice ? () => navigate(`${getBasePath()}/invoices/${data.invoice.id}`) : undefined}
+            onClick={data.invoice ? () => navigate(`${getBasePath()}/invoices/${data.invoice!.id}`) : undefined}
             emptyMessage="This payment isn't linked to an invoice — recorded as an account payment."
           />
         </div>
@@ -194,7 +256,7 @@ export const TransactionDetailView = ({ type, id, onSend, isSendPending, onDelet
               <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1">
                 {config.label} Number
               </p>
-              <p className="text-[13px] font-medium text-brand-primary">{data[config.numberField] || `#${id}`}</p>
+              <p className="text-[13px] font-medium text-brand-primary">{displayNumber || `#${id}`}</p>
             </div>
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1 flex items-center gap-1.5">
@@ -206,18 +268,22 @@ export const TransactionDetailView = ({ type, id, onSend, isSendPending, onDelet
             </div>
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1">Status</p>
-              <StatusBadge status={data.status} />
+              <StatusBadge status={data.status || ''} />
             </div>
-            {config.dateFields.map((f) => (
-              <div key={f.key}>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1 flex items-center gap-1.5">
-                  <Calendar size={11} /> {f.label}
-                </p>
-                <p className="text-[13px] font-medium text-brand-primary">
-                  {data[f.key] ? new Date(data[f.key]).toLocaleDateString() : '—'}
-                </p>
-              </div>
-            ))}
+            {config.dateFields.map((f) => {
+              const fieldValue = data[f.key];
+              const dateStr = typeof fieldValue === 'string' ? fieldValue : undefined;
+              return (
+                <div key={f.key}>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1 flex items-center gap-1.5">
+                    <Calendar size={11} /> {f.label}
+                  </p>
+                  <p className="text-[13px] font-medium text-brand-primary">
+                    {dateStr ? new Date(dateStr).toLocaleDateString() : '—'}
+                  </p>
+                </div>
+              );
+            })}
           </div>
 
           {/* Party card */}
@@ -262,7 +328,7 @@ export const TransactionDetailView = ({ type, id, onSend, isSendPending, onDelet
                     </TableCell>
                   </TableRow>
                 )}
-                {normalizedItems.map((item: any, idx: number) => (
+                {(data.items || []).map((item, idx) => (
                   <TableRow key={item.id ?? idx} className="border-brand-border">
                     <TableCell className="text-[12px] text-brand-subtle">{idx + 1}</TableCell>
                     <TableCell className="text-[12px] text-brand-primary font-medium">

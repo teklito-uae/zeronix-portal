@@ -27,6 +27,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import type { MarketingAudienceSource, MarketingCampaign, MarketingSegment, MarketingTemplate } from '@/types';
+import type { AxiosError } from 'axios';
 
 const STEPS = ['Details', 'Audience', 'Content', 'Schedule', 'Review'];
 
@@ -50,7 +51,7 @@ export const MarketingCampaignWizard = () => {
   const [saving, setSaving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [testOpen, setTestOpen] = useState(false);
-  const [audiencePreview, setAudiencePreview] = useState<{ count: number; sample: any[] } | null>(null);
+  const [audiencePreview, setAudiencePreview] = useState<{ count: number; sample: unknown[] } | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [csvImporting, setCsvImporting] = useState(false);
   const [csvResult, setCsvResult] = useState<string | null>(null);
@@ -92,6 +93,7 @@ export const MarketingCampaignWizard = () => {
 
   useEffect(() => {
     if (existing) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: seeds the form from the `existing` campaign record (edit mode) whenever it's provided/changes.
       setForm({
         name: existing.name,
         template_id: existing.template_id ?? undefined,
@@ -118,7 +120,7 @@ export const MarketingCampaignWizard = () => {
   };
 
   const persist = async (extra: Partial<typeof form> = {}, extraSources?: MarketingAudienceSource[]): Promise<number | null> => {
-    const payload: any = {
+    const payload: Partial<MarketingCampaign> & { audience_config: { sources: MarketingAudienceSource[] } } = {
       ...form,
       ...extra,
       audience_config: { sources: extraSources ?? sources },
@@ -134,8 +136,9 @@ export const MarketingCampaignWizard = () => {
       setCampaignId(res.data.id);
       queryClient.invalidateQueries({ queryKey: ['marketing/campaigns'] });
       return res.data.id;
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to save campaign');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Failed to save campaign');
       return null;
     } finally {
       setSaving(false);
@@ -179,8 +182,9 @@ export const MarketingCampaignWizard = () => {
     try {
       const res = await api.post('/admin/marketing/campaigns/audience-preview', { sources });
       setAudiencePreview(res.data);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to preview audience');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Failed to preview audience');
     } finally {
       setPreviewing(false);
     }
@@ -197,8 +201,9 @@ export const MarketingCampaignWizard = () => {
       const res = await api.post(`/admin/marketing/campaigns/${savedId}/recipients/import`, formData);
       setCsvResult(res.data.message);
       toast.success(res.data.message);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'CSV import failed');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'CSV import failed');
     } finally {
       setCsvImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -213,11 +218,12 @@ export const MarketingCampaignWizard = () => {
       const res = await api.post(`/admin/marketing/campaigns/${savedId}/launch`, force ? { force: true } : {});
       toast.success(res.data.message || 'Campaign launched');
       navigate(`/workspace/marketing/campaigns/${savedId}`);
-    } catch (err: any) {
-      if (err.response?.status === 409 && err.response?.data?.requires_confirmation) {
-        setLaunchWarning(err.response.data.message);
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string; requires_confirmation?: boolean }>;
+      if (axiosErr.response?.status === 409 && axiosErr.response?.data?.requires_confirmation) {
+        setLaunchWarning(axiosErr.response.data.message ?? null);
       } else {
-        toast.error(err.response?.data?.message || 'Failed to launch campaign');
+        toast.error(axiosErr.response?.data?.message || 'Failed to launch campaign');
       }
     } finally {
       setLaunching(false);
@@ -430,7 +436,7 @@ export const MarketingCampaignWizard = () => {
           <div className="space-y-4">
             <div className="space-y-1.5">
               <Label className="text-[12px]">When should this campaign send?</Label>
-              <Select value={form.schedule_type} onValueChange={(v) => setForm({ ...form, schedule_type: v as any })}>
+              <Select value={form.schedule_type} onValueChange={(v) => setForm({ ...form, schedule_type: v as 'immediate' | 'scheduled' })}>
                 <SelectTrigger className="h-9 text-[13px] w-64"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="immediate" className="text-[13px]">Send immediately on launch</SelectItem>

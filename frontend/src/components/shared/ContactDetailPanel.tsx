@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import type { AxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
@@ -120,19 +121,19 @@ export const ContactDetailPanel = ({ contactId, onClose }: ContactDetailPanelPro
     mutationFn: (payload: { type: ContactActivity['type']; notes?: string; due_date?: string }) =>
       api.post(`/admin/contacts/${contactId}/activities`, payload),
     onSuccess: () => { invalidate(); toast.success('Activity logged'); },
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to log activity'),
+    onError: (e: AxiosError<{ message?: string }>) => toast.error(e.response?.data?.message || 'Failed to log activity'),
   });
 
   const attachTag = useMutation({
     mutationFn: (tagId: number) => api.post(`/admin/contacts/${contactId}/tags`, { tag_id: tagId }),
     onSuccess: () => invalidate(),
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to add tag'),
+    onError: (e: AxiosError<{ message?: string }>) => toast.error(e.response?.data?.message || 'Failed to add tag'),
   });
 
   const detachTag = useMutation({
     mutationFn: (tagId: number) => api.delete(`/admin/contacts/${contactId}/tags/${tagId}`),
     onSuccess: () => invalidate(),
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to remove tag'),
+    onError: (e: AxiosError<{ message?: string }>) => toast.error(e.response?.data?.message || 'Failed to remove tag'),
   });
 
   const createTag = useMutation({
@@ -143,7 +144,7 @@ export const ContactDetailPanel = ({ contactId, onClose }: ContactDetailPanelPro
       setTagSearch('');
       setTagPickerOpen(false);
     },
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to create tag'),
+    onError: (e: AxiosError<{ message?: string }>) => toast.error(e.response?.data?.message || 'Failed to create tag'),
   });
 
   const uploadAttachment = useMutation({
@@ -156,7 +157,7 @@ export const ContactDetailPanel = ({ contactId, onClose }: ContactDetailPanelPro
       toast.success('Attachment uploaded.');
       invalidate();
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Upload failed.'),
+    onError: (err: AxiosError<{ message?: string }>) => toast.error(err.response?.data?.message || 'Upload failed.'),
   });
 
   const deleteAttachment = useMutation({
@@ -165,7 +166,7 @@ export const ContactDetailPanel = ({ contactId, onClose }: ContactDetailPanelPro
       toast.success('Attachment removed.');
       invalidate();
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to remove attachment.'),
+    onError: (err: AxiosError<{ message?: string }>) => toast.error(err.response?.data?.message || 'Failed to remove attachment.'),
   });
 
   const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {

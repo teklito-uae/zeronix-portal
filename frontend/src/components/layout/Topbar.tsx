@@ -2,10 +2,8 @@ import { getBasePath } from '@/hooks/useBasePath';
 import { useThemeStore } from '@/store/useThemeStore';
 import { useBreadcrumbStore } from '@/store/useBreadcrumbStore';
 import { useTopbarActionsStore } from '@/store/useTopbarActionsStore';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import { Logo } from '@/components/shared/Logo';
-import { Spinner } from '@/components/shared/Spinner';
-import { useIsFetching } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import {
   ChevronRight,
@@ -14,25 +12,11 @@ import {
   Sun,
   Moon,
   ShoppingCart,
-  UserCircle2,
-  Users,
-  MessageSquareText,
-  Handshake,
-  FileText,
-  ClipboardList,
-  PackageCheck,
-  Receipt,
-  Truck,
-  ShoppingCart as ShoppingCartIcon,
-  Wallet,
-  Package,
 } from 'lucide-react';
 import { GlobalSearch } from './GlobalSearch';
 import { NotificationBell } from './NotificationBell';
 import { CartDrawer } from '../portal/CartDrawer';
 import { useCartStore } from '@/store/useCartStore';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
 
 // Static fallback breadcrumbs from URL when no store segments are set
 const routeLabels: Record<string, string> = {
@@ -53,15 +37,11 @@ const routeLabels: Record<string, string> = {
 export const Topbar = () => {
   const { theme, toggle: toggleTheme } = useThemeStore();
   const location = useLocation();
-  const navigate = useNavigate();
   const storeSegments = useBreadcrumbStore((s) => s.segments);
   const pageActions = useTopbarActionsStore((s) => s.actions);
   const [searchOpen, setSearchOpen] = useState(false);
   const cartItems = useCartStore((s) => s.items);
   const totalCartItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  // Global "app is loading data" indicator — lights up whenever any React Query
-  // request is in flight on the current page, so pages don't need their own spinner wiring.
-  const isFetching = useIsFetching();
 
   const isCustomer = location.pathname.startsWith('/portal');
   const initTheme = useThemeStore((s) => s.initTheme);
@@ -146,9 +126,6 @@ export const Topbar = () => {
               </span>
             ))}
           </nav>
-          {isFetching > 0 && (
-            <Spinner size={14} className="text-brand-accent shrink-0" />
-          )}
       </div>
 
       {/* Right: page-injected actions (desktop) + mobile-only utility icons (desktop equivalents live in the sidebar) */}

@@ -7,6 +7,7 @@ import type {
   GetProductsParams,
   GetVendorsParams,
 } from '@/api/supplierBroadcastApi';
+import type { ApiError } from './useApi';
 
 // ── Categories ─────────────────────────────────────────
 
@@ -25,7 +26,7 @@ export function useCreateSbCategory() {
       queryClient.invalidateQueries({ queryKey: ['sb', 'categories'] });
       toast.success('Category created');
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to create category'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to create category'),
   });
 }
 
@@ -38,7 +39,7 @@ export function useUpdateSbCategory() {
       queryClient.invalidateQueries({ queryKey: ['sb', 'categories'] });
       toast.success('Category updated');
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to update category'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to update category'),
   });
 }
 
@@ -50,7 +51,7 @@ export function useDeleteSbCategory() {
       queryClient.invalidateQueries({ queryKey: ['sb', 'categories'] });
       toast.success('Category deleted');
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to delete category'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to delete category'),
   });
 }
 
@@ -71,7 +72,7 @@ export function useCreateSbVendor() {
       queryClient.invalidateQueries({ queryKey: ['sb', 'vendors'] });
       toast.success('Vendor created');
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to create vendor'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to create vendor'),
   });
 }
 
@@ -84,7 +85,7 @@ export function useUpdateSbVendor() {
       queryClient.invalidateQueries({ queryKey: ['sb', 'vendors'] });
       toast.success('Vendor updated');
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to update vendor'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to update vendor'),
   });
 }
 
@@ -96,7 +97,7 @@ export function useDeleteSbVendor() {
       queryClient.invalidateQueries({ queryKey: ['sb', 'vendors'] });
       toast.success('Vendor deleted');
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to delete vendor'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to delete vendor'),
   });
 }
 
@@ -132,7 +133,7 @@ export function useCreateSbBroadcast() {
       queryClient.invalidateQueries({ queryKey: ['sb', 'products'] });
       toast.success(`Broadcast imported — ${broadcast.parsed_row_count} product(s) parsed`);
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to import broadcast'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to import broadcast'),
   });
 }
 
@@ -145,7 +146,7 @@ export function useDeleteSbBroadcast() {
       queryClient.invalidateQueries({ queryKey: ['sb', 'products'] });
       toast.success('Broadcast deleted');
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to delete broadcast'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to delete broadcast'),
   });
 }
 
@@ -176,7 +177,7 @@ export function useUpdateSbProduct() {
       queryClient.invalidateQueries({ queryKey: ['sb', 'products'] });
       toast.success('Product updated');
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to update product'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to update product'),
   });
 }
 
@@ -188,6 +189,6 @@ export function useDeleteSbProduct() {
       queryClient.invalidateQueries({ queryKey: ['sb', 'products'] });
       toast.success('Product deleted');
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to delete product'),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to delete product'),
   });
 }

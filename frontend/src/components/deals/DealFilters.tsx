@@ -47,6 +47,7 @@ export const DealFilters = ({ filters, onChange, onReset, stageFilter, onStageFi
   const [searchInput, setSearchInput] = useState(filters.search);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: mirrors the shared filters store back into the local debounced input when it changes externally (e.g. Reset button), so the input box stays in sync without echoing every local keystroke.
     setSearchInput(filters.search);
   }, [filters.search]);
 

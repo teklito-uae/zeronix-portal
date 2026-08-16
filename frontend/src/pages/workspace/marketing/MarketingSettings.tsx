@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Save } from 'lucide-react';
 import type { MarketingSettings as MarketingSettingsType } from '@/types';
+import type { AxiosError } from 'axios';
 
 const DAYS = [
   { value: 1, label: 'Mon' },
@@ -62,12 +63,13 @@ const SendingRulesTab = () => {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: seeds the form from the fetched marketing settings whenever fresh server data lands.
     if (data) setForm(data);
   }, [data]);
 
   if (isLoading || !form.id) return <PageLoader label="Loading settings..." />;
 
-  const set = (key: keyof MarketingSettingsType, value: any) => setForm((prev) => ({ ...prev, [key]: value }));
+  const set = <K extends keyof MarketingSettingsType>(key: K, value: MarketingSettingsType[K]) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const toggleDay = (day: number) => {
     const days = form.business_days || [];
@@ -81,8 +83,9 @@ const SendingRulesTab = () => {
       setForm(res.data);
       queryClient.setQueryData(['marketing-settings'], res.data);
       toast.success('Sending rules saved');
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to save settings');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Failed to save settings');
     } finally {
       setSaving(false);
     }
@@ -189,12 +192,13 @@ const TrackingTab = () => {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: seeds the form from the fetched marketing settings whenever fresh server data lands.
     if (data) setForm(data);
   }, [data]);
 
   if (isLoading || !form.id) return <PageLoader label="Loading settings..." />;
 
-  const set = (key: keyof MarketingSettingsType, value: any) => setForm((prev) => ({ ...prev, [key]: value }));
+  const set = <K extends keyof MarketingSettingsType>(key: K, value: MarketingSettingsType[K]) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const save = async () => {
     setSaving(true);
@@ -203,8 +207,9 @@ const TrackingTab = () => {
       setForm(res.data);
       queryClient.setQueryData(['marketing-settings'], res.data);
       toast.success('Tracking settings saved');
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to save settings');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      toast.error(axiosErr.response?.data?.message || 'Failed to save settings');
     } finally {
       setSaving(false);
     }

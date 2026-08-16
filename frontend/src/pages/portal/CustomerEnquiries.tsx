@@ -9,6 +9,17 @@ import { SEO } from '@/components/shared/SEO';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
+import type { Deal, DealItem, PaginatedResponse, User } from '@/types';
+
+// The customer-facing "enquiry" detail is a `Deal` (backend: `App\Models\Deal`,
+// table `enquiries`), plus a legacy `status` column that's still physically on
+// the table (unused by the current stage-based lifecycle) and an
+// `assigned_user` field the UI reads speculatively (the `show` endpoint
+// currently loads the relation as `user`, not `assigned_user`).
+interface CustomerEnquiry extends Deal {
+  status?: string;
+  assigned_user?: User;
+}
 
 export const CustomerEnquiries = () => {
   const navigate = useNavigate();
@@ -17,7 +28,7 @@ export const CustomerEnquiries = () => {
   
   const { data: enquiriesData, isLoading } = useQuery({
     queryKey: ['customer-enquiries'],
-    queryFn: async () => {
+    queryFn: async (): Promise<PaginatedResponse<CustomerEnquiry>> => {
       const res = await api.get('/customer/enquiries');
       return res.data;
     }
@@ -25,7 +36,7 @@ export const CustomerEnquiries = () => {
 
   const { data: selectedEnquiry, isLoading: isLoadingDetails } = useQuery({
     queryKey: ['customer-enquiry', selectedEnquiryId],
-    queryFn: async () => {
+    queryFn: async (): Promise<CustomerEnquiry> => {
       const res = await api.get(`/customer/enquiries/${selectedEnquiryId}`);
       return res.data;
     },
@@ -38,8 +49,8 @@ export const CustomerEnquiries = () => {
     return (
       <div className="flex flex-col items-center justify-center py-[20vh]">
         <div className="relative">
-          <Loader2 className="h-12 w-12 animate-spin text-zeronix-blue" />
-          <div className="absolute inset-0 blur-xl bg-zeronix-blue/20 animate-pulse" />
+          <Loader2 className="h-12 w-12 animate-spin text-brand-accent" />
+          <div className="absolute inset-0 blur-xl bg-brand-accent/20 animate-pulse" />
         </div>
         <p className="text-slate-500 mt-6 font-medium animate-pulse">Syncing your requests...</p>
       </div>
@@ -54,7 +65,7 @@ export const CustomerEnquiries = () => {
         title="My Enquiries"
         description="Track the status of your procurement requests."
         action={
-          <Button onClick={() => navigate(`/portal/${company}/products`)} className="bg-zeronix-blue hover:bg-zeronix-blue-hover text-white h-10 px-6 font-bold shadow-lg shadow-zeronix-blue/20">
+          <Button onClick={() => navigate(`/portal/${company}/products`)} className="bg-brand-accent hover:bg-brand-accent-hover text-white h-10 px-6 font-bold shadow-lg shadow-brand-accent/20">
             <MessageSquareText size={18} className="mr-2" /> New Enquiry
           </Button>
         }
@@ -70,45 +81,45 @@ export const CustomerEnquiries = () => {
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {enquiries.map((enq: any) => {
+          {enquiries.map((enq) => {
             const hasAdminResponded = enq.status !== 'new';
             return (
               <div 
                 key={enq.id} 
-                className="group relative bg-admin-surface border border-admin-border rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden hover:-translate-y-1 hover:border-zeronix-blue/30"
+                className="group relative bg-brand-white border border-brand-border rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden hover:-translate-y-1 hover:border-brand-accent/30"
               >
-                <div className="p-6 border-b border-admin-border flex justify-between items-start bg-admin-bg/30">
+                <div className="p-6 border-b border-brand-border flex justify-between items-start bg-brand-bg/30">
                   <div>
-                    <span className="font-mono text-sm font-black text-zeronix-blue tracking-tighter">
+                    <span className="font-mono text-sm font-black text-brand-accent tracking-tighter">
                       ENQ-{String(enq.id).padStart(5, '0')}
                     </span>
-                    <div className="flex items-center gap-1.5 text-[10px] text-admin-text-muted mt-1.5 uppercase font-bold tracking-widest">
+                    <div className="flex items-center gap-1.5 text-[10px] text-brand-subtle mt-1.5 uppercase font-bold tracking-widest">
                       <Calendar size={12} />
                       {enq.created_at ? new Date(enq.created_at).toLocaleDateString() : '—'}
                     </div>
                   </div>
-                  <StatusBadge status={enq.status} />
+                  <StatusBadge status={enq.status ?? ''} />
                 </div>
-                
+
                 <div className="p-6 flex-1 flex flex-col">
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2.5 bg-admin-bg rounded-xl border border-admin-border group-hover:border-zeronix-blue/40 transition-colors">
-                      <Package size={20} className="text-admin-text-muted group-hover:text-zeronix-blue" />
+                    <div className="p-2.5 bg-brand-bg rounded-xl border border-brand-border group-hover:border-brand-accent/40 transition-colors">
+                      <Package size={20} className="text-brand-subtle group-hover:text-brand-accent" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-admin-text-primary">{enq.items_count || 0} Products</p>
-                      <p className="text-[10px] text-admin-text-muted uppercase tracking-widest font-bold">Request List</p>
+                      <p className="text-sm font-bold text-brand-primary">{enq.items_count || 0} Products</p>
+                      <p className="text-[10px] text-brand-subtle uppercase tracking-widest font-bold">Request List</p>
                     </div>
                   </div>
                   
                   {enq.notes && (
-                    <div className="bg-admin-bg/50 rounded-xl p-4 text-xs text-admin-text-secondary italic line-clamp-3 mb-6 border border-admin-border/50 relative overflow-hidden">
-                      <div className="absolute top-0 left-0 w-1 h-full bg-admin-border" />
+                    <div className="bg-brand-bg/50 rounded-xl p-4 text-xs text-brand-secondary italic line-clamp-3 mb-6 border border-brand-border/50 relative overflow-hidden">
+                      <div className="absolute top-0 left-0 w-1 h-full bg-brand-border" />
                       "{enq.notes}"
                     </div>
                   )}
 
-                  <div className="mt-auto pt-6 border-t border-admin-border flex items-center justify-between">
+                  <div className="mt-auto pt-6 border-t border-brand-border flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {hasAdminResponded ? (
                         <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-emerald-500 tracking-wider">
@@ -125,7 +136,7 @@ export const CustomerEnquiries = () => {
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="text-zeronix-blue hover:text-zeronix-blue hover:bg-zeronix-blue/10 font-bold text-xs gap-2 group-hover:translate-x-1 transition-transform"
+                      className="text-brand-accent hover:text-brand-accent hover:bg-brand-accent/10 font-bold text-xs gap-2 group-hover:translate-x-1 transition-transform"
                       onClick={() => setSelectedEnquiryId(enq.id)}
                     >
                       Details <ChevronRight size={14} />
@@ -138,40 +149,40 @@ export const CustomerEnquiries = () => {
         </div>
       )}      {/* Enquiry Details Sheet */}
       <Sheet open={!!selectedEnquiryId} onOpenChange={(open) => !open && setSelectedEnquiryId(null)}>
-        <SheetContent side="right" className="bg-admin-surface border-admin-border text-admin-text-primary w-full sm:max-w-[700px] p-0 flex flex-col gap-0">
+        <SheetContent side="right" className="bg-brand-white border-brand-border text-brand-primary w-full sm:max-w-[700px] p-0 flex flex-col gap-0">
           {isLoadingDetails ? (
             <div className="py-20 flex flex-col items-center justify-center">
-              <Loader2 className="h-10 w-10 animate-spin text-zeronix-blue" />
+              <Loader2 className="h-10 w-10 animate-spin text-brand-accent" />
             </div>
           ) : selectedEnquiry && (
             <div className="flex flex-col h-full">
-              <div className="p-8 border-b border-admin-border bg-admin-bg/30 flex-shrink-0 pr-14">
+              <div className="p-8 border-b border-brand-border bg-brand-bg/30 flex-shrink-0 pr-14">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h2 className="text-xl md:text-2xl font-bold text-admin-text-primary tracking-tight flex items-center gap-3">
+                    <h2 className="text-xl md:text-2xl font-bold text-brand-primary tracking-tight flex items-center gap-3">
                       Enquiry Details
-                      <span className="text-sm font-mono text-zeronix-blue bg-zeronix-blue/10 px-3 py-1 rounded-full">
+                      <span className="text-sm font-mono text-brand-accent bg-brand-accent/10 px-3 py-1 rounded-full">
                         #ENQ-{String(selectedEnquiry.id).padStart(5, '0')}
                       </span>
                     </h2>
                     <div className="flex items-center gap-6 mt-3">
-                      <div className="flex items-center gap-2 text-xs text-admin-text-muted font-bold uppercase tracking-widest">
+                      <div className="flex items-center gap-2 text-xs text-brand-subtle font-bold uppercase tracking-widest">
                         <Calendar size={14} />
-                        {new Date(selectedEnquiry.created_at).toLocaleDateString()}
+                        {selectedEnquiry.created_at ? new Date(selectedEnquiry.created_at).toLocaleDateString() : '—'}
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-admin-text-muted font-bold uppercase tracking-widest">
-                        <StatusBadge status={selectedEnquiry.status} />
+                      <div className="flex items-center gap-2 text-xs text-brand-subtle font-bold uppercase tracking-widest">
+                        <StatusBadge status={selectedEnquiry.status ?? ''} />
                       </div>
                     </div>
                   </div>
                   {selectedEnquiry.assigned_user && (
-                    <div className="bg-admin-bg p-3 rounded-xl border border-admin-border flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-zeronix-blue flex items-center justify-center text-[10px] font-bold text-white">
+                    <div className="bg-brand-bg p-3 rounded-xl border border-brand-border flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-brand-accent flex items-center justify-center text-[10px] font-bold text-white">
                         {selectedEnquiry.assigned_user.name.charAt(0)}
                       </div>
                       <div>
-                        <p className="text-[10px] text-admin-text-muted uppercase font-black">Account Manager</p>
-                        <p className="text-xs font-bold text-admin-text-primary">{selectedEnquiry.assigned_user.name}</p>
+                        <p className="text-[10px] text-brand-subtle uppercase font-black">Account Manager</p>
+                        <p className="text-xs font-bold text-brand-primary">{selectedEnquiry.assigned_user.name}</p>
                       </div>
                     </div>
                   )}
@@ -200,34 +211,34 @@ export const CustomerEnquiries = () => {
 
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
-                    <Package size={18} className="text-zeronix-blue" />
-                    <h3 className="text-sm font-bold uppercase tracking-widest text-admin-text-muted">Items Requested</h3>
+                    <Package size={18} className="text-brand-accent" />
+                    <h3 className="text-sm font-bold uppercase tracking-widest text-brand-subtle">Items Requested</h3>
                   </div>
                   
-                  <div className="bg-admin-bg rounded-2xl border border-admin-border overflow-hidden">
+                  <div className="bg-brand-bg rounded-2xl border border-brand-border overflow-hidden">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="bg-admin-bg/50">
-                          <th className="p-4 text-[10px] font-black text-admin-text-muted uppercase tracking-widest border-b border-admin-border">Product / Description</th>
-                          <th className="p-4 text-[10px] font-black text-admin-text-muted uppercase tracking-widest border-b border-admin-border text-center">Qty</th>
-                          <th className="p-4 text-[10px] font-black text-admin-text-muted uppercase tracking-widest border-b border-admin-border text-right">Status</th>
+                        <tr className="bg-brand-bg/50">
+                          <th className="p-4 text-[10px] font-black text-brand-subtle uppercase tracking-widest border-b border-brand-border">Product / Description</th>
+                          <th className="p-4 text-[10px] font-black text-brand-subtle uppercase tracking-widest border-b border-brand-border text-center">Qty</th>
+                          <th className="p-4 text-[10px] font-black text-brand-subtle uppercase tracking-widest border-b border-brand-border text-right">Status</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-admin-border/50">
-                        {selectedEnquiry.items?.map((item: any) => (
-                          <tr key={item.id} className="hover:bg-admin-surface-hover/20">
+                      <tbody className="divide-y divide-brand-border/50">
+                        {selectedEnquiry.items?.map((item: DealItem) => (
+                          <tr key={item.id} className="hover:bg-brand-bg/20">
                             <td className="p-4">
-                              <p className="text-sm font-bold text-admin-text-primary">
+                              <p className="text-sm font-bold text-brand-primary">
                                 {item.product?.name || item.description}
                               </p>
                               {item.product?.model_code && (
-                                <p className="text-[10px] font-mono text-admin-text-muted mt-1 uppercase tracking-tighter">
+                                <p className="text-[10px] font-mono text-brand-subtle mt-1 uppercase tracking-tighter">
                                   {item.product.model_code}
                                 </p>
                               )}
                             </td>
                             <td className="p-4 text-center">
-                              <span className="inline-flex items-center justify-center w-8 h-8 bg-admin-surface rounded-lg text-sm font-bold text-admin-text-primary border border-admin-border">
+                              <span className="inline-flex items-center justify-center w-8 h-8 bg-brand-white rounded-lg text-sm font-bold text-brand-primary border border-brand-border">
                                 {item.quantity}
                               </span>
                             </td>
@@ -244,21 +255,21 @@ export const CustomerEnquiries = () => {
                 {selectedEnquiry.notes && (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
-                      <MessageSquareText size={18} className="text-zeronix-blue" />
-                      <h3 className="text-sm font-bold uppercase tracking-widest text-admin-text-muted">Additional Notes</h3>
+                      <MessageSquareText size={18} className="text-brand-accent" />
+                      <h3 className="text-sm font-bold uppercase tracking-widest text-brand-subtle">Additional Notes</h3>
                     </div>
-                    <div className="bg-admin-bg/30 p-6 rounded-2xl border border-admin-border text-sm text-admin-text-secondary leading-relaxed italic">
+                    <div className="bg-brand-bg/30 p-6 rounded-2xl border border-brand-border text-sm text-brand-secondary leading-relaxed italic">
                       "{selectedEnquiry.notes}"
                     </div>
                   </div>
                 )}
               </div>
 
-              <div className="p-8 border-t border-admin-border bg-admin-bg/20 flex justify-between items-center flex-shrink-0">
-                 <p className="text-xs text-admin-text-muted max-w-[300px]">
+              <div className="p-8 border-t border-brand-border bg-brand-bg/20 flex justify-between items-center flex-shrink-0">
+                 <p className="text-xs text-brand-subtle max-w-[300px]">
                    If you have any changes to this request, please contact your account manager directly.
                  </p>
-                 <Button onClick={() => setSelectedEnquiryId(null)} className="bg-admin-surface hover:bg-admin-surface-hover text-admin-text-primary font-bold h-11 px-8 rounded-xl border border-admin-border shadow-sm">
+                 <Button onClick={() => setSelectedEnquiryId(null)} className="bg-brand-white hover:bg-brand-bg text-brand-primary font-bold h-11 px-8 rounded-xl border border-brand-border shadow-sm">
                    Close Details
                  </Button>
               </div>
