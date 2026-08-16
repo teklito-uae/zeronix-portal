@@ -45,9 +45,11 @@ class Lead extends Model
 
         static::creating(function ($lead) {
             if (empty($lead->lead_code)) {
-                $date = Carbon::now()->format('Ymd');
-                $count = static::whereDate('created_at', Carbon::today())->count() + 1;
-                $lead->lead_code = 'ZRNX-LD-' . $date . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+                // company_id is already set at this point: BelongsToCompany's own
+                // creating listener runs first (registered via parent::boot() above).
+                $companyId = $lead->company_id ?? null;
+                $prefix = \App\Services\DocumentNumberGenerator::resolvePrefix($companyId, 'lead_prefix', 'ZRNX-LD-');
+                $lead->lead_code = \App\Services\DocumentNumberGenerator::nextDailySequence(static::class, $prefix, $companyId);
             }
         });
     }

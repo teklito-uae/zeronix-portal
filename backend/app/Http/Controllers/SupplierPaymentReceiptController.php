@@ -124,8 +124,9 @@ class SupplierPaymentReceiptController extends Controller
             Mail::to($receipt->supplier->email)->send(new SupplierPaymentReceiptMail($receipt, $pdfContent, $filename));
 
             return response()->json(['message' => 'Email sent successfully.']);
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Failed to send email', 'error' => $e->getMessage()], 500);
+        } catch (\Throwable $e) {
+            \Log::error('Failed to send supplier payment receipt email: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to send email.'], 500);
         }
     }
 }

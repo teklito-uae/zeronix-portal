@@ -66,9 +66,11 @@ class Deal extends Model
 
         static::creating(function ($deal) {
             if (empty($deal->deal_code)) {
-                $date = Carbon::now()->format('Ymd');
-                $count = static::whereDate('created_at', Carbon::today())->count() + 1;
-                $deal->deal_code = 'ZRNX-DL-' . $date . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+                // company_id is already set at this point: BelongsToCompany's own
+                // creating listener runs first (registered via parent::boot() above).
+                $companyId = $deal->company_id ?? null;
+                $prefix = \App\Services\DocumentNumberGenerator::resolvePrefix($companyId, 'deal_prefix', 'ZRNX-DL-');
+                $deal->deal_code = \App\Services\DocumentNumberGenerator::nextDailySequence(static::class, $prefix, $companyId);
             }
         });
     }

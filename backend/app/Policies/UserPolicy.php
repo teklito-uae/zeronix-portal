@@ -25,7 +25,7 @@ class UserPolicy
 
     public function create(User $user)
     {
-        return $user->role === 'admin';
+        return in_array($user->role, ['admin', 'super_admin'], true);
     }
 
     public function update(User $user, User $model)

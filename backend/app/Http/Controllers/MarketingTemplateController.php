@@ -99,9 +99,10 @@ class MarketingTemplateController extends Controller
 
             DB::commit();
             return response()->json($marketingTemplate->fresh());
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to update template', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to update marketing template: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to update template.'], 500);
         }
     }
 
@@ -164,9 +165,10 @@ class MarketingTemplateController extends Controller
 
             DB::commit();
             return response()->json($marketingTemplate->fresh());
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to restore version', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to restore marketing template version: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to restore version.'], 500);
         }
     }
 
@@ -212,8 +214,9 @@ class MarketingTemplateController extends Controller
             ));
 
             return response()->json(['message' => 'Test email sent to ' . $validated['to']]);
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Failed to send test email: ' . $e->getMessage()], 500);
+        } catch (\Throwable $e) {
+            \Log::error('Failed to send marketing template test email: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to send test email.'], 500);
         }
     }
 

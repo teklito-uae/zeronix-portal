@@ -185,12 +185,10 @@ class DocumentController extends Controller
 
         try {
             return $this->generatePdfResponse($model, $type, $action);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            \Log::error('PDF generation failed: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
-                'error' => 'PDF Generation Failed',
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
+                'message' => 'Failed to generate PDF.',
             ], 500);
         }
     }

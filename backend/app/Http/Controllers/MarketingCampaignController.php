@@ -234,8 +234,9 @@ class MarketingCampaignController extends Controller
             Mail::to($validated['to'])->send(new MarketingCampaignMail('[TEST] ' . $rendered['subject'], $rendered['html']));
 
             return response()->json(['message' => 'Test email sent to ' . $validated['to']]);
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Failed to send test email: ' . $e->getMessage()], 500);
+        } catch (\Throwable $e) {
+            \Log::error('Failed to send marketing campaign test email: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to send test email.'], 500);
         }
     }
 

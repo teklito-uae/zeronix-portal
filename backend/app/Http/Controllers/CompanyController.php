@@ -4,46 +4,86 @@ namespace App\Http\Controllers;
 
 use App\Models\Company;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 
 class CompanyController extends Controller
 {
-    public function index()
+    /**
+     * Fields an admin is allowed to set on a company profile via store()/update().
+     * Deliberately excludes 'status' and 'rejection_reason' (managed only via
+     * approve()/reject()/suspend()) and attachment paths (managed via file upload
+     * flows in publicStore()).
+     */
+    private const ASSIGNABLE_FIELDS = [
+        'name' => 'nullable|string',
+        'company_id' => 'nullable|string',
+        'number' => 'nullable|string',
+        'first_name' => 'nullable|string',
+        'last_name' => 'nullable|string',
+        'phone' => 'nullable|string',
+        'salutation' => 'nullable|string',
+        'job_title' => 'nullable|string',
+        'description' => 'nullable|string',
+        'industry' => 'nullable|string',
+        'address' => 'nullable|string',
+        'tax_number' => 'nullable|string',
+        'website' => 'nullable|string',
+        'owner_user_id' => 'nullable|exists:users,id',
+        'currency' => 'nullable|string',
+        'internal_notes' => 'nullable|string',
+        'profile_image' => 'nullable|string',
+        'instagram' => 'nullable|string',
+        'facebook' => 'nullable|string',
+        'linkedin' => 'nullable|string',
+        'twitter' => 'nullable|string',
+        'opening_balance' => 'nullable|numeric',
+        'show_job_amount_to_worker' => 'boolean',
+        'is_client_portal_enabled' => 'boolean',
+        'settings' => 'nullable|array',
+    ];
+
+    /**
+     * True platform staff — the only role allowed to list, create, or delete
+     * arbitrary tenant companies. A tenant's own "admin" role is scoped to
+     * their own company record only (see ensureOwnCompanyOrSuperAdmin()).
+     */
+    private function isSuperAdmin(Request $request): bool
     {
+        return $request->user()?->role === 'super_admin';
+    }
+
+    private function ensureOwnCompanyOrSuperAdmin(Request $request, Company $company): void
+    {
+        if ($this->isSuperAdmin($request)) {
+            return;
+        }
+
+        if ($company->id !== $request->user()->company_id) {
+            abort(403, 'Forbidden. You may only access your own company record.');
+        }
+    }
+
+    public function index(Request $request)
+    {
+        if (!$this->isSuperAdmin($request)) {
+            return response()->json(['message' => 'Forbidden. Super Admin access required.'], 403);
+        }
+
         return response()->json(Company::with('owner')->get());
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'nullable|string',
-            'company_id' => 'nullable|string',
-            'number' => 'nullable|string',
-            'first_name' => 'nullable|string',
-            'last_name' => 'nullable|string',
-            'email' => 'nullable|email|unique:companies,email',
-            'phone' => 'nullable|string',
-            'salutation' => 'nullable|string',
-            'job_title' => 'nullable|string',
-            'description' => 'nullable|string',
-            'tax_number' => 'nullable|string',
-            'website' => 'nullable|string',
-            'owner_user_id' => 'nullable|exists:users,id',
-            'currency' => 'nullable|string',
-            'internal_notes' => 'nullable|string',
-            'profile_image' => 'nullable|string',
-            'instagram' => 'nullable|string',
-            'facebook' => 'nullable|string',
-            'linkedin' => 'nullable|string',
-            'twitter' => 'nullable|string',
-            'opening_balance' => 'numeric',
-            'show_job_amount_to_worker' => 'boolean',
-            'is_client_portal_enabled' => 'boolean',
-        ]);
+        if (!$this->isSuperAdmin($request)) {
+            return response()->json(['message' => 'Forbidden. Super Admin access required.'], 403);
+        }
 
-        // Using $request->all() directly for simplicity after validation, 
-        // though typically we should use $validated if all fields are listed.
-        // We'll use $request->all() to capture any missing mapped fields easily for now.
-        $company = Company::create($request->all());
+        $validated = $request->validate(array_merge(self::ASSIGNABLE_FIELDS, [
+            'email' => 'nullable|email|unique:companies,email',
+        ]));
+
+        $company = Company::create($validated);
 
         return response()->json($company, 201);
     }
@@ -113,20 +153,23 @@ class CompanyController extends Controller
         ], 201);
     }
 
-    public function show(Company $company)
+    public function show(Request $request, Company $company)
     {
+        $this->ensureOwnCompanyOrSuperAdmin($request, $company);
+
         $company->load('owner');
         return response()->json($company);
     }
 
     public function update(Request $request, Company $company)
     {
-        $request->validate([
+        $this->ensureOwnCompanyOrSuperAdmin($request, $company);
+
+        $validated = $request->validate(array_merge(self::ASSIGNABLE_FIELDS, [
             'email' => 'nullable|email|unique:companies,email,' . $company->id,
-            'owner_user_id' => 'nullable|exists:users,id',
-        ]);
-        
-        $company->update($request->all());
+        ]));
+
+        $company->update($validated);
 
         return response()->json($company);
     }
@@ -148,15 +191,24 @@ class CompanyController extends Controller
             if ($user) {
                 $user->update(['is_active' => true]);
             } else {
-                \App\Models\User::create([
+                // New tenant admin accounts are created with a random, unusable
+                // password (never surfaced to anyone) rather than a guessable
+                // hardcoded one. They can't log in with it, so we immediately
+                // send them a "set your password" email via the standard
+                // Laravel password-reset broker (see AdminAuthController's
+                // forgot/reset-password endpoints and
+                // User::sendPasswordResetNotification()).
+                $newAdmin = \App\Models\User::create([
                     'email' => $company->email,
                     'company_id' => $company->id,
                     'role' => 'admin',
                     'name' => trim($company->first_name . ' ' . $company->last_name),
                     'phone' => $company->phone,
-                    'password' => bcrypt('password123'), // Default temporary password
+                    'password' => bcrypt(Str::random(32)),
                     'is_active' => true,
                 ]);
+
+                Password::sendResetLink(['email' => $newAdmin->email]);
             }
         }
 
@@ -199,8 +251,12 @@ class CompanyController extends Controller
         return response()->json(['message' => 'Company suspended', 'company' => $company]);
     }
 
-    public function destroy(Company $company)
+    public function destroy(Request $request, Company $company)
     {
+        if (!$this->isSuperAdmin($request)) {
+            return response()->json(['message' => 'Forbidden. Super Admin access required.'], 403);
+        }
+
         $company->delete();
         return response()->json(null, 204);
     }

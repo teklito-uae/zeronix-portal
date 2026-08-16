@@ -63,9 +63,11 @@ class Customer extends Authenticatable
 
         static::creating(function ($customer) {
             if (empty($customer->customer_code)) {
-                $date = Carbon::now()->format('Ymd');
-                $count = static::whereDate('created_at', Carbon::today())->count() + 1;
-                $customer->customer_code = 'ZRNX-CUS-' . $date . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+                // company_id is already set at this point: BelongsToCompany's own
+                // creating listener runs first (registered via parent::boot() above).
+                $companyId = $customer->company_id ?? null;
+                $prefix = \App\Services\DocumentNumberGenerator::resolvePrefix($companyId, 'customer_prefix', 'ZRNX-CUS-');
+                $customer->customer_code = \App\Services\DocumentNumberGenerator::nextDailySequence(static::class, $prefix, $companyId);
             }
         });
     }

@@ -25,7 +25,10 @@ class PaymentReceipt extends Model
         parent::boot();
         static::creating(function ($model) {
             if (!$model->receipt_number) {
-                $model->receipt_number = 'RCP-' . time();
+                // company_id is already set at this point: BelongsToCompany's own
+                // creating listener runs first (registered via parent::boot() above).
+                $prefix = \App\Services\DocumentNumberGenerator::resolvePrefix($model->company_id ?? null, 'receipt_prefix', 'RCP-');
+                $model->receipt_number = $prefix . time();
             }
         });
     }

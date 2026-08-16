@@ -58,7 +58,7 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string',
+            'name' => 'required|string|max:500',
             'model_code' => 'nullable|string',
             'sku' => 'nullable|string|unique:products,sku',
             'stock_quantity' => 'nullable|integer',
@@ -69,7 +69,7 @@ class ProductController extends Controller
             'specs' => 'nullable|array',
         ]);
 
-        $validated['slug'] = Str::slug($validated['name']) . '-' . Str::random(5);
+        $validated['slug'] = Str::limit(Str::slug($validated['name']), 240, '') . '-' . Str::random(5);
 
         $product = Product::create($validated);
         return response()->json($product->load(['brand', 'category']));
@@ -89,7 +89,7 @@ class ProductController extends Controller
     public function update(Request $request, Product $product)
     {
         $validated = $request->validate([
-            'name' => 'sometimes|required|string',
+            'name' => 'sometimes|required|string|max:500',
             'model_code' => 'nullable|string',
             'sku' => 'nullable|string|unique:products,sku,' . $product->id,
             'stock_quantity' => 'nullable|integer',

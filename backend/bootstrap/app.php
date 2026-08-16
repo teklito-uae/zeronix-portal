@@ -39,6 +39,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // lookup throws RouteNotFoundException before AuthenticationException
         // is ever thrown. Overriding it to null stops that crash entirely.
         $middleware->redirectGuestsTo(fn () => null);
+
+        // Role gate, layered on top of auth:sanctum — see
+        // App\Http\Middleware\EnsureUserHasRole for why this exists.
+        $middleware->alias([
+            'role' => \App\Http\Middleware\EnsureUserHasRole::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {

@@ -130,9 +130,10 @@ class PurchaseBillController extends Controller
             DB::commit();
 
             return response()->json($bill->load(['supplier', 'items']), 201);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to create purchase bill', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to create purchase bill: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to create purchase bill.'], 500);
         }
     }
 
@@ -225,9 +226,10 @@ class PurchaseBillController extends Controller
             DB::commit();
 
             return response()->json($purchaseBill->load(['supplier', 'items']));
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to update purchase bill', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to update purchase bill: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to update purchase bill.'], 500);
         }
     }
 
@@ -301,9 +303,10 @@ class PurchaseBillController extends Controller
             DB::commit();
 
             return response()->json($copy->load(['supplier', 'items']), 201);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to duplicate purchase bill', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to duplicate purchase bill: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to duplicate purchase bill.'], 500);
         }
     }
 
@@ -346,18 +349,32 @@ class PurchaseBillController extends Controller
      */
     public function previewNextNumber(Request $request)
     {
-        return response()->json(['number' => $this->nextBillNumber()]);
+        return response()->json(['number' => $this->nextBillNumber(lock: false)]);
     }
 
     /**
      * PB-{Ymd}-{3-digit sequence}, sequence based on today's created_at count
      * (mirrors the scheme originally inlined in store()).
+     *
+     * Callers that persist a PurchaseBill with this number must call this
+     * from inside an open DB transaction (the default) so the row lock
+     * covers the whole read-then-insert; previewNextNumber() passes
+     * lock:false since it never inserts anything.
      */
-    private function nextBillNumber(): string
+    private function nextBillNumber(bool $lock = true): string
     {
-        $date = Carbon::now()->format('Ymd');
-        $count = PurchaseBill::whereDate('created_at', Carbon::today())->count() + 1;
+        $user = auth()->user();
+        $companyId = $user && $user->role === 'super_admin' ? null : $user?->company_id;
+        $settings = $user->company->settings ?? [];
+        $prefix = $settings['purchase_bill_prefix'] ?? 'PB-';
 
-        return 'PB-' . $date . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+        return \App\Services\DocumentNumberGenerator::nextDailySequence(
+            PurchaseBill::class,
+            $prefix,
+            $companyId,
+            'created_at',
+            3,
+            $lock
+        );
     }
 }

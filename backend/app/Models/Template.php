@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BelongsToCompany;
 
 class Template extends Model
 {
+    use BelongsToCompany;
+
     protected $fillable = [
         'name',
         'type',
@@ -14,6 +17,7 @@ class Template extends Model
         'content',
         'email_body',
         'is_default',
+        'company_id',
     ];
 
     protected $casts = [

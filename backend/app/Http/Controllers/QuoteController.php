@@ -172,9 +172,10 @@ class QuoteController extends Controller
             }
 
             return response()->json($quote->load(['customer', 'items']), 201);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to create quote', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to create quote: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to create quote.'], 500);
         }
     }
 
@@ -312,9 +313,10 @@ class QuoteController extends Controller
             }
 
             return response()->json($quote->load(['customer', 'items']));
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to update quote', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to update quote: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to update quote.'], 500);
         }
     }
 
@@ -399,9 +401,10 @@ class QuoteController extends Controller
             DB::commit();
 
             return response()->json($copy->load(['customer', 'items']), 201);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to duplicate quote', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to duplicate quote: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to duplicate quote.'], 500);
         }
     }
 
@@ -560,8 +563,9 @@ class QuoteController extends Controller
             ]);
 
             return response()->json(['message' => 'Email sent successfully.']);
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Failed to send email', 'error' => $e->getMessage()], 500);
+        } catch (\Throwable $e) {
+            \Log::error('Failed to send quote email: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to send email.'], 500);
         }
     }
 
@@ -586,9 +590,11 @@ class QuoteController extends Controller
 
         DB::beginTransaction();
         try {
-            $date = Carbon::now()->format('Ymd');
-            $count = SalesOrder::whereDate('created_at', Carbon::today())->count() + 1;
-            $orderNumber = 'SO-' . $date . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+            $user = $request->user();
+            $companyId = $user && $user->role === 'super_admin' ? null : $user?->company_id;
+            $settings = $user->company->settings ?? [];
+            $orderPrefix = $settings['sales_order_prefix'] ?? 'SO-';
+            $orderNumber = \App\Services\DocumentNumberGenerator::nextDailySequence(SalesOrder::class, $orderPrefix, $companyId);
 
             $order = SalesOrder::create([
                 'order_number' => $orderNumber,
@@ -624,9 +630,10 @@ class QuoteController extends Controller
             DB::commit();
 
             return response()->json($order->load(['customer', 'items']), 201);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to convert quote to sales order', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to convert quote to sales order: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to convert quote to sales order.'], 500);
         }
     }
 
@@ -636,24 +643,33 @@ class QuoteController extends Controller
      */
     public function previewNextNumber(Request $request)
     {
-        return response()->json(['number' => $this->nextQuoteNumber()]);
+        return response()->json(['number' => $this->nextQuoteNumber(lock: false)]);
     }
 
     /**
      * QT-{year}-{4-digit sequence}, sequence resetting each calendar year and
      * incrementing from the highest existing number for that year (not a
      * plain row count, so it's stable across deletions).
+     *
+     * Callers that persist a Quote with this number must call this from
+     * inside an open DB transaction (the default) so the row lock covers the
+     * whole read-then-insert; previewNextNumber() passes lock:false since it
+     * never inserts anything.
      */
-    private function nextQuoteNumber(): string
+    private function nextQuoteNumber(bool $lock = true): string
     {
-        $settings = auth()->user()->company->settings ?? [];
-        $prefix = ($settings['quote_prefix'] ?? 'QT-') . Carbon::now()->format('Y') . '-';
+        $user = auth()->user();
+        $settings = $user->company->settings ?? [];
+        $prefix = $settings['quote_prefix'] ?? 'QT-';
+        $companyId = $user->role === 'super_admin' ? null : $user->company_id;
 
-        $maxSeq = Quote::where('quote_number', 'like', "{$prefix}%")
-            ->get(['quote_number'])
-            ->map(fn ($q) => (int) substr($q->quote_number, strlen($prefix)))
-            ->max() ?? 0;
-
-        return $prefix . str_pad($maxSeq + 1, 4, '0', STR_PAD_LEFT);
+        return \App\Services\DocumentNumberGenerator::nextYearlySequence(
+            Quote::class,
+            'quote_number',
+            $prefix,
+            $companyId,
+            4,
+            $lock
+        );
     }
 }

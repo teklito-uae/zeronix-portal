@@ -187,8 +187,9 @@ class LeadImportController extends Controller
                     } catch (\Illuminate\Database\QueryException $e) {
                         $results['errors'][] = "Row {$index} ({$row['name']}): duplicate email/identifier";
                     }
-                } catch (\Exception $e) {
-                    $results['errors'][] = "Row {$index} ({$row['name']}): " . $e->getMessage();
+                } catch (\Throwable $e) {
+                    \Log::error("Failed to import lead row {$index}: " . $e->getMessage(), ['exception' => $e]);
+                    $results['errors'][] = "Row {$index} ({$row['name']}): failed to import.";
                 }
             }
         });

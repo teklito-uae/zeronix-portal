@@ -27,9 +27,11 @@ class Supplier extends Model
 
         static::creating(function ($supplier) {
             if (empty($supplier->supplier_code)) {
-                $date = Carbon::now()->format('Ymd');
-                $count = static::whereDate('created_at', Carbon::today())->count() + 1;
-                $supplier->supplier_code = 'ZRNX-SUP-' . $date . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+                // company_id is already set at this point: BelongsToCompany's own
+                // creating listener runs first (registered via parent::boot() above).
+                $companyId = $supplier->company_id ?? null;
+                $prefix = \App\Services\DocumentNumberGenerator::resolvePrefix($companyId, 'supplier_prefix', 'ZRNX-SUP-');
+                $supplier->supplier_code = \App\Services\DocumentNumberGenerator::nextDailySequence(static::class, $prefix, $companyId);
             }
         });
     }

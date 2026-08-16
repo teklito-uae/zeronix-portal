@@ -14,11 +14,6 @@ class NotificationController extends Controller
         ]);
     }
 
-    public function unread(Request $request)
-    {
-        return response()->json($request->user()->unreadNotifications);
-    }
-
     public function markAsRead(Request $request)
     {
         $request->user()->unreadNotifications->markAsRead();

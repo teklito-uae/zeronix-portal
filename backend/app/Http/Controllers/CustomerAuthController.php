@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class CustomerAuthController extends Controller
@@ -19,13 +20,15 @@ class CustomerAuthController extends Controller
             'phone' => 'nullable|string|max:20',
         ]);
 
-        $customer = Customer::create([
+        // Wrapped in a transaction so the atomic customer_code lock (see
+        // Customer::boot()) is held until this row is actually inserted.
+        $customer = DB::transaction(fn () => Customer::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'company' => $validated['company'] ?? null,
             'phone' => $validated['phone'] ?? null,
-        ]);
+        ]));
 
         // Notify Admins
         $admins = \App\Models\User::where('role', 'admin')->get();

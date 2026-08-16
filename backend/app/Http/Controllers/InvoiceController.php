@@ -185,9 +185,10 @@ class InvoiceController extends Controller
             }
 
             return response()->json($invoice->load(['customer', 'items']), 201);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to create invoice', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to create invoice: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to create invoice.'], 500);
         }
     }
 
@@ -331,9 +332,10 @@ class InvoiceController extends Controller
             }
 
             return response()->json($invoice->load(['customer', 'items']));
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to update invoice', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to update invoice: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to update invoice.'], 500);
         }
     }
 
@@ -431,9 +433,10 @@ class InvoiceController extends Controller
             DB::commit();
 
             return response()->json($copy->load(['customer', 'items']), 201);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to duplicate invoice', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to duplicate invoice: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to duplicate invoice.'], 500);
         }
     }
 
@@ -487,9 +490,11 @@ class InvoiceController extends Controller
 
         DB::beginTransaction();
         try {
-            $date = Carbon::now()->format('Ymd');
-            $count = SalesOrder::whereDate('created_at', Carbon::today())->count() + 1;
-            $orderNumber = 'SO-' . $date . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+            $user = $request->user();
+            $companyId = $user && $user->role === 'super_admin' ? null : $user?->company_id;
+            $settings = $user->company->settings ?? [];
+            $orderPrefix = $settings['sales_order_prefix'] ?? 'SO-';
+            $orderNumber = \App\Services\DocumentNumberGenerator::nextDailySequence(SalesOrder::class, $orderPrefix, $companyId);
 
             $order = SalesOrder::create([
                 'order_number' => $orderNumber,
@@ -520,9 +525,10 @@ class InvoiceController extends Controller
             DB::commit();
 
             return response()->json($order->load(['customer', 'items']), 201);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to convert invoice to sales order', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to convert invoice to sales order: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to convert invoice to sales order.'], 500);
         }
     }
 
@@ -541,13 +547,35 @@ class InvoiceController extends Controller
             return response()->json($existing->load(['customer', 'items']));
         }
 
-        $invoice->load('items');
+        $invoice->load('items.product');
+
+        // A delivery note can't move stock that was never purchased in. Every
+        // stocked item must be covered by prior purchase-bill receipts before
+        // we let staff hand goods out the door.
+        $shortages = [];
+        foreach ($invoice->items as $item) {
+            if (!$item->product_id) {
+                continue;
+            }
+            $product = $item->product;
+            if (!$product || $product->stock_quantity < $item->quantity) {
+                $available = $product->stock_quantity ?? 0;
+                $shortages[] = "{$item->product_name} (available {$available}, needs {$item->quantity})";
+            }
+        }
+        if ($shortages) {
+            return response()->json([
+                'message' => 'Out of stock — please create a purchase bill first for: ' . implode(', ', $shortages),
+            ], 422);
+        }
 
         DB::beginTransaction();
         try {
-            $date = Carbon::now()->format('Ymd');
-            $count = Delivery::whereDate('created_at', Carbon::today())->count() + 1;
-            $deliveryNumber = 'DN-' . $date . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+            $user = $request->user();
+            $companyId = $user && $user->role === 'super_admin' ? null : $user?->company_id;
+            $settings = $user->company->settings ?? [];
+            $deliveryPrefix = $settings['delivery_prefix'] ?? 'DN-';
+            $deliveryNumber = \App\Services\DocumentNumberGenerator::nextDailySequence(Delivery::class, $deliveryPrefix, $companyId);
 
             $delivery = Delivery::create([
                 'delivery_number' => $deliveryNumber,
@@ -569,9 +597,10 @@ class InvoiceController extends Controller
 
             DB::commit();
             return response()->json($delivery->load(['customer', 'items']), 201);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to create delivery', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to create delivery from invoice: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to create delivery.'], 500);
         }
     }
 
@@ -690,8 +719,9 @@ class InvoiceController extends Controller
             ]);
 
             return response()->json(['message' => 'Email sent successfully.']);
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Failed to send email', 'error' => $e->getMessage()], 500);
+        } catch (\Throwable $e) {
+            \Log::error('Failed to send invoice email: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to send email.'], 500);
         }
     }
 
@@ -736,24 +766,33 @@ class InvoiceController extends Controller
      */
     public function previewNextNumber(Request $request)
     {
-        return response()->json(['number' => $this->nextInvoiceNumber()]);
+        return response()->json(['number' => $this->nextInvoiceNumber(lock: false)]);
     }
 
     /**
      * INV-{year}-{4-digit sequence}, sequence resetting each calendar year and
      * incrementing from the highest existing number for that year (not a
      * plain row count, so it's stable across deletions).
+     *
+     * Callers that persist an Invoice with this number must call this from
+     * inside an open DB transaction (the default) so the row lock covers the
+     * whole read-then-insert; previewNextNumber() passes lock:false since it
+     * never inserts anything.
      */
-    private function nextInvoiceNumber(): string
+    private function nextInvoiceNumber(bool $lock = true): string
     {
-        $settings = auth()->user()->company->settings ?? [];
-        $prefix = ($settings['invoice_prefix'] ?? 'INV-') . Carbon::now()->format('Y') . '-';
+        $user = auth()->user();
+        $settings = $user->company->settings ?? [];
+        $prefix = $settings['invoice_prefix'] ?? 'INV-';
+        $companyId = $user->role === 'super_admin' ? null : $user->company_id;
 
-        $maxSeq = Invoice::where('invoice_number', 'like', "{$prefix}%")
-            ->get(['invoice_number'])
-            ->map(fn ($i) => (int) substr($i->invoice_number, strlen($prefix)))
-            ->max() ?? 0;
-
-        return $prefix . str_pad($maxSeq + 1, 4, '0', STR_PAD_LEFT);
+        return \App\Services\DocumentNumberGenerator::nextYearlySequence(
+            Invoice::class,
+            'invoice_number',
+            $prefix,
+            $companyId,
+            4,
+            $lock
+        );
     }
 }

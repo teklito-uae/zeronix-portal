@@ -63,7 +63,9 @@ class LeadController extends Controller
 
         $validated['user_id'] = $validated['user_id'] ?? $request->user()->id ?? null;
 
-        $lead = Lead::create($validated);
+        // Wrapped in a transaction so the atomic lead_code lock (see
+        // Lead::boot()) is held until this row is actually inserted.
+        $lead = DB::transaction(fn () => Lead::create($validated));
 
         return response()->json($lead->load('owner'), 201);
     }
@@ -205,9 +207,10 @@ class LeadController extends Controller
             }
 
             DB::commit();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to convert lead', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to convert lead: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to convert lead.'], 500);
         }
 
         return response()->json([

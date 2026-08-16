@@ -62,11 +62,15 @@ class ExpenseController extends Controller
 
     public function show(Expense $expense)
     {
+        $this->authorize('view', $expense);
+
         return response()->json($expense->load('user'));
     }
 
     public function update(Request $request, Expense $expense)
     {
+        $this->authorize('update', $expense);
+
         $validated = $request->validate([
             'category' => 'sometimes|required|string',
             'amount' => 'sometimes|required|numeric|min:0',
@@ -82,6 +86,8 @@ class ExpenseController extends Controller
 
     public function destroy(Expense $expense)
     {
+        $this->authorize('delete', $expense);
+
         $expense->delete();
         return response()->json(['message' => 'Expense deleted']);
     }

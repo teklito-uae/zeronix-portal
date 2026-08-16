@@ -151,7 +151,9 @@ class CustomerController extends Controller
         $labelIds = $validated['label_ids'] ?? [];
         unset($validated['label_ids']);
 
-        $customer = Customer::create($validated);
+        // Wrapped in a transaction so the atomic customer_code lock (see
+        // Customer::boot()) is held until this row is actually inserted.
+        $customer = DB::transaction(fn () => Customer::create($validated));
 
         if ($userIds) {
             $customer->assigned_users()->attach($userIds);
@@ -370,8 +372,9 @@ class CustomerController extends Controller
                 ->send(new \App\Mail\WelcomeCustomerMail($customer, $password));
 
             return response()->json(['message' => 'Customer registered and welcome email sent.']);
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Registration successful but failed to send email.', 'error' => $e->getMessage()], 500);
+        } catch (\Throwable $e) {
+            \Log::error('Failed to send portal registration email: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Registration successful but failed to send email.'], 500);
         }
     }
 }

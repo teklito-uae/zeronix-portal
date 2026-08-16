@@ -187,8 +187,14 @@ foreach (['admin', 'staff'] as $prefix) {
         Route::post('/contacts/{contact}/attachments', [CustomerContactController::class, 'uploadAttachment']);
         Route::delete('/contacts/{contact}/attachments/{index}', [CustomerContactController::class, 'removeAttachment']);
 
-        // Companies
-        Route::apiResource('companies', CompanyController::class);
+        // Companies (tenant-root resource). The route-level gate stays
+        // role:super_admin,admin because a tenant's own "admin" is legitimately
+        // allowed to view/edit THEIR OWN company record (show/update). Listing,
+        // creating, and deleting arbitrary companies is platform-only — those are
+        // enforced with an inline super_admin check in the controller, and show/update
+        // additionally enforce (for non-super_admin) that $company->id matches the
+        // acting user's own company_id. See CompanyController for details.
+        Route::apiResource('companies', CompanyController::class)->middleware('role:super_admin,admin');
 
         // Customer Labels
         Route::get('/customer-labels', [CustomerLabelController::class, 'index']);
@@ -226,11 +232,11 @@ foreach (['admin', 'staff'] as $prefix) {
 
         // Deliveries
         Route::get('/deliveries', [DeliveryController::class, 'index']);
-        Route::post('/deliveries', [DeliveryController::class, 'store']);
         Route::get('/deliveries/next-number', [DeliveryController::class, 'previewNextNumber']);
         Route::get('/deliveries/{delivery}', [DeliveryController::class, 'show']);
         Route::get('/deliveries/{delivery}/view', [DocumentController::class, 'previewDeliveryNote']);
         Route::get('/deliveries/{delivery}/download', [DocumentController::class, 'downloadDeliveryNote']);
+        Route::put('/deliveries/{delivery}', [DeliveryController::class, 'update']);
         Route::delete('/deliveries/{delivery}', [DeliveryController::class, 'destroy']);
         Route::post('/deliveries/{delivery}/mark-delivered', [DeliveryController::class, 'markDelivered']);
         Route::post('/deliveries/{delivery}/convert-to-invoice', [DeliveryController::class, 'convertToInvoice']);
@@ -305,12 +311,13 @@ foreach (['admin', 'staff'] as $prefix) {
 
         // Notifications
         Route::get('/notifications', [NotificationController::class, 'index']);
-        Route::get('/notifications/unread', [NotificationController::class, 'unread']);
         Route::post('/notifications/mark-read', [NotificationController::class, 'markAsRead']);
         Route::post('/notifications/{id}/mark-read', [NotificationController::class, 'markOneAsRead']);
 
         // Attendance (for staff/salesman to Clock In / Out)
-        Route::get('/attendance/export', [AttendanceController::class, 'export']);
+        // export() already inline-checks role === 'admin'; mirrored here for
+        // defense in depth (AttendanceController@export).
+        Route::get('/attendance/export', [AttendanceController::class, 'export'])->middleware('role:admin');
         Route::get('/attendance/status', [AttendanceController::class, 'status']);
         Route::get('/attendance/statistics', [AttendanceController::class, 'statistics']);
         Route::post('/attendance/clock-in', [AttendanceController::class, 'clockIn']);
@@ -399,6 +406,8 @@ foreach (['admin', 'staff'] as $prefix) {
 // Admin Auth Routes
 Route::prefix('admin')->group(function () {
     Route::post('/login', [AdminAuthController::class, 'login']);
+    Route::post('/forgot-password', [AdminAuthController::class, 'forgotPassword']);
+    Route::post('/reset-password', [AdminAuthController::class, 'resetPassword']);
 
     // Google's OAuth redirect is a bare browser navigation with no Bearer
     // token attached, so this can't sit behind auth:sanctum — the `state`
@@ -412,49 +421,61 @@ Route::prefix('admin')->group(function () {
         Route::get('/user', [AdminAuthController::class, 'user']);
 
         // Categories
-        // Handled by shared loop
+        Route::post('/categories', [CategoryController::class, 'store'])->middleware('role:admin,super_admin');
 
-        // Products (admin-only additional operations)
-        Route::post('/products', [ProductController::class, 'store']);
-        Route::post('/products/bulk-update', [ProductController::class, 'bulkUpdate']);
-        Route::put('/products/{product}', [ProductController::class, 'update']);
-        Route::delete('/products/{product}', [ProductController::class, 'destroy']);
+        // Brands
+        Route::post('/brands', [BrandController::class, 'store'])->middleware('role:admin,super_admin');
+
+        // Products (admin-only additional operations — comment predates real
+        // enforcement; ProductController itself has no inline role check, so
+        // this is the only thing that actually restricts it)
+        Route::post('/products', [ProductController::class, 'store'])->middleware('role:admin,super_admin');
+        Route::post('/products/bulk-update', [ProductController::class, 'bulkUpdate'])->middleware('role:admin,super_admin');
+        Route::put('/products/{product}', [ProductController::class, 'update'])->middleware('role:admin,super_admin');
+        Route::delete('/products/{product}', [ProductController::class, 'destroy'])->middleware('role:admin,super_admin');
 
         // Customer Contact Import (admin-only)
-        Route::post('/customers/import/preview', [CustomerImportController::class, 'preview']);
-        Route::post('/customers/import/commit', [CustomerImportController::class, 'commit']);
+        Route::post('/customers/import/preview', [CustomerImportController::class, 'preview'])->middleware('role:admin,super_admin');
+        Route::post('/customers/import/commit', [CustomerImportController::class, 'commit'])->middleware('role:admin,super_admin');
 
         // Google Contacts integration (admin-only)
-        Route::get('/google-contacts/connect', [GoogleContactsController::class, 'connect']);
-        Route::get('/google-contacts/status', [GoogleContactsController::class, 'status']);
-        Route::post('/google-contacts/sync', [GoogleContactsController::class, 'sync'])->middleware('throttle:1,1');
-        Route::post('/google-contacts/disconnect', [GoogleContactsController::class, 'disconnect']);
+        Route::get('/google-contacts/connect', [GoogleContactsController::class, 'connect'])->middleware('role:admin,super_admin');
+        Route::get('/google-contacts/status', [GoogleContactsController::class, 'status'])->middleware('role:admin,super_admin');
+        Route::post('/google-contacts/sync', [GoogleContactsController::class, 'sync'])->middleware(['throttle:1,1', 'role:admin,super_admin']);
+        Route::post('/google-contacts/disconnect', [GoogleContactsController::class, 'disconnect'])->middleware('role:admin,super_admin');
 
         // Lead import (admin-only)
-        Route::post('/leads/import/preview', [LeadImportController::class, 'preview']);
-        Route::post('/leads/import/commit', [LeadImportController::class, 'commit']);
-        Route::post('/leads/bulk-update', [LeadController::class, 'bulkUpdate']);
+        Route::post('/leads/import/preview', [LeadImportController::class, 'preview'])->middleware('role:admin,super_admin');
+        Route::post('/leads/import/commit', [LeadImportController::class, 'commit'])->middleware('role:admin,super_admin');
+        // Bulk reassignment/status-change across many leads at once — deliberately
+        // never exposed in the shared admin/staff loop, only here.
+        Route::post('/leads/bulk-update', [LeadController::class, 'bulkUpdate'])->middleware('role:admin,super_admin');
 
         // Supplier Product Management
         Route::put('/supplier-products/{id}', [SupplierProductController::class, 'update']);
 
         // Users / Team
         // Index handled by shared loop
-        Route::post('/users', [UserController::class, 'store']);
+        // UserPolicy::create already restricts to admin/super_admin; mirrored
+        // here at the route level for defense in depth. show/update/destroy are
+        // deliberately NOT gated by role here — UserPolicy allows self-service
+        // (a non-admin viewing/editing their own record), so a blanket role
+        // restriction would break that.
+        Route::post('/users', [UserController::class, 'store'])->middleware('role:admin,super_admin');
         Route::get('/users/{user}', [UserController::class, 'show']);
         Route::put('/users/{user}', [UserController::class, 'update']);
         Route::delete('/users/{user}', [UserController::class, 'destroy']);
         Route::put('/user/smtp', [UserController::class, 'updateSmtpSettings']);
         Route::post('/user/test-email', [UserController::class, 'sendTestEmail']);
 
-        // Activity Logs
-        Route::get('/activities', [ActivityController::class, 'index']);
+        // Activity Logs (ActivityController already inline-checks admin/super_admin)
+        Route::get('/activities', [ActivityController::class, 'index'])->middleware('role:admin,super_admin');
 
-        // Platform Stats (Super Admin Only)
-        Route::get('/platform/stats', [\App\Http\Controllers\PlatformController::class, 'stats']);
+        // Platform Stats (Super Admin Only — PlatformController already inline-checks this)
+        Route::get('/platform/stats', [\App\Http\Controllers\PlatformController::class, 'stats'])->middleware('role:super_admin');
 
-        // Attendance report (Admin only)
-        Route::get('/attendance/report', [AttendanceController::class, 'index']);
+        // Attendance report (Admin only — AttendanceController@index already inline-checks this)
+        Route::get('/attendance/report', [AttendanceController::class, 'index'])->middleware('role:admin');
 
         // Payment Receipts
         Route::post('/payment-receipts/{id}/send-email', [PaymentReceiptController::class, 'sendEmail']);
@@ -469,7 +490,7 @@ Route::prefix('admin')->group(function () {
         Route::apiResource('supplier-payment-receipts', SupplierPaymentReceiptController::class);
 
         // Profit & Loss (Admin only - exposes cost/margin data)
-        Route::get('/reports/profit-loss', [ReportController::class, 'profitLoss']);
+        Route::get('/reports/profit-loss', [ReportController::class, 'profitLoss'])->middleware('role:admin,super_admin');
 
         // Templates
         Route::get('/templates/types', [TemplateController::class, 'availableTypes']);
@@ -490,9 +511,10 @@ Route::prefix('admin')->group(function () {
         Route::get('/marketing/settings', [MarketingSettingsController::class, 'show']);
         Route::put('/marketing/settings', [MarketingSettingsController::class, 'update']);
 
-        // Company Management (God Mode)
-        Route::post('/companies/{id}/approve', [CompanyController::class, 'approve']);
-        Route::post('/companies/{id}/reject', [CompanyController::class, 'reject']);
-        Route::post('/companies/{id}/suspend', [CompanyController::class, 'suspend']);
+        // Company Management (God Mode) — CompanyController already inline-checks
+        // super_admin/admin on each of these; mirrored here for defense in depth.
+        Route::post('/companies/{id}/approve', [CompanyController::class, 'approve'])->middleware('role:super_admin,admin');
+        Route::post('/companies/{id}/reject', [CompanyController::class, 'reject'])->middleware('role:super_admin,admin');
+        Route::post('/companies/{id}/suspend', [CompanyController::class, 'suspend'])->middleware('role:super_admin,admin');
     });
 });
