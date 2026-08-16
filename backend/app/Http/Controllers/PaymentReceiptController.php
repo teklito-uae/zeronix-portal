@@ -94,17 +94,32 @@ class PaymentReceiptController extends Controller
     {
         $receipt->load(['customer', 'invoice']);
 
-        if ($request->user() && $request->user()->role === 'salesman') {
-            if (!$receipt->customer->assigned_users()->where('users.id', $request->user()->id)->exists()) {
-                abort(403);
-            }
-        }
+        $this->authorizeReceiptAccess($request, $receipt);
 
         return $receipt;
     }
 
+    /**
+     * Data Scoping: salesmen may only act on receipts belonging to customers
+     * they are assigned to (via customer_user pivot). Mirrors the ownership
+     * check already used in show(); admins/managers/other roles are
+     * unrestricted here, matching the `role === 'salesman'` gate used by
+     * index()/show().
+     */
+    private function authorizeReceiptAccess(Request $request, PaymentReceipt $receipt): void
+    {
+        if ($request->user() && $request->user()->role === 'salesman') {
+            $receipt->loadMissing('customer');
+            if (!$receipt->customer || !$receipt->customer->assigned_users()->where('users.id', $request->user()->id)->exists()) {
+                abort(403);
+            }
+        }
+    }
+
     public function update(Request $request, PaymentReceipt $paymentReceipt)
     {
+        $this->authorizeReceiptAccess($request, $paymentReceipt);
+
         $validated = $request->validate([
             'amount' => 'sometimes|required|numeric|min:0',
             'payment_date' => 'sometimes|required|date',
@@ -130,8 +145,10 @@ class PaymentReceiptController extends Controller
         return response()->json($paymentReceipt);
     }
 
-    public function destroy(PaymentReceipt $paymentReceipt)
+    public function destroy(Request $request, PaymentReceipt $paymentReceipt)
     {
+        $this->authorizeReceiptAccess($request, $paymentReceipt);
+
         $paymentReceipt->delete();
         return response()->json(null, 204);
     }
@@ -150,8 +167,9 @@ class PaymentReceiptController extends Controller
             Mail::to($receipt->customer->email)->send(new PaymentReceiptMail($receipt, $pdfContent, $filename));
 
             return response()->json(['message' => 'Email sent successfully.']);
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Failed to send email', 'error' => $e->getMessage()], 500);
+        } catch (\Throwable $e) {
+            \Log::error('Failed to send payment receipt email: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to send email.'], 500);
         }
     }
 }

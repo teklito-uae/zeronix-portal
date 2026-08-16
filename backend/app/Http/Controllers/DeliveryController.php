@@ -49,51 +49,6 @@ class DeliveryController extends Controller
         ]);
     }
 
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'customer_id' => 'required|exists:customers,id',
-            'sales_order_id' => 'nullable|exists:sales_orders,id',
-            'delivery_date' => 'required|date',
-            'notes' => 'nullable|string',
-            'items' => 'required|array|min:1',
-            'items.*.product_id' => 'nullable|exists:products,id',
-            'items.*.product_name' => 'required|string',
-            'items.*.quantity' => 'required|numeric|min:0.01',
-        ]);
-
-        DB::beginTransaction();
-        try {
-            $date = \Illuminate\Support\Carbon::now()->format('Ymd');
-            $count = Delivery::whereDate('created_at', \Illuminate\Support\Carbon::today())->count() + 1;
-            $deliveryNumber = 'DN-' . $date . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
-
-            $delivery = Delivery::create([
-                'delivery_number' => $deliveryNumber,
-                'customer_id' => $validated['customer_id'],
-                'sales_order_id' => $validated['sales_order_id'] ?? null,
-                'delivery_date' => $validated['delivery_date'],
-                'status' => 'pending',
-                'notes' => $validated['notes'] ?? null,
-            ]);
-
-            foreach ($validated['items'] as $item) {
-                DeliveryItem::create([
-                    'delivery_id' => $delivery->id,
-                    'product_id' => $item['product_id'] ?? null,
-                    'product_name' => $item['product_name'],
-                    'quantity' => $item['quantity'],
-                ]);
-            }
-
-            DB::commit();
-            return response()->json($delivery->load(['customer', 'items']), 201);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['message' => 'Failed to create delivery', 'error' => $e->getMessage()], 500);
-        }
-    }
-
     public function show(Request $request, Delivery $delivery)
     {
         return response()->json($delivery->load(['customer', 'salesOrder', 'invoice', 'invoices', 'items.product', 'deliveredBy']));
@@ -139,9 +94,10 @@ class DeliveryController extends Controller
 
             DB::commit();
             return response()->json($delivery->load(['customer', 'items']));
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to update delivery', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to update delivery: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to update delivery.'], 500);
         }
     }
 
@@ -208,9 +164,10 @@ class DeliveryController extends Controller
 
             DB::commit();
             return response()->json($delivery->load(['items', 'deliveredBy']));
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to mark delivery as delivered', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to mark delivery as delivered: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to mark delivery as delivered.'], 500);
         }
     }
 
@@ -234,9 +191,11 @@ class DeliveryController extends Controller
 
         DB::beginTransaction();
         try {
-            $date = Carbon::now()->format('Ymd');
-            $count = Invoice::whereDate('created_at', Carbon::today())->count() + 1;
-            $invoiceNumber = 'INV-' . $date . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+            $user = $request->user();
+            $companyId = $user && $user->role === 'super_admin' ? null : $user?->company_id;
+            $settings = $user->company->settings ?? [];
+            $invoicePrefix = $settings['invoice_prefix'] ?? 'INV-';
+            $invoiceNumber = \App\Services\DocumentNumberGenerator::nextDailySequence(Invoice::class, $invoicePrefix, $companyId);
 
             $subtotal = 0;
             $vatAmount = 0;
@@ -291,9 +250,10 @@ class DeliveryController extends Controller
             }
 
             return response()->json($invoice->load(['customer', 'items']), 201);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to create invoice', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to create invoice from delivery: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to create invoice.'], 500);
         }
     }
 }

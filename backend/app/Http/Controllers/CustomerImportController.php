@@ -140,8 +140,9 @@ class CustomerImportController extends Controller
                     }
 
                     $results['created']++;
-                } catch (\Exception $e) {
-                    $results['errors'][] = "Row {$index} ({$row['name']}): " . $e->getMessage();
+                } catch (\Throwable $e) {
+                    \Log::error("Failed to import customer row {$index}: " . $e->getMessage(), ['exception' => $e]);
+                    $results['errors'][] = "Row {$index} ({$row['name']}): failed to import.";
                 }
             }
         });

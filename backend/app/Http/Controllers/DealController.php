@@ -313,9 +313,10 @@ class DealController extends Controller
             $deal->load(['customer', 'lead', 'customerContact', 'items.product', 'user', 'assigned_users']);
 
             return response()->json($deal, 201);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to create deal', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to create deal: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to create deal.'], 500);
         }
     }
 
@@ -559,7 +560,8 @@ class DealController extends Controller
             return response()->json($deal->fresh(['customer', 'lead', 'customerContact', 'user', 'assigned_users', 'tags']));
         } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to move deal', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to move deal: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to move deal.'], 500);
         }
     }
 

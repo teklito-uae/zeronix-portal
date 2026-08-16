@@ -9,6 +9,12 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
+    /**
+     * Canonical set of role values used across the app (see AdminAuthController,
+     * BelongsToCompany, and the various Policy classes for usage).
+     */
+    private const VALID_ROLES = ['super_admin', 'admin', 'manager', 'salesman', 'staff'];
+
     public function index(Request $request)
     {
         $query = User::query();
@@ -43,11 +49,13 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('create', User::class);
+
         $validated = $request->validate([
             'name'        => 'required|string|max:255',
             'email'       => 'required|string|email|max:255|unique:users',
             'password'    => 'required|string|min:8',
-            'role'        => 'required|string',
+            'role'        => ['required', 'string', Rule::in(self::VALID_ROLES)],
             'manager_id'  => 'nullable|exists:users,id',
             'designation' => 'nullable|string|max:255',
             'phone'       => 'nullable|string|max:50',
@@ -82,7 +90,7 @@ class UserController extends Controller
             'name'        => 'sometimes|string|max:255',
             'email'       => ['sometimes', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password'    => 'nullable|string|min:8',
-            'role'        => 'sometimes|string',
+            'role'        => ['sometimes', 'string', Rule::in(self::VALID_ROLES)],
             'manager_id'  => 'nullable|exists:users,id',
             'designation' => 'nullable|string|max:255',
             'phone'       => 'nullable|string|max:50',
@@ -91,6 +99,20 @@ class UserController extends Controller
             'shift_start' => 'nullable|string',
             'shift_end'   => 'nullable|string',
         ]);
+
+        // A non-admin editing their own record is allowed to update their own
+        // profile fields, but must never be able to change their own role —
+        // otherwise they could self-promote (e.g. to super_admin, which also
+        // bypasses tenant scoping via BelongsToCompany).
+        $actor = $request->user();
+        if (
+            array_key_exists('role', $validated)
+            && $actor
+            && $actor->id === $user->id
+            && !in_array($actor->role, ['admin', 'super_admin'], true)
+        ) {
+            unset($validated['role']);
+        }
 
         if (empty($validated['password'])) {
             unset($validated['password']);
@@ -156,8 +178,9 @@ class UserController extends Controller
             });
 
             return response()->json(['message' => 'Test email sent successfully to ' . $testEmail]);
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Failed to send test email: ' . $e->getMessage()], 500);
+        } catch (\Throwable $e) {
+            \Log::error('Failed to send SMTP test email: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to send test email.'], 500);
         }
     }
 }

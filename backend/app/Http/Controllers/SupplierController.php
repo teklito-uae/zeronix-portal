@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Supplier;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class SupplierController extends Controller
 {
@@ -33,7 +34,9 @@ class SupplierController extends Controller
             'address' => 'nullable|string',
         ]);
 
-        $supplier = Supplier::create($validated);
+        // Wrapped in a transaction so the atomic supplier_code lock (see
+        // Supplier::boot()) is held until this row is actually inserted.
+        $supplier = DB::transaction(fn () => Supplier::create($validated));
         return response()->json($supplier);
     }
 

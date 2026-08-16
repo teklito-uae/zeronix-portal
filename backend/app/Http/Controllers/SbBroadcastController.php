@@ -87,7 +87,8 @@ class SbBroadcastController extends Controller
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to import broadcast', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to import broadcast: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to import broadcast.'], 500);
         }
 
         return response()->json($broadcast->fresh()->load(['vendor', 'category', 'products']), 201);

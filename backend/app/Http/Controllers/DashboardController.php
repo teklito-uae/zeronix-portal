@@ -36,12 +36,10 @@ class DashboardController extends Controller
                 'sales_stats' => $isTeamScope ? null : $dashboardService->getSalesmanStats($user),
                 'leaderboard' => $isTeamScope ? null : $dashboardService->getLeaderboard($user),
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            \Log::error('Dashboard error: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
-                'message' => 'Dashboard Error',
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
+                'message' => 'Failed to load dashboard.',
             ], 500);
         }
     }

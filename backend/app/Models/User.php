@@ -3,12 +3,17 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Notifications\ResetPassword;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use App\Traits\BelongsToCompany;
 
+// Note: `Illuminate\Foundation\Auth\User` (the Authenticatable base class
+// above) already uses the `CanResetPassword` trait and implements the
+// `CanResetPassword` contract, so Laravel's password-broker (`Password::`)
+// works against this model out of the box — no trait/interface needed here.
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, BelongsToCompany;
@@ -156,5 +161,18 @@ class User extends Authenticatable
     public function manager(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'manager_id');
+    }
+
+    /**
+     * Send the password reset notification.
+     *
+     * Overridden because Laravel's default `ResetPassword` notification
+     * links to a backend route (`url('/password/reset/...')`), which
+     * doesn't exist here — this app is an SPA with no server-rendered
+     * reset-password page. Point the link at the frontend route instead.
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new ResetPassword($token));
     }
 }

@@ -6,6 +6,7 @@ use App\Models\Delivery;
 use App\Models\DeliveryItem;
 use App\Models\SalesOrder;
 use App\Models\SalesOrderItem;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
@@ -66,11 +67,11 @@ class SalesOrderController extends Controller
 
         DB::beginTransaction();
         try {
-            $date = Carbon::now()->format('Ymd');
-            $count = SalesOrder::whereDate('created_at', Carbon::today())->count() + 1;
-            $settings = auth()->user()->company->settings ?? [];
+            $user = $request->user();
+            $settings = $user->company->settings ?? [];
             $prefix = $settings['sales_order_prefix'] ?? 'SO-';
-            $orderNumber = $prefix . $date . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+            $companyId = $user->role === 'super_admin' ? null : $user->company_id;
+            $orderNumber = \App\Services\DocumentNumberGenerator::nextDailySequence(SalesOrder::class, $prefix, $companyId);
 
             [$subtotal, $vatAmount] = $this->totals($validated['items']);
 
@@ -92,19 +93,49 @@ class SalesOrderController extends Controller
 
             DB::commit();
             return response()->json($order->load(['customer', 'items']), 201);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to create sales order', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to create sales order: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to create sales order.'], 500);
+        }
+    }
+
+    /**
+     * Object-level ownership check for a single sales order, mirroring the
+     * three-tier `forUser()` scope (HasUserScope) already applied in index():
+     * admin/super_admin unrestricted; manager also sees orders owned by their
+     * direct reports; everyone else only their own (sales_orders.user_id).
+     */
+    private function authorizeSalesOrderAccess(Request $request, SalesOrder $salesOrder): void
+    {
+        $user = $request->user();
+
+        if (!$user || in_array($user->role, ['admin', 'super_admin'], true)) {
+            return;
+        }
+
+        $userIds = [$user->id];
+
+        if ($user->role === 'manager') {
+            $userIds = array_merge($userIds, User::where('manager_id', $user->id)->pluck('id')->all());
+        }
+
+        if (!in_array($salesOrder->user_id, $userIds, true)) {
+            abort(403);
         }
     }
 
     public function show(Request $request, SalesOrder $salesOrder)
     {
+        $this->authorizeSalesOrderAccess($request, $salesOrder);
+
         return response()->json($salesOrder->load(['customer', 'customerContact', 'items.product', 'user', 'quote', 'deliveries']));
     }
 
     public function update(Request $request, SalesOrder $salesOrder)
     {
+        $this->authorizeSalesOrderAccess($request, $salesOrder);
+
         $validated = $request->validate([
             'customer_id' => 'required|exists:customers,id',
             'customer_contact_id' => 'nullable|exists:customer_contacts,id',
@@ -137,14 +168,17 @@ class SalesOrderController extends Controller
 
             DB::commit();
             return response()->json($salesOrder->load(['customer', 'items']));
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to update sales order', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to update sales order: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to update sales order.'], 500);
         }
     }
 
     public function destroy(Request $request, SalesOrder $salesOrder)
     {
+        $this->authorizeSalesOrderAccess($request, $salesOrder);
+
         $salesOrder->items()->delete();
         $salesOrder->delete();
         return response()->json(['message' => 'Sales order deleted']);
@@ -161,9 +195,11 @@ class SalesOrderController extends Controller
 
         DB::beginTransaction();
         try {
-            $date = Carbon::now()->format('Ymd');
-            $count = Delivery::whereDate('created_at', Carbon::today())->count() + 1;
-            $deliveryNumber = 'DN-' . $date . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+            $user = $request->user();
+            $companyId = $user && $user->role === 'super_admin' ? null : $user?->company_id;
+            $settings = $user->company->settings ?? [];
+            $deliveryPrefix = $settings['delivery_prefix'] ?? 'DN-';
+            $deliveryNumber = \App\Services\DocumentNumberGenerator::nextDailySequence(Delivery::class, $deliveryPrefix, $companyId);
 
             $delivery = Delivery::create([
                 'delivery_number' => $deliveryNumber,
@@ -187,9 +223,10 @@ class SalesOrderController extends Controller
 
             DB::commit();
             return response()->json($delivery->load(['customer', 'items']), 201);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to create delivery', 'error' => $e->getMessage()], 500);
+            \Log::error('Failed to create delivery from sales order: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Failed to create delivery.'], 500);
         }
     }
 
