@@ -4,42 +4,49 @@ namespace App\Traits;
 
 use Illuminate\Database\Eloquent\Builder;
 use App\Models\Company;
+use App\Models\Customer;
+use App\Models\User;
 
 trait BelongsToCompany
 {
     protected static function bootBelongsToCompany()
     {
         static::addGlobalScope('company', function (Builder $builder) {
-            // Apply scope if a User (Staff/Admin) is logged in
-            if (auth()->check()) {
-                $user = auth()->user();
-                // super_admin bypasses the scope to see all tenants
-                if ($user->role !== 'super_admin' && $user->company_id) {
-                    $builder->where('company_id', $user->company_id);
+            $principal = auth()->user() ?? auth()->guard('customer')->user();
+            $table = $builder->getModel()->getTable();
+
+            if ($principal instanceof User) {
+                if ($principal->role !== 'super_admin') {
+                    self::applyCompanyScope($builder, $table, $principal->company_id);
                 }
-            } 
-            // Apply scope if a Customer (End Client) is logged in
-            elseif (auth()->guard('customer')->check()) {
-                $customer = auth()->guard('customer')->user();
-                if ($customer->company_id) {
-                    $builder->where('company_id', $customer->company_id);
-                }
+            } elseif ($principal instanceof Customer) {
+                self::applyCompanyScope($builder, $table, $principal->company_id);
             }
         });
 
         static::creating(function ($model) {
-            if (!$model->company_id && auth()->check()) {
-                $user = auth()->user();
-                if ($user->role !== 'super_admin' && $user->company_id) {
-                    $model->company_id = $user->company_id;
-                }
-            } elseif (!$model->company_id && auth()->guard('customer')->check()) {
-                $customer = auth()->guard('customer')->user();
-                if ($customer->company_id) {
-                    $model->company_id = $customer->company_id;
-                }
+            if ($model->company_id) {
+                return;
+            }
+
+            $principal = auth()->user() ?? auth()->guard('customer')->user();
+
+            if ($principal instanceof User && $principal->role !== 'super_admin' && $principal->company_id) {
+                $model->company_id = $principal->company_id;
+            } elseif ($principal instanceof Customer && $principal->company_id) {
+                $model->company_id = $principal->company_id;
             }
         });
+    }
+
+    private static function applyCompanyScope(Builder $builder, string $table, ?int $companyId): void
+    {
+        if ($companyId === null) {
+            $builder->whereRaw('1 = 0');
+            return;
+        }
+
+        $builder->where($table . '.company_id', $companyId);
     }
 
     public function company()

@@ -44,6 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // App\Http\Middleware\EnsureUserHasRole for why this exists.
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
+            'principal' => \App\Http\Middleware\EnsureTokenPrincipal::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

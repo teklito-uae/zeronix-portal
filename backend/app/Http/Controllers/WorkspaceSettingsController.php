@@ -67,7 +67,7 @@ class WorkspaceSettingsController extends Controller
             'settings.customer_prefix' => 'nullable|string|max:15|regex:/^[A-Za-z0-9-]+$/',
             'settings.supplier_prefix' => 'nullable|string|max:15|regex:/^[A-Za-z0-9-]+$/',
             'settings.receipt_prefix' => 'nullable|string|max:15|regex:/^[A-Za-z0-9-]+$/',
-            'logo' => 'nullable|file|mimes:jpeg,png,jpg,svg|max:2048'
+            'logo' => 'nullable|file|mimes:jpeg,png,jpg|max:2048'
         ]);
 
         $settings = $validated['settings'];

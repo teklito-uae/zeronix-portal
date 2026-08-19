@@ -12,6 +12,7 @@ use App\Models\SalesOrder;
 use App\Models\SalesOrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Support\AttachmentSecurity;
 use Illuminate\Support\Carbon;
 use App\Traits\GeneratesPdf;
 
@@ -444,11 +445,9 @@ class InvoiceController extends Controller
     {
         $this->authorize('update', $invoice);
 
-        $request->validate([
-            'file' => 'required|file|max:10240',
-        ]);
+        $request->validate(['file' => AttachmentSecurity::rules()]);
 
-        $path = $request->file('file')->store('invoice-attachments', 'public');
+        $path = AttachmentSecurity::store($request->file('file'), 'invoice-attachments');
 
         $attachments = $invoice->attachments ?? [];
         $attachments[] = [

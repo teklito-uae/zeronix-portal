@@ -32,30 +32,6 @@ class DocumentController extends Controller
         return $this->handlePdfRequest($id, 'invoice', 'stream', Invoice::class);
     }
 
-    public function publicViewQuote($number)
-    {
-        $quote = Quote::where('quote_number', $number)->firstOrFail();
-        return $this->handlePdfRequest($quote->id, 'quote', 'stream', Quote::class);
-    }
-
-    public function publicDownloadQuote($number)
-    {
-        $quote = Quote::where('quote_number', $number)->firstOrFail();
-        return $this->handlePdfRequest($quote->id, 'quote', 'download', Quote::class);
-    }
-
-    public function publicViewInvoice($number)
-    {
-        $invoice = Invoice::where('invoice_number', $number)->firstOrFail();
-        return $this->handlePdfRequest($invoice->id, 'invoice', 'stream', Invoice::class);
-    }
-
-    public function publicDownloadInvoice($number)
-    {
-        $invoice = Invoice::where('invoice_number', $number)->firstOrFail();
-        return $this->handlePdfRequest($invoice->id, 'invoice', 'download', Invoice::class);
-    }
-
     public function downloadQuote($id)
     {
         return $this->handlePdfRequest($id, 'quote', 'download', Quote::class);

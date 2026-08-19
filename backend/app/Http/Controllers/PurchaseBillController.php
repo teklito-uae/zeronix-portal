@@ -7,6 +7,7 @@ use App\Models\PurchaseBillItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
+use App\Support\AttachmentSecurity;
 
 class PurchaseBillController extends Controller
 {
@@ -312,11 +313,9 @@ class PurchaseBillController extends Controller
 
     public function uploadAttachment(Request $request, PurchaseBill $purchaseBill)
     {
-        $request->validate([
-            'file' => 'required|file|max:10240',
-        ]);
+        $request->validate(['file' => AttachmentSecurity::rules()]);
 
-        $path = $request->file('file')->store('purchase-bill-attachments', 'public');
+        $path = AttachmentSecurity::store($request->file('file'), 'purchase-bill-attachments');
 
         $attachments = $purchaseBill->attachments ?? [];
         $attachments[] = [
