@@ -87,10 +87,34 @@ class CustomerLabelControllerTest extends FullSchemaTestCase
             ->assertStatus(422)
             ->assertJsonValidationErrors('name');
 
+        // Names are stored uppercased, so a differently-cased duplicate is one
+        // too.
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/staff/customer-labels', ['name' => ' vip '])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('name');
+
         $this->actingAs($user, 'sanctum')
             ->postJson('/api/staff/customer-labels', ['name' => 'NEW', 'color' => 'red'])
             ->assertStatus(422)
             ->assertJsonValidationErrors('color');
+    }
+
+    public function test_label_names_are_only_unique_within_a_company(): void
+    {
+        $this->makeLabel($this->makeCompany(), ['name' => 'VIP']);
+
+        $company = $this->makeCompany();
+        $user = $this->makeUser($company);
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/staff/customer-labels', ['name' => 'VIP'])
+            ->assertCreated();
+
+        $this->assertSame(
+            2,
+            CustomerLabel::withoutGlobalScope('company')->where('name', 'VIP')->count()
+        );
     }
 
     public function test_update_renames_a_label_and_allows_keeping_its_own_name(): void

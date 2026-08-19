@@ -53,9 +53,6 @@ class CatalogTaxonomyControllerTest extends FullSchemaTestCase
         $company = $this->makeCompany();
         $user = $this->makeUser($company, ['role' => 'admin']);
 
-        // Only `name`/`logo` are exercised: `website` is validated and
-        // fillable but has no column on `brands`, so sending it fails at
-        // insert time — pre-existing, flagged rather than changed here.
         $this->actingAs($user, 'sanctum')
             ->postJson('/api/admin/brands', ['name' => 'Zeronix', 'logo' => 'zeronix.png'])
             ->assertOk()
@@ -68,7 +65,19 @@ class CatalogTaxonomyControllerTest extends FullSchemaTestCase
         ]);
     }
 
-    public function test_brand_store_rejects_a_duplicate_name(): void
+    public function test_brand_store_ignores_an_unknown_website_field(): void
+    {
+        $company = $this->makeCompany();
+        $user = $this->makeUser($company, ['role' => 'admin']);
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/admin/brands', ['name' => 'Zeronix', 'website' => 'https://example.test'])
+            ->assertOk();
+
+        $this->assertDatabaseHas('brands', ['name' => 'Zeronix']);
+    }
+
+    public function test_brand_store_rejects_a_duplicate_name_within_the_same_company(): void
     {
         $company = $this->makeCompany();
         $user = $this->makeUser($company, ['role' => 'admin']);
@@ -78,6 +87,20 @@ class CatalogTaxonomyControllerTest extends FullSchemaTestCase
             ->postJson('/api/admin/brands', ['name' => 'Zeronix'])
             ->assertStatus(422)
             ->assertJsonValidationErrors('name');
+    }
+
+    public function test_brand_names_are_only_unique_within_a_company(): void
+    {
+        $this->makeBrand($this->makeCompany(), 'Zeronix');
+
+        $company = $this->makeCompany();
+        $user = $this->makeUser($company, ['role' => 'admin']);
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/admin/brands', ['name' => 'Zeronix'])
+            ->assertOk();
+
+        $this->assertSame(2, Brand::withoutGlobalScope('company')->where('name', 'Zeronix')->count());
     }
 
     public function test_brand_store_is_forbidden_for_non_admin_roles(): void
