@@ -15,6 +15,17 @@ use Tests\TestCase;
 
 class SecurityHardeningTest extends TestCase
 {
+    private array $temporaryAttachmentPaths = [];
+
+    protected function tearDown(): void
+    {
+        foreach ($this->temporaryAttachmentPaths as $path) {
+            @unlink($path);
+        }
+
+        parent::tearDown();
+    }
+
     public function test_customer_tokens_cannot_access_staff_routes(): void
     {
         Sanctum::actingAs(new Customer(['company_id' => 1]), ['*']);
@@ -70,19 +81,48 @@ class SecurityHardeningTest extends TestCase
         $this->postJson('/api/customer/register', [])->assertNotFound();
     }
 
-    public function test_php_attachment_is_rejected_and_pdf_attachment_is_accepted(): void
+    public function test_business_attachments_are_accepted_and_stored_safely(): void
     {
-        $php = UploadedFile::fake()->create('payload.php', 1, 'application/x-php');
-        $pdf = UploadedFile::fake()->create('invoice.pdf', 1, 'application/pdf');
-
-        $this->assertTrue(Validator::make(['file' => $php], ['file' => AttachmentSecurity::rules()])->fails());
-        $this->assertFalse(Validator::make(['file' => $pdf], ['file' => AttachmentSecurity::rules()])->fails());
-
         Storage::fake('public');
-        $path = AttachmentSecurity::store($pdf, 'security-test');
-        $this->assertStringEndsWith('.pdf', $path);
-        $this->assertStringNotContainsString('.php', $path);
-        Storage::disk('public')->assertExists($path);
+        $uploads = [
+            $this->makeUpload('invoice.pdf', "%PDF-1.7\n"),
+            $this->makeZipUpload('document.docx', 'word/document.xml'),
+            $this->makeZipUpload('spreadsheet.xlsx', 'xl/workbook.xml'),
+            $this->makeUpload('records.csv', "name,total\nAcme,100\n"),
+        ];
+
+        $allowedExtensions = ['pdf', 'docx', 'xlsx', 'csv', 'txt'];
+
+        foreach ($uploads as $upload) {
+            $validator = Validator::make(['file' => $upload], ['file' => AttachmentSecurity::rules()]);
+
+            $this->assertFalse($validator->fails(), $upload->getClientOriginalName());
+
+            $derivedExtension = strtolower($upload->extension());
+            $this->assertContains($derivedExtension, $allowedExtensions);
+
+            $path = AttachmentSecurity::store($upload, 'security-test');
+            $this->assertStringEndsWith('.' . $derivedExtension, $path);
+            $this->assertDoesNotMatchRegularExpression('/\.(?:php|phtml|phar|sh)$/i', $path);
+            Storage::disk('public')->assertExists($path);
+        }
+    }
+
+    public function test_executable_and_mismatched_attachments_are_rejected(): void
+    {
+        $uploads = [
+            $this->makeUpload('payload.php', '<?php echo "unsafe";'),
+            $this->makeUpload('payload.phtml', '<?php echo "unsafe";'),
+            $this->makeUpload('payload.sh', "#!/bin/sh\necho unsafe\n"),
+            $this->makeUpload('payload.php.pdf', '<?php echo "unsafe";'),
+        ];
+
+        foreach ($uploads as $upload) {
+            $this->assertTrue(
+                Validator::make(['file' => $upload], ['file' => AttachmentSecurity::rules()])->fails(),
+                $upload->getClientOriginalName()
+            );
+        }
     }
 
     public function test_authentication_limiter_returns_429_after_repeated_bad_logins(): void
@@ -100,5 +140,28 @@ class SecurityHardeningTest extends TestCase
             'email' => 'not-an-email',
             'password' => 'incorrect-password',
         ])->assertStatus(429);
+    }
+
+    private function makeUpload(string $name, string $contents): UploadedFile
+    {
+        $path = tempnam(sys_get_temp_dir(), 'security-attachment-');
+        $this->temporaryAttachmentPaths[] = $path;
+        file_put_contents($path, $contents);
+
+        return new UploadedFile($path, $name, null, UPLOAD_ERR_OK, true);
+    }
+
+    private function makeZipUpload(string $name, string $entry): UploadedFile
+    {
+        $path = tempnam(sys_get_temp_dir(), 'security-attachment-');
+        $this->temporaryAttachmentPaths[] = $path;
+        $zip = new \ZipArchive();
+        $zip->open($path);
+        $zip->addFromString('[Content_Types].xml', '<?xml version="1.0"?><Types/>');
+        $zip->addFromString('_rels/.rels', '<Relationships/>');
+        $zip->addFromString($entry, '<document/>');
+        $zip->close();
+
+        return new UploadedFile($path, $name, null, UPLOAD_ERR_OK, true);
     }
 }

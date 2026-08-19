@@ -10,22 +10,6 @@ final class AttachmentSecurity
 {
     private const EXTENSIONS = 'pdf,jpg,jpeg,png,webp,gif,doc,docx,xls,xlsx,csv,txt';
 
-    private const MIMETYPES = [
-        'application/pdf',
-        'image/jpeg',
-        'image/png',
-        'image/webp',
-        'image/gif',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'text/csv',
-        'application/csv',
-        'application/vnd.ms-excel',
-        'text/plain',
-    ];
-
     /**
      * Validate business attachments by client extension and detected content.
      *
@@ -42,7 +26,6 @@ final class AttachmentSecurity
             'max:10240',
             'extensions:' . self::EXTENSIONS,
             'mimes:' . self::EXTENSIONS,
-            'mimetypes:' . implode(',', self::MIMETYPES),
         ];
     }
 
