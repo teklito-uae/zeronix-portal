@@ -24,9 +24,13 @@ return new class extends Migration
             $table->string('email')->nullable()->change();
         });
 
-        // Re-add unique index — MySQL allows multiple NULLs in a unique column
-        // Use a partial unique index via raw SQL for safety
-        DB::statement('ALTER TABLE customers ADD CONSTRAINT customers_email_unique UNIQUE (email)');
+        // Re-add unique index — MySQL and SQLite both allow multiple NULLs in a
+        // unique column. Built through the schema builder rather than raw
+        // `ALTER TABLE ... ADD CONSTRAINT` DDL so it also runs under SQLite
+        // (which has no ADD CONSTRAINT); the resulting MySQL index is identical.
+        Schema::table('customers', function (Blueprint $table) {
+            $table->unique('email', 'customers_email_unique');
+        });
     }
 
     public function down(): void

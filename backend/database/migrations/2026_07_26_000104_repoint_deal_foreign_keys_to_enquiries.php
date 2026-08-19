@@ -2,7 +2,6 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -23,8 +22,8 @@ use Illuminate\Support\Facades\Schema;
  * several tables' migrations declaring `constrained()`/`cascadeOnDelete()`).
  * So on this database, `dropForeign()` on a name that was never actually
  * registered would raise a "check that column/key exists" SQL error if we
- * called it unconditionally. This migration therefore checks
- * information_schema for a real constraint before attempting to drop it, and
+ * called it unconditionally. This migration therefore checks the schema for a
+ * real constraint before attempting to drop it, and
  * always (re)adds the new constraint afterward — which is a harmless no-op
  * under MyISAM today but becomes a real, enforced constraint if this
  * database (or a production copy) is ever run on InnoDB.
@@ -68,26 +67,21 @@ return new class extends Migration
      * Drop any foreign key constraint that currently exists on $table.$column,
      * regardless of what it's named or what it references. No-op if none is
      * actually registered (e.g. under MyISAM).
+     *
+     * Introspected through the schema builder rather than a MySQL-only
+     * information_schema query so this also runs under SQLite (test suite).
      */
     private function dropExistingForeignKeys(string $table, string $column): void
     {
-        $constraints = DB::select(
-            "SELECT DISTINCT kcu.CONSTRAINT_NAME
-             FROM information_schema.KEY_COLUMN_USAGE kcu
-             JOIN information_schema.TABLE_CONSTRAINTS tc
-               ON tc.CONSTRAINT_SCHEMA = kcu.CONSTRAINT_SCHEMA
-              AND tc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
-              AND tc.TABLE_NAME = kcu.TABLE_NAME
-             WHERE tc.CONSTRAINT_TYPE = 'FOREIGN KEY'
-               AND kcu.TABLE_SCHEMA = DATABASE()
-               AND kcu.TABLE_NAME = ?
-               AND kcu.COLUMN_NAME = ?",
-            [$table, $column]
-        );
+        foreach (Schema::getForeignKeys($table) as $foreignKey) {
+            if (! in_array($column, $foreignKey['columns'], true)) {
+                continue;
+            }
 
-        foreach ($constraints as $constraint) {
-            Schema::table($table, function (Blueprint $blueprint) use ($constraint) {
-                $blueprint->dropForeign($constraint->CONSTRAINT_NAME);
+            Schema::table($table, function (Blueprint $blueprint) use ($foreignKey, $column) {
+                // MySQL reports a constraint name we can target precisely;
+                // SQLite reports none and only supports dropping by column.
+                $blueprint->dropForeign($foreignKey['name'] ?? [$column]);
             });
         }
     }

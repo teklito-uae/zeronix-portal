@@ -13,8 +13,8 @@ use Illuminate\Support\Facades\Schema;
  * enquiry_id IS NOT NULL` matches nothing on a second run).
  *
  * See 2026_07_26_000104's docblock for why the FK drop is guarded by an
- * information_schema existence check rather than an unconditional
- * dropForeign() — same MyISAM-has-no-real-FKs situation applies here.
+ * existence check rather than an unconditional dropForeign() — same
+ * MyISAM-has-no-real-FKs situation applies here.
  */
 return new class extends Migration
 {
@@ -48,25 +48,21 @@ return new class extends Migration
         // data-loss-adjacent down()s.
     }
 
+    /**
+     * Introspected through the schema builder rather than a MySQL-only
+     * information_schema query so this also runs under SQLite (test suite).
+     */
     private function dropExistingForeignKeys(string $table, string $column): void
     {
-        $constraints = DB::select(
-            "SELECT DISTINCT kcu.CONSTRAINT_NAME
-             FROM information_schema.KEY_COLUMN_USAGE kcu
-             JOIN information_schema.TABLE_CONSTRAINTS tc
-               ON tc.CONSTRAINT_SCHEMA = kcu.CONSTRAINT_SCHEMA
-              AND tc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
-              AND tc.TABLE_NAME = kcu.TABLE_NAME
-             WHERE tc.CONSTRAINT_TYPE = 'FOREIGN KEY'
-               AND kcu.TABLE_SCHEMA = DATABASE()
-               AND kcu.TABLE_NAME = ?
-               AND kcu.COLUMN_NAME = ?",
-            [$table, $column]
-        );
+        foreach (Schema::getForeignKeys($table) as $foreignKey) {
+            if (! in_array($column, $foreignKey['columns'], true)) {
+                continue;
+            }
 
-        foreach ($constraints as $constraint) {
-            Schema::table($table, function (Blueprint $blueprint) use ($constraint) {
-                $blueprint->dropForeign($constraint->CONSTRAINT_NAME);
+            Schema::table($table, function (Blueprint $blueprint) use ($foreignKey, $column) {
+                // MySQL reports a constraint name we can target precisely;
+                // SQLite reports none and only supports dropping by column.
+                $blueprint->dropForeign($foreignKey['name'] ?? [$column]);
             });
         }
     }

@@ -8,15 +8,25 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('marketing_campaign_recipients', function (Blueprint $table) {
-            $table->dropForeign(['smtp_account_id']);
-            $table->dropColumn('smtp_account_id');
-        });
+        foreach (['marketing_campaign_recipients', 'marketing_campaigns'] as $table) {
+            Schema::table($table, function (Blueprint $blueprint) {
+                $blueprint->dropForeign(['smtp_account_id']);
+            });
 
-        Schema::table('marketing_campaigns', function (Blueprint $table) {
-            $table->dropForeign(['smtp_account_id']);
-            $table->dropColumn('smtp_account_id');
-        });
+            // SQLite rebuilds the whole table on DROP COLUMN and fails if any
+            // index still references the dropped column, so drop those first.
+            foreach (Schema::getIndexes($table) as $index) {
+                if (in_array('smtp_account_id', $index['columns'], true)) {
+                    Schema::table($table, function (Blueprint $blueprint) use ($index) {
+                        $blueprint->dropIndex($index['name']);
+                    });
+                }
+            }
+
+            Schema::table($table, function (Blueprint $blueprint) {
+                $blueprint->dropColumn('smtp_account_id');
+            });
+        }
 
         Schema::dropIfExists('marketing_smtp_accounts');
     }

@@ -104,13 +104,18 @@ return new class extends Migration
         // upon (e.g. by B3's merge). Down() only drops the index.
     }
 
+    /**
+     * Uses the schema builder rather than a MySQL-only information_schema
+     * query so this also runs under SQLite (used by the test suite).
+     */
     private function indexExists(string $table, string $indexName): bool
     {
-        $row = DB::selectOne(
-            'SELECT COUNT(*) AS cnt FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ?',
-            [$table, $indexName]
-        );
+        foreach (Schema::getIndexes($table) as $index) {
+            if ($index['name'] === $indexName) {
+                return true;
+            }
+        }
 
-        return $row && (int) $row->cnt > 0;
+        return false;
     }
 };
