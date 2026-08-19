@@ -11,6 +11,7 @@ import { Bell, Mail, MailOpen, CheckCircle2, AlertTriangle, ExternalLink } from 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/apiError';
 import { cn } from '@/lib/utils';
 import type { AppNotification, NotificationsResponse } from '@/types';
 
@@ -69,6 +70,7 @@ export const NotificationBell = ({ side = 'bottom', align = 'end', triggerClassN
       queryClient.invalidateQueries({ queryKey: ['topbar-notifications'] });
       toast.success('All notifications marked as read');
     },
+    onError: (err) => toast.error(getApiErrorMessage(err, 'Failed to mark notifications as read')),
   });
 
   const markOneReadMutation = useMutation({
@@ -79,6 +81,7 @@ export const NotificationBell = ({ side = 'bottom', align = 'end', triggerClassN
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['topbar-notifications'] });
     },
+    onError: (err) => toast.error(getApiErrorMessage(err, 'Failed to mark notification as read')),
   });
 
   const getNotifIcon = (type: string | undefined) => {

@@ -114,6 +114,7 @@ export const ProductivitySuite = ({ activities = [] }: { activities: Activity[] 
   const addTaskMutation = useMutation({
     mutationFn: async (title: string) => (await api.post(`/admin/tasks`, { title })).data,
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['tasks'] }); toast.success('Task added.'); },
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to add task.'),
   });
 
   const createTaskMutation = useMutation({
@@ -134,6 +135,7 @@ export const ProductivitySuite = ({ activities = [] }: { activities: Activity[] 
     mutationFn: async ({ id, status }: { id: number; status: string }) =>
       (await api.put(`/admin/tasks/${id}`, { status })).data,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to update task.'),
   });
 
   const addNoteMutation = useMutation({
@@ -147,6 +149,7 @@ export const ProductivitySuite = ({ activities = [] }: { activities: Activity[] 
     mutationFn: async ({ id, content, color }: { id: number; content?: string; color?: string }) =>
       (await api.put(`/admin/sticky-notes/${id}`, { content, color })).data,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sticky-notes'] }),
+    onError: (err: ApiError) => toast.error(err.response?.data?.message || 'Failed to save note.'),
   });
 
   const deleteNoteMutation = useMutation({

@@ -53,16 +53,19 @@ const CustomerContactsPanel = ({ customerId }: { customerId: number }) => {
   const deleteMutation = useMutation({
     mutationFn: async (contactId: number) => api.delete(`/admin/customers/${customerId}/contacts/${contactId}`),
     onSuccess: () => { invalidate(); toast.success('Contact deleted'); },
+    onError: (err: AxiosError<{ message?: string }>) => toast.error(err.response?.data?.message || 'Failed to delete contact'),
   });
 
   const setPrimaryMutation = useMutation({
     mutationFn: async (contactId: number) => api.post(`/admin/customers/${customerId}/contacts/${contactId}/set-primary`),
     onSuccess: () => { invalidate(); toast.success('Primary contact updated'); },
+    onError: (err: AxiosError<{ message?: string }>) => toast.error(err.response?.data?.message || 'Failed to update primary contact'),
   });
 
   const toggleActiveMutation = useMutation({
     mutationFn: async (contact: CustomerContact) => api.put(`/admin/customers/${customerId}/contacts/${contact.id}`, { is_active: !contact.is_active }),
     onSuccess: () => invalidate(),
+    onError: (err: AxiosError<{ message?: string }>) => toast.error(err.response?.data?.message || 'Failed to update contact'),
   });
 
   const openAdd = () => {

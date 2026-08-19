@@ -7,6 +7,7 @@ use App\Models\MarketingCampaign;
 use App\Models\MarketingCampaignRecipient;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Per-minute pacing engine for marketing campaigns:
@@ -130,6 +131,12 @@ class MarketingTick extends Command
         try {
             $now = Carbon::now($timezone);
         } catch (\Exception $e) {
+            // An unusable timezone must not stall pacing, but silently sending in the
+            // application timezone can breach a tenant's business hours.
+            Log::warning('Marketing pacing: invalid campaign timezone, using app timezone', [
+                'timezone' => $timezone,
+                'error' => $e->getMessage(),
+            ]);
             $now = Carbon::now();
         }
 

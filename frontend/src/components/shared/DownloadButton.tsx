@@ -3,6 +3,8 @@ import { Download, Loader2, Eye } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import api from '@/lib/axios';
+import { getBlobErrorMessage } from '@/lib/apiError';
+import { toast } from 'sonner';
 
 interface DownloadButtonProps {
   type: 'invoice' | 'quote' | 'purchase-bill' | 'payment-receipt' | 'supplier-payment-receipt';
@@ -60,7 +62,7 @@ export const DownloadButton = ({
         }
       } catch (error) {
         if (newWindow) newWindow.close();
-        console.error('Failed to view PDF', error);
+        toast.error(await getBlobErrorMessage(error, 'Failed to open the PDF.'));
       } finally {
         setLoading(false);
       }
@@ -90,7 +92,7 @@ export const DownloadButton = ({
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Action failed', error);
+      toast.error(await getBlobErrorMessage(error, 'Failed to download the PDF.'));
     } finally {
       setLoading(false);
     }

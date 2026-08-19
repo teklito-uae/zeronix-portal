@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
+
 /**
  * Deterministic, rules-based parser for supplier WhatsApp broadcast text
  * (free-form price lists) into structured product rows. No AI/ML — that's
@@ -83,6 +85,11 @@ class SbBroadcastParserService
 
             return $rows;
         } catch (\Throwable $e) {
+            Log::warning('Supplier broadcast parse failed, degrading to raw row', [
+                'error' => $e->getMessage(),
+                'exception' => $e,
+            ]);
+
             return [[
                 'raw_line' => $rawText,
                 'product_name' => null,

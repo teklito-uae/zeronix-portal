@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\GoogleContactConnection;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Handles the Google OAuth2 authorization-code flow and token refresh
@@ -84,6 +85,9 @@ class GoogleOAuthService
             $response = Http::withToken($accessToken)->get(self::USERINFO_URL);
             return $response->json('email');
         } catch (\Throwable $e) {
+            // The account email is only a display label, so a failure here must not
+            // abort the connection — but it should be traceable.
+            Log::warning('Google Contacts: failed to fetch account email', ['error' => $e->getMessage()]);
             return null;
         }
     }

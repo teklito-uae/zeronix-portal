@@ -5,6 +5,7 @@ namespace App\Traits;
 use App\Models\Template;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 trait GeneratesPdf
 {
@@ -103,6 +104,12 @@ trait GeneratesPdf
                     $replace['{logo_url}'] = '';
                 }
             } catch (\Exception $e) {
+                // Fall back to the wordmark rather than failing the document, but record
+                // why the tenant's logo disappeared from their PDFs.
+                Log::warning('PDF logo could not be resolved, using text wordmark', [
+                    'logo_path' => $settings['logo_path'],
+                    'error' => $e->getMessage(),
+                ]);
                 $replace['{logo}'] = '<h2 style="color:'.$replace['{brand_color}'].'; margin:0;">' . $replace['{company_name}'] . '</h2>';
                 $replace['{logo_url}'] = '';
             }
