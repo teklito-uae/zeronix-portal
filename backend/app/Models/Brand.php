@@ -9,7 +9,7 @@ class Brand extends Model
 {
     use BelongsToCompany;
 
-    protected $fillable = ['name', 'logo', 'website'];
+    protected $fillable = ['name', 'logo'];
 
     public function products()
     {

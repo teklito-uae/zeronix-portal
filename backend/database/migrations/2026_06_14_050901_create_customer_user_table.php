@@ -40,6 +40,21 @@ return new class extends Migration
         // Drop user_id column from customers
         Schema::table('customers', function (Blueprint $table) {
             $table->dropForeign(['user_id']);
+        });
+
+        // SQLite rebuilds the whole table on DROP COLUMN and fails if any index
+        // still references the dropped column, so drop those indexes first.
+        // Indexes on a dropped column are dead weight under MySQL too, so this
+        // runs for every driver rather than being driver-guarded.
+        foreach (Schema::getIndexes('customers') as $index) {
+            if (in_array('user_id', $index['columns'], true)) {
+                Schema::table('customers', function (Blueprint $table) use ($index) {
+                    $table->dropIndex($index['name']);
+                });
+            }
+        }
+
+        Schema::table('customers', function (Blueprint $table) {
             $table->dropColumn('user_id');
         });
     }
