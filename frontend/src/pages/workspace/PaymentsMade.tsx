@@ -46,6 +46,7 @@ import { useResourceList, useResourceDetail, useResourceMutation } from '@/hooks
 import { useCurrencyStore } from '@/store/useCurrencyStore';
 import type { SupplierPaymentReceipt, PaginatedResponse } from '@/types';
 import { Expenses } from './Expenses';
+import { formatAmount } from '@/lib/currency';
 import {
   Banknote,
   Wallet,
@@ -349,7 +350,7 @@ const SupplierPaymentsSplitView = ({ onCreate, onEdit }: SupplierPaymentsSplitVi
                         </div>
                         <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                           <p className="font-mono text-[13px] font-semibold text-brand-primary">
-                            {Number(r.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            {formatAmount(r.amount)}
                           </p>
                           <span className="text-[10px] font-medium text-brand-subtle capitalize">{r.payment_method}</span>
                         </div>

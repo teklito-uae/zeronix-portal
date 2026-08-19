@@ -51,6 +51,8 @@ import {
   Building2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatAmount } from '@/lib/currency';
+import { formatDate } from '@/lib/utils';
 
 interface QuoteDetailViewProps {
   id: string | number;
@@ -69,7 +71,6 @@ const detailTabs = [
   { id: 'history', label: 'History', icon: History },
 ];
 
-const formatDate = (value?: string | null) => (value ? new Date(value).toLocaleDateString() : '—');
 
 const storageBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api').replace(/\/api\/?$/, '');
 
@@ -390,13 +391,13 @@ export const QuoteDetailView = ({ id, onSend, isSendPending, onDeleted }: QuoteD
                           </TableCell>
                           <TableCell className="text-[12px] text-brand-subtle text-right">{item.quantity}</TableCell>
                           <TableCell className="text-[12px] text-brand-subtle text-right">
-                            {Number(item.unit_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            {formatAmount(item.unit_price)}
                           </TableCell>
                           <TableCell className="text-[12px] text-brand-subtle text-right">
                             {Number(item.tax_percent ?? 0)}%
                           </TableCell>
                           <TableCell className="text-[12px] text-brand-primary font-medium text-right">
-                            {(Number(item.quantity) * Number(item.unit_price)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            {formatAmount(Number(item.quantity) * Number(item.unit_price))}
                           </TableCell>
                         </TableRow>
                       );
@@ -525,25 +526,25 @@ export const QuoteDetailView = ({ id, onSend, isSendPending, onDeleted }: QuoteD
           <div className="sticky bottom-0 z-30 bg-brand-white/95 backdrop-blur-sm border-t border-brand-border px-6 py-4 flex flex-col md:flex-row md:items-center justify-end gap-4 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.05)]">
             <div className="flex flex-wrap items-center justify-end text-[12px] md:text-[13px] font-medium text-brand-subtle">
               <span className="uppercase tracking-wider">Subtotal:</span>
-              <span className="text-brand-primary font-bold ml-1.5 mr-3">{totals.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              <span className="text-brand-primary font-bold ml-1.5 mr-3">{formatAmount(totals.subtotal)}</span>
 
               {totals.discountAmount > 0 && (
                 <>
                   <span className="text-brand-border mx-1">|</span>
                   <span className="uppercase tracking-wider ml-2">Discount:</span>
-                  <span className="text-brand-primary font-bold ml-1.5 mr-3">-{totals.discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  <span className="text-brand-primary font-bold ml-1.5 mr-3">-{formatAmount(totals.discountAmount)}</span>
                 </>
               )}
 
               <span className="text-brand-border mx-1">|</span>
               <span className="uppercase tracking-wider ml-2">VAT:</span>
-              <span className="text-brand-primary font-bold ml-1.5 mr-3">{totals.vat.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              <span className="text-brand-primary font-bold ml-1.5 mr-3">{formatAmount(totals.vat)}</span>
 
               {totals.shippingAmount > 0 && (
                 <>
                   <span className="text-brand-border mx-1">|</span>
                   <span className="uppercase tracking-wider ml-2">Shipping:</span>
-                  <span className="text-brand-primary font-bold ml-1.5 mr-3">{totals.shippingAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  <span className="text-brand-primary font-bold ml-1.5 mr-3">{formatAmount(totals.shippingAmount)}</span>
                 </>
               )}
 

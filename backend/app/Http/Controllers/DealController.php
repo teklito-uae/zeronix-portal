@@ -8,6 +8,7 @@ use App\Models\CustomerContact;
 use App\Models\Deal;
 use App\Models\Lead;
 use App\Models\Tag;
+use App\Support\LineItemMath;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -283,27 +284,18 @@ class DealController extends Controller
 
             if (!empty($validated['items'])) {
                 foreach ($validated['items'] as $item) {
-                    $quantity = $item['quantity'];
-                    $unitPrice = $item['unit_price'] ?? 0;
-                    $discountPercent = $item['discount_percent'] ?? 0;
-                    $taxPercent = $item['tax_percent'] ?? 5;
-
-                    $lineSubtotal = $quantity * $unitPrice;
-                    $discountAmount = $lineSubtotal * ($discountPercent / 100);
-                    $taxable = $lineSubtotal - $discountAmount;
-                    $taxAmount = $taxable * ($taxPercent / 100);
-                    $total = $taxable + $taxAmount;
+                    $line = LineItemMath::line($item);
 
                     $deal->items()->create([
                         'product_id' => $item['product_id'] ?? null,
-                        'quantity' => $quantity,
+                        'quantity' => $item['quantity'],
                         'description' => $item['description'] ?? null,
-                        'unit_price' => $unitPrice,
-                        'tax_percent' => $taxPercent,
-                        'tax_amount' => $taxAmount,
-                        'discount_percent' => $discountPercent,
-                        'discount_amount' => $discountAmount,
-                        'total' => $total,
+                        'unit_price' => $item['unit_price'] ?? 0,
+                        'tax_percent' => $line['tax_percent'],
+                        'tax_amount' => $line['tax_amount'],
+                        'discount_percent' => $line['discount_percent'],
+                        'discount_amount' => $line['discount_amount'],
+                        'total' => $line['total'],
                     ]);
                 }
             }

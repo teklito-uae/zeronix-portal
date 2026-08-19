@@ -18,6 +18,7 @@ import type { Quote, PaginatedResponse } from '@/types';
 import { Search, Building2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { formatAmount } from '@/lib/currency';
 
 const quoteTabs = [
   { id: 'all', label: 'All' },
@@ -195,7 +196,7 @@ export const QuotesSplitView = () => {
                           </div>
                           <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                             <p className="font-mono text-[13px] font-semibold text-brand-primary">
-                              {Number(q.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              {formatAmount(q.total)}
                             </p>
                             <StatusBadge status={q.status} className="text-[10px] px-2 py-0" />
                           </div>

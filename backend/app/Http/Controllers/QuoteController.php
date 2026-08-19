@@ -10,6 +10,7 @@ use App\Models\SalesOrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
+use App\Support\LineItemMath;
 use App\Traits\GeneratesPdf;
 
 class QuoteController extends Controller
@@ -95,21 +96,9 @@ class QuoteController extends Controller
         try {
             $quoteNumber = $this->nextQuoteNumber();
 
-            $subtotal = 0;
-            $vatAmount = 0;
-
-            foreach ($validated['items'] as $item) {
-                $lineSubtotal = ($item['quantity'] ?? 0) * ($item['unit_price'] ?? 0);
-                $lineDiscountAmt = $lineSubtotal * (($item['discount_percent'] ?? 0) / 100);
-                $lineTaxable = $lineSubtotal - $lineDiscountAmt;
-                $lineTax = $lineTaxable * (($item['tax_percent'] ?? 0) / 100);
-                $subtotal += $lineTaxable;
-                $vatAmount += $lineTax;
-            }
-
             $discountPercent = $validated['discount_percent'] ?? 0;
             $shippingAmount = $validated['shipping_amount'] ?? 0;
-            $headerDiscountAmt = $subtotal * ($discountPercent / 100);
+            $totals = LineItemMath::totals($validated['items'], $discountPercent, $shippingAmount, defaultTaxPercent: 0);
 
             $customer = Customer::find($validated['customer_id']);
 
@@ -122,9 +111,9 @@ class QuoteController extends Controller
                 'date' => $validated['date'],
                 'valid_until' => $validated['valid_until'] ?? Carbon::parse($validated['date'])->addDays(15),
                 'reference_id' => $validated['reference_id'] ?? null,
-                'subtotal' => $subtotal,
-                'vat_amount' => $vatAmount,
-                'total' => $subtotal - $headerDiscountAmt + $vatAmount + $shippingAmount,
+                'subtotal' => $totals['subtotal'],
+                'vat_amount' => $totals['vat_amount'],
+                'total' => $totals['total'],
                 'status' => $validated['status'] ?? 'draft',
                 'due_date' => $validated['due_date'] ?? null,
                 'closing_ratio' => $validated['closing_ratio'] ?? null,
@@ -138,11 +127,7 @@ class QuoteController extends Controller
             ]);
 
             foreach ($validated['items'] as $item) {
-                $lineSubtotal = $item['quantity'] * $item['unit_price'];
-                $lineDiscountPercent = $item['discount_percent'] ?? 0;
-                $lineDiscountAmt = $lineSubtotal * ($lineDiscountPercent / 100);
-                $lineTaxable = $lineSubtotal - $lineDiscountAmt;
-                $lineTax = $lineTaxable * (($item['tax_percent'] ?? 5) / 100);
+                $line = LineItemMath::line($item);
 
                 QuoteItem::create([
                     'quote_id' => $quote->id,
@@ -150,11 +135,11 @@ class QuoteController extends Controller
                     'description' => $item['description'],
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
-                    'tax_percent' => $item['tax_percent'] ?? 5,
-                    'tax_amount' => $lineTax,
-                    'discount_percent' => $lineDiscountPercent,
-                    'discount_amount' => $lineDiscountAmt,
-                    'total' => $lineTaxable + $lineTax,
+                    'tax_percent' => $line['tax_percent'],
+                    'tax_amount' => $line['tax_amount'],
+                    'discount_percent' => $line['discount_percent'],
+                    'discount_amount' => $line['discount_amount'],
+                    'total' => $line['total'],
                 ]);
             }
 
@@ -239,21 +224,9 @@ class QuoteController extends Controller
 
         DB::beginTransaction();
         try {
-            $subtotal = 0;
-            $vatAmount = 0;
-
-            foreach ($validated['items'] as $item) {
-                $lineSubtotal = $item['quantity'] * $item['unit_price'];
-                $lineDiscountAmt = $lineSubtotal * (($item['discount_percent'] ?? 0) / 100);
-                $lineTaxable = $lineSubtotal - $lineDiscountAmt;
-                $lineTax = $lineTaxable * (($item['tax_percent'] ?? 5) / 100);
-                $subtotal += $lineTaxable;
-                $vatAmount += $lineTax;
-            }
-
             $discountPercent = $validated['discount_percent'] ?? 0;
             $shippingAmount = $validated['shipping_amount'] ?? 0;
-            $headerDiscountAmt = $subtotal * ($discountPercent / 100);
+            $totals = LineItemMath::totals($validated['items'], $discountPercent, $shippingAmount);
 
             $quote->update([
                 'customer_id' => $validated['customer_id'],
@@ -261,9 +234,9 @@ class QuoteController extends Controller
                 'date' => $validated['date'],
                 'valid_until' => $validated['valid_until'] ?? Carbon::parse($validated['date'])->addDays(15),
                 'reference_id' => $validated['reference_id'] ?? null,
-                'subtotal' => $subtotal,
-                'vat_amount' => $vatAmount,
-                'total' => $subtotal - $headerDiscountAmt + $vatAmount + $shippingAmount,
+                'subtotal' => $totals['subtotal'],
+                'vat_amount' => $totals['vat_amount'],
+                'total' => $totals['total'],
                 'status' => $validated['status'] ?? $quote->status,
                 'due_date' => $validated['due_date'] ?? null,
                 'closing_ratio' => $validated['closing_ratio'] ?? null,
@@ -279,11 +252,7 @@ class QuoteController extends Controller
             // Sync items
             $quote->items()->delete();
             foreach ($validated['items'] as $item) {
-                $lineSubtotal = $item['quantity'] * $item['unit_price'];
-                $lineDiscountPercent = $item['discount_percent'] ?? 0;
-                $lineDiscountAmt = $lineSubtotal * ($lineDiscountPercent / 100);
-                $lineTaxable = $lineSubtotal - $lineDiscountAmt;
-                $lineTax = $lineTaxable * (($item['tax_percent'] ?? 5) / 100);
+                $line = LineItemMath::line($item);
 
                 QuoteItem::create([
                     'quote_id' => $quote->id,
@@ -291,11 +260,11 @@ class QuoteController extends Controller
                     'description' => $item['description'],
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
-                    'tax_percent' => $item['tax_percent'] ?? 5,
-                    'tax_amount' => $lineTax,
-                    'discount_percent' => $lineDiscountPercent,
-                    'discount_amount' => $lineDiscountAmt,
-                    'total' => $lineTaxable + $lineTax,
+                    'tax_percent' => $line['tax_percent'],
+                    'tax_amount' => $line['tax_amount'],
+                    'discount_percent' => $line['discount_percent'],
+                    'discount_amount' => $line['discount_amount'],
+                    'total' => $line['total'],
                 ]);
             }
 

@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
+use App\Support\LineItemMath;
 
 class SalesOrderController extends Controller
 {
@@ -232,21 +233,14 @@ class SalesOrderController extends Controller
 
     private function totals(array $items): array
     {
-        $subtotal = 0;
-        $vatAmount = 0;
-        foreach ($items as $item) {
-            $itemSubtotal = $item['quantity'] * $item['unit_price'];
-            $subtotal += $itemSubtotal;
-            $vatAmount += $itemSubtotal * (($item['tax_percent'] ?? 5) / 100);
-        }
-        return [$subtotal, $vatAmount];
+        $totals = LineItemMath::totals($items);
+        return [$totals['subtotal'], $totals['vat_amount']];
     }
 
     private function createItems(SalesOrder $order, array $items): void
     {
         foreach ($items as $item) {
-            $itemSubtotal = $item['quantity'] * $item['unit_price'];
-            $itemTax = $itemSubtotal * (($item['tax_percent'] ?? 5) / 100);
+            $line = LineItemMath::line($item);
 
             SalesOrderItem::create([
                 'sales_order_id' => $order->id,
@@ -254,9 +248,9 @@ class SalesOrderController extends Controller
                 'description' => $item['description'],
                 'quantity' => $item['quantity'],
                 'unit_price' => $item['unit_price'],
-                'tax_percent' => $item['tax_percent'] ?? 5,
-                'tax_amount' => $itemTax,
-                'total' => $itemSubtotal + $itemTax,
+                'tax_percent' => $line['tax_percent'],
+                'tax_amount' => $line['tax_amount'],
+                'total' => $line['total'],
             ]);
         }
     }

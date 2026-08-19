@@ -16,6 +16,7 @@ import type { Delivery, PaginatedResponse } from '@/types';
 import { Search, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { formatAmount } from '@/lib/currency';
 
 const deliveryTabs = [
   { id: 'all', label: 'All Deliveries' },
@@ -178,7 +179,7 @@ export const DeliveriesSplitView = () => {
                           </div>
                           <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                             <p className="font-mono text-[13px] font-semibold text-brand-primary">
-                              {Number(inv.invoice?.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              {formatAmount(inv.invoice?.total)}
                             </p>
                             <StatusBadge status={inv.status} className="text-[10px] px-2 py-0" />
                           </div>

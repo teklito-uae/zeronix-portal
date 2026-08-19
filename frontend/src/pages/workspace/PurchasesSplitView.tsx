@@ -13,6 +13,7 @@ import { Pagination } from '@/components/shared/Pagination';
 import type { PurchaseBill, PaginatedResponse } from '@/types';
 import { Search, Building2, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatAmount } from '@/lib/currency';
 
 const purchasebillTabs = [
   { id: 'all', label: 'All Purchase Bills' },
@@ -173,7 +174,7 @@ export const PurchasesSplitView = () => {
                           </div>
                           <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                             <p className="font-mono text-[13px] font-semibold text-brand-primary">
-                              {Number(bill.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              {formatAmount(bill.total)}
                             </p>
                             <StatusBadge status={bill.status} className="text-[10px] px-2 py-0" />
                           </div>

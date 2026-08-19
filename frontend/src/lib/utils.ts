@@ -10,6 +10,11 @@ export function toTitleCase(value: string): string {
   return value.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
 }
 
+// Locale-formatted date with an em-dash fallback for missing values.
+export function formatDate(value?: string | null): string {
+  return value ? new Date(value).toLocaleDateString() : '—';
+}
+
 export function timeAgo(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
