@@ -7,6 +7,8 @@ import { Plus, Check } from 'lucide-react';
 import { SharedTagBadge } from './SharedTagBadge';
 import { cn } from '@/lib/utils';
 import api from '@/lib/axios';
+import { getApiErrorMessage } from '@/lib/apiError';
+import { toast } from 'sonner';
 import type { Tag } from '@/types';
 
 interface TagsManagerProps {
@@ -50,6 +52,7 @@ export const TagsManager = ({ selectedTags, onAddTag, onRemoveTag }: TagsManager
       setSearch('');
       setOpen(false);
     },
+    onError: (err) => toast.error(getApiErrorMessage(err, 'Failed to create tag.')),
   });
 
   const availableTags = dbTags.filter((t) => !selectedTags.includes(t.name) && t.name.toLowerCase().includes(search.toLowerCase()));

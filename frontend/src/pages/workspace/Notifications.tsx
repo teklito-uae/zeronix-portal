@@ -7,6 +7,7 @@ import { PageLoader } from '@/components/shared/PageLoader';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/apiError';
 
 interface AppNotification {
   id: string;
@@ -38,7 +39,8 @@ export const Notifications = () => {
     mutationFn: (id: string) => api.post(`/admin/notifications/${id}/mark-read`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-notifications'] });
-    }
+    },
+    onError: (err) => toast.error(getApiErrorMessage(err, 'Failed to mark notification as read'))
   });
 
   const markAllReadMutation = useMutation({
@@ -46,7 +48,8 @@ export const Notifications = () => {
     onSuccess: () => {
       toast.success('All notifications marked as read');
       queryClient.invalidateQueries({ queryKey: ['admin-notifications'] });
-    }
+    },
+    onError: (err) => toast.error(getApiErrorMessage(err, 'Failed to mark notifications as read'))
   });
 
   const getIcon = (type?: string) => {

@@ -13,6 +13,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Syncs a tenant's Google Contacts into the leads table. Runs unauthenticated
@@ -161,6 +162,11 @@ class SyncGoogleContactsJob implements ShouldQueue
         } catch (\Illuminate\Database\QueryException $e) {
             // Unique-constraint race (email or external_id already owned by another
             // row, possibly in a different tenant) — skip this contact, don't fail the sync.
+            Log::warning('Google Contacts sync: skipped contact on database error', [
+                'company_id' => $companyId,
+                'external_id' => $normalized['external_id'],
+                'error' => $e->getMessage(),
+            ]);
             return;
         }
     }

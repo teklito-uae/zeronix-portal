@@ -7,6 +7,8 @@ import { AdminLayout } from './components/layout/AdminLayout';
 import { AdminRoute, CustomerRoute } from './components/auth/ProtectedRoute';
 import api from './lib/axios';
 import { isAxiosError } from 'axios';
+import { toast } from 'sonner';
+import { getApiErrorMessage } from './lib/apiError';
 import { Loader2 } from 'lucide-react';
 import { UnifiedLogin } from './pages/UnifiedLogin';
 import { ForgotPassword } from './pages/ForgotPassword';
@@ -175,6 +177,11 @@ function App() {
               localStorage.removeItem('zeronix_admin_token');
               localStorage.removeItem('zeronix_staff_token');
               setAdmin(null);
+            } else {
+              // Not an auth rejection (network/5xx) — keep the token so the next
+              // load can retry, but say so instead of dropping to the login page
+              // with no explanation.
+              toast.error(getApiErrorMessage(err, 'Could not verify your session. Please retry.'));
             }
           }
         })());
@@ -190,6 +197,8 @@ function App() {
             if (status === 401 || status === 403) {
               localStorage.removeItem('zeronix_customer_portal_token');
               setCustomer(null);
+            } else {
+              toast.error(getApiErrorMessage(err, 'Could not verify your session. Please retry.'));
             }
           }
         })());

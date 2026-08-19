@@ -9,8 +9,9 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Users, Package, MessageSquare, FileText,
   Receipt, CreditCard, Settings, Activity, Truck,
-  User, Clock, Search, ArrowRight, Loader2, X,
+  User, Clock, Search, ArrowRight, Loader2, X, AlertTriangle,
 } from 'lucide-react';
+import { getApiErrorMessage } from '@/lib/apiError';
 import type { Customer, Supplier, Product, Quote, Invoice } from '@/types';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -62,6 +63,7 @@ export const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ResultItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [recent, setRecent] = useState<{ label: string; href: string }[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -72,6 +74,7 @@ export const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: this dialog instance persists across opens/closes, so state is reset via an `open` effect rather than on mount; also focuses the input, a real DOM side effect.
       setQuery('');
       setResults([]);
+      setSearchError(null);
       setRecent(getRecent());
       setTimeout(() => inputRef.current?.focus(), 50);
     }
@@ -87,6 +90,7 @@ export const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
     );
 
     setIsSearching(true);
+    setSearchError(null);
     try {
       const [customers, suppliers, products, quotes, invoices] = await Promise.allSettled([
         api.get(`/admin/customers`, { params: { search: q, per_page: 5 } }),
@@ -129,9 +133,15 @@ export const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
         }));
       }
 
+      const failed = [customers, suppliers, products, quotes, invoices].filter((r) => r.status === 'rejected');
+      if (failed.length > 0) {
+        setSearchError(`${failed.length} of 5 search sources failed — results may be incomplete.`);
+      }
+
       setResults(items);
-    } catch {
+    } catch (err) {
       setResults(navMatches);
+      setSearchError(getApiErrorMessage(err, 'Search failed — showing navigation matches only.'));
     } finally {
       setIsSearching(false);
     }
@@ -204,6 +214,13 @@ export const GlobalSearch = ({ open, onOpenChange }: GlobalSearchProps) => {
             </div>
 
             <CommandPrimitive.List className="overflow-y-auto max-h-[400px] py-1">
+              {searchError && (
+                <div className="flex items-start gap-2 mx-2 my-1 px-3 py-2 rounded-md bg-danger/10 text-[11px] text-danger">
+                  <AlertTriangle size={12} className="shrink-0 mt-px" />
+                  <span>{searchError}</span>
+                </div>
+              )}
+
               {showEmpty && (
                 <div className="py-10 text-center text-sm text-brand-subtle">
                   No results for "<span className="text-brand-primary font-medium">{query}</span>"

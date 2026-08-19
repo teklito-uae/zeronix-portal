@@ -6,6 +6,7 @@ import { SEO } from '@/components/shared/SEO';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/apiError';
 import type { NotificationsResponse } from '@/types';
 
 export const CustomerNotifications = () => {
@@ -22,7 +23,8 @@ export const CustomerNotifications = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customer-notifications'] });
       queryClient.invalidateQueries({ queryKey: ['unread-notifications', 'customer'] });
-    }
+    },
+    onError: (err) => toast.error(getApiErrorMessage(err, 'Failed to mark notification as read'))
   });
 
   const markAllReadMutation = useMutation({
@@ -31,7 +33,8 @@ export const CustomerNotifications = () => {
       toast.success('All notifications marked as read');
       queryClient.invalidateQueries({ queryKey: ['customer-notifications'] });
       queryClient.invalidateQueries({ queryKey: ['unread-notifications', 'customer'] });
-    }
+    },
+    onError: (err) => toast.error(getApiErrorMessage(err, 'Failed to mark notifications as read'))
   });
 
   const getIcon = (type: string) => {

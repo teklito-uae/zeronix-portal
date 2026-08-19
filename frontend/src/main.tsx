@@ -27,6 +27,10 @@ createRoot(document.getElementById('root')!).render(
 // Register service worker for PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    navigator.serviceWorker.register('/sw.js').catch((err: unknown) => {
+      // Offline support is optional, so this stays non-fatal — but a swallowed
+      // rejection here made PWA registration failures impossible to diagnose.
+      console.error('Service worker registration failed', err);
+    });
   });
 }
