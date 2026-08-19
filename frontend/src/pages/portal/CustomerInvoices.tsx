@@ -156,8 +156,8 @@ export const CustomerInvoices = () => {
             >
               {isConfirmed ? 'Delivery Confirmed' : !isDispatched ? 'Awaiting Delivery' : (confirmMutation.isPending && confirmModal.invoiceId === row.original.id ? '...' : 'Confirm Delivery')}
             </Button>
-            <DownloadButton type="invoice" id={row.original.id} number={row.original.invoice_number} mode="view" variant="ghost" size="icon" />
-            <DownloadButton type="invoice" id={row.original.id} number={row.original.invoice_number} mode="download" variant="ghost" size="icon" />
+            <DownloadButton type="invoice" id={row.original.id} mode="view" variant="ghost" size="icon" />
+            <DownloadButton type="invoice" id={row.original.id} mode="download" variant="ghost" size="icon" />
           </div>
         );
       },

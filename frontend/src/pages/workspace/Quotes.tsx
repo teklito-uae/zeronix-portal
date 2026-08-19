@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { useState } from 'react';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import { ActionGroup } from '@/components/shared/ActionGroup';
+import { DownloadButton } from '@/components/shared/DownloadButton';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
 import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 
@@ -115,14 +116,16 @@ export const Quotes = () => {
       id: 'actions',
       header: '',
       cell: ({ row }) => (
-        <ActionGroup
-          onMail={() => sendEmailMutation.mutate(row.original.id)}
-          isMailPending={sendEmailMutation.isPending && sendEmailMutation.variables === row.original.id}
-          isMailSent={!!row.original.email_sent_at}
-          onDownload={() => window.open(`${api.defaults.baseURL}/admin/quotes/${row.original.id}/download`, '_blank')}
-          onView={() => navigate(`${getBasePath()}/quotes/${row.original.id}`)}
-          onEdit={() => navigate(`${getBasePath()}/quotes/${row.original.id}`)}
-        />
+        <div className="flex items-center justify-end gap-1">
+          <ActionGroup
+            onMail={() => sendEmailMutation.mutate(row.original.id)}
+            isMailPending={sendEmailMutation.isPending && sendEmailMutation.variables === row.original.id}
+            isMailSent={!!row.original.email_sent_at}
+            onView={() => navigate(`${getBasePath()}/quotes/${row.original.id}`)}
+            onEdit={() => navigate(`${getBasePath()}/quotes/${row.original.id}`)}
+          />
+          <DownloadButton type="quote" id={row.original.id} mode="download" variant="ghost" size="icon" />
+        </div>
       ),
     },
   ];
