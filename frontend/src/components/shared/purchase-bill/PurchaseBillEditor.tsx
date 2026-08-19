@@ -61,6 +61,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatAmount } from '@/lib/currency';
 
 interface PurchaseBillEditorProps {
   id?: string;
@@ -542,25 +543,25 @@ export const PurchaseBillEditor = ({ id, isNew }: PurchaseBillEditorProps) => {
           <div className="col-start-1 lg:col-start-2 xl:col-span-2 sticky bottom-0 z-30 bg-brand-white/95 backdrop-blur-sm border-t border-brand-border px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex flex-wrap items-center text-[12px] md:text-[13px] font-medium text-brand-subtle">
               <span className="uppercase tracking-wider">Subtotal:</span>
-              <span className="text-brand-primary font-bold ml-1.5 mr-3">{totals.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              <span className="text-brand-primary font-bold ml-1.5 mr-3">{formatAmount(totals.subtotal)}</span>
 
               {totals.discountAmount > 0 && (
                 <>
                   <span className="text-brand-border mx-1">|</span>
                   <span className="uppercase tracking-wider ml-2">Discount:</span>
-                  <span className="text-brand-primary font-bold ml-1.5 mr-3">-{totals.discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  <span className="text-brand-primary font-bold ml-1.5 mr-3">-{formatAmount(totals.discountAmount)}</span>
                 </>
               )}
 
               <span className="text-brand-border mx-1">|</span>
               <span className="uppercase tracking-wider ml-2">VAT:</span>
-              <span className="text-brand-primary font-bold ml-1.5 mr-3">{totals.vat.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              <span className="text-brand-primary font-bold ml-1.5 mr-3">{formatAmount(totals.vat)}</span>
 
               {totals.shippingAmount > 0 && (
                 <>
                   <span className="text-brand-border mx-1">|</span>
                   <span className="uppercase tracking-wider ml-2">Shipping:</span>
-                  <span className="text-brand-primary font-bold ml-1.5 mr-3">{totals.shippingAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  <span className="text-brand-primary font-bold ml-1.5 mr-3">{formatAmount(totals.shippingAmount)}</span>
                 </>
               )}
 

@@ -23,6 +23,7 @@ import api from '@/lib/axios';
 import type { AxiosError } from 'axios';
 import { Loader2, Send, Pencil, MoreHorizontal, Trash2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatAmount } from '@/lib/currency';
 
 interface TransactionDetailViewProps {
   type: TransactionType;
@@ -336,10 +337,10 @@ export const TransactionDetailView = ({ type, id, onSend, isSendPending, onDelet
                     </TableCell>
                     <TableCell className="text-[12px] text-brand-secondary text-right">{item.quantity}</TableCell>
                     <TableCell className="text-[12px] text-brand-secondary text-right">
-                      {Number(item.unit_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      {formatAmount(item.unit_price)}
                     </TableCell>
                     <TableCell className="text-[12px] text-brand-primary font-medium text-right">
-                      {(Number(item.quantity) * Number(item.unit_price)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      {formatAmount(Number(item.quantity) * Number(item.unit_price))}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -353,13 +354,13 @@ export const TransactionDetailView = ({ type, id, onSend, isSendPending, onDelet
               <div className="flex items-center justify-between">
                 <p className="text-[11px] uppercase tracking-wider text-brand-subtle">Subtotal</p>
                 <p className="text-[13px] font-medium text-brand-primary">
-                  {totals.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {formatAmount(totals.subtotal)}
                 </p>
               </div>
               <div className="flex items-center justify-between">
                 <p className="text-[11px] uppercase tracking-wider text-brand-subtle">VAT</p>
                 <p className="text-[13px] font-medium text-brand-primary">
-                  {totals.vat.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {formatAmount(totals.vat)}
                 </p>
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-brand-border">

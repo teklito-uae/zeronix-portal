@@ -17,6 +17,7 @@ import type { PaymentReceipt, PaginatedResponse } from '@/types';
 import { Search, Building2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { formatAmount } from '@/lib/currency';
 
 const paymentreceiptTabs = [
   { id: 'all', label: 'All Payment Receipts' },
@@ -185,7 +186,7 @@ export const PaymentReceiptsSplitView = () => {
                           </div>
                           <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                             <p className="font-mono text-[13px] font-semibold text-brand-primary">
-                              {Number(inv.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              {formatAmount(inv.amount)}
                             </p>
                             <StatusBadge status={inv.payment_method} className="text-[10px] px-2 py-0" />
                           </div>

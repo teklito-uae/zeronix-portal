@@ -13,6 +13,7 @@ use App\Models\SalesOrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
+use App\Support\LineItemMath;
 use App\Traits\GeneratesPdf;
 
 class InvoiceController extends Controller
@@ -91,21 +92,9 @@ class InvoiceController extends Controller
         try {
             $invoiceNumber = $this->nextInvoiceNumber();
 
-            $subtotal = 0;
-            $vatAmount = 0;
-
-            foreach ($items as $item) {
-                $lineSubtotal = $item['quantity'] * $item['unit_price'];
-                $lineDiscountAmt = $lineSubtotal * (($item['discount_percent'] ?? 0) / 100);
-                $lineTaxable = $lineSubtotal - $lineDiscountAmt;
-                $lineTax = $lineTaxable * (($item['tax_percent'] ?? 5) / 100);
-                $subtotal += $lineTaxable;
-                $vatAmount += $lineTax;
-            }
-
             $discountPercent = $validated['discount_percent'] ?? 0;
             $shippingAmount = $validated['shipping_amount'] ?? 0;
-            $headerDiscountAmt = $subtotal * ($discountPercent / 100);
+            $totals = LineItemMath::totals($items, $discountPercent, $shippingAmount);
 
             $customer = Customer::find($validated['customer_id']);
 
@@ -121,9 +110,9 @@ class InvoiceController extends Controller
                 'date' => $validated['date'],
                 'due_date' => $validated['due_date'] ?? Carbon::parse($validated['date'])->addDays(7),
                 'reference_id' => $validated['reference_id'] ?? null,
-                'subtotal' => $subtotal,
-                'vat_amount' => $vatAmount,
-                'total' => $subtotal - $headerDiscountAmt + $vatAmount + $shippingAmount,
+                'subtotal' => $totals['subtotal'],
+                'vat_amount' => $totals['vat_amount'],
+                'total' => $totals['total'],
                 'status' => $validated['status'] ?? 'draft',
                 'notes' => $validated['notes'] ?? null,
                 'terms' => $validated['terms'] ?? null,
@@ -133,11 +122,7 @@ class InvoiceController extends Controller
             ]);
 
             foreach ($items as $item) {
-                $lineSubtotal = $item['quantity'] * $item['unit_price'];
-                $lineDiscountPercent = $item['discount_percent'] ?? 0;
-                $lineDiscountAmt = $lineSubtotal * ($lineDiscountPercent / 100);
-                $lineTaxable = $lineSubtotal - $lineDiscountAmt;
-                $lineTax = $lineTaxable * (($item['tax_percent'] ?? 5) / 100);
+                $line = LineItemMath::line($item);
 
                 InvoiceItem::create([
                     'invoice_id' => $invoice->id,
@@ -145,11 +130,11 @@ class InvoiceController extends Controller
                     'description' => $item['description'],
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
-                    'tax_percent' => $item['tax_percent'] ?? 5,
-                    'tax_amount' => $lineTax,
-                    'discount_percent' => $lineDiscountPercent,
-                    'discount_amount' => $lineDiscountAmt,
-                    'total' => $lineTaxable + $lineTax,
+                    'tax_percent' => $line['tax_percent'],
+                    'tax_amount' => $line['tax_amount'],
+                    'discount_percent' => $line['discount_percent'],
+                    'discount_amount' => $line['discount_amount'],
+                    'total' => $line['total'],
                 ]);
             }
 
@@ -261,21 +246,9 @@ class InvoiceController extends Controller
 
         DB::beginTransaction();
         try {
-            $subtotal = 0;
-            $vatAmount = 0;
-
-            foreach ($validated['items'] as $item) {
-                $lineSubtotal = $item['quantity'] * $item['unit_price'];
-                $lineDiscountAmt = $lineSubtotal * (($item['discount_percent'] ?? 0) / 100);
-                $lineTaxable = $lineSubtotal - $lineDiscountAmt;
-                $lineTax = $lineTaxable * (($item['tax_percent'] ?? 5) / 100);
-                $subtotal += $lineTaxable;
-                $vatAmount += $lineTax;
-            }
-
             $discountPercent = $validated['discount_percent'] ?? 0;
             $shippingAmount = $validated['shipping_amount'] ?? 0;
-            $headerDiscountAmt = $subtotal * ($discountPercent / 100);
+            $totals = LineItemMath::totals($validated['items'], $discountPercent, $shippingAmount);
 
             $invoice->update([
                 'customer_id' => $validated['customer_id'],
@@ -284,9 +257,9 @@ class InvoiceController extends Controller
                 'date' => $validated['date'],
                 'due_date' => $validated['due_date'] ?? Carbon::parse($validated['date'])->addDays(7),
                 'reference_id' => $validated['reference_id'] ?? $invoice->reference_id,
-                'subtotal' => $subtotal,
-                'vat_amount' => $vatAmount,
-                'total' => $subtotal - $headerDiscountAmt + $vatAmount + $shippingAmount,
+                'subtotal' => $totals['subtotal'],
+                'vat_amount' => $totals['vat_amount'],
+                'total' => $totals['total'],
                 'status' => $validated['status'] ?? $invoice->status,
                 'notes' => array_key_exists('notes', $validated) ? $validated['notes'] : $invoice->notes,
                 'terms' => array_key_exists('terms', $validated) ? $validated['terms'] : $invoice->terms,
@@ -298,11 +271,7 @@ class InvoiceController extends Controller
             // Sync items (delete row-by-row so stock-reversal model events fire)
             $invoice->items()->get()->each->delete();
             foreach ($validated['items'] as $item) {
-                $lineSubtotal = $item['quantity'] * $item['unit_price'];
-                $lineDiscountPercent = $item['discount_percent'] ?? 0;
-                $lineDiscountAmt = $lineSubtotal * ($lineDiscountPercent / 100);
-                $lineTaxable = $lineSubtotal - $lineDiscountAmt;
-                $lineTax = $lineTaxable * (($item['tax_percent'] ?? 5) / 100);
+                $line = LineItemMath::line($item);
 
                 InvoiceItem::create([
                     'invoice_id' => $invoice->id,
@@ -310,11 +279,11 @@ class InvoiceController extends Controller
                     'description' => $item['description'],
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
-                    'tax_percent' => $item['tax_percent'] ?? 5,
-                    'tax_amount' => $lineTax,
-                    'discount_percent' => $lineDiscountPercent,
-                    'discount_amount' => $lineDiscountAmt,
-                    'total' => $lineTaxable + $lineTax,
+                    'tax_percent' => $line['tax_percent'],
+                    'tax_amount' => $line['tax_amount'],
+                    'discount_percent' => $line['discount_percent'],
+                    'discount_amount' => $line['discount_amount'],
+                    'total' => $line['total'],
                 ]);
             }
 

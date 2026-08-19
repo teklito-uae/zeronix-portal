@@ -2,6 +2,7 @@ import { StatusBadge } from './StatusBadge';
 import { CurrencyAmount } from './CurrencyAmount';
 import type { CurrencyCode } from '@/lib/currency';
 import { FileText, Calendar, CalendarClock } from 'lucide-react';
+import { formatDate } from '@/lib/utils';
 
 interface LinkedDocumentSummaryCardProps {
   /** 'Invoice' or 'Purchase Bill' */
@@ -18,7 +19,6 @@ interface LinkedDocumentSummaryCardProps {
   emptyMessage: string;
 }
 
-const formatDate = (value?: string | null) => (value ? new Date(value).toLocaleDateString() : '—');
 
 /**
  * "What this payment was applied against" — shown below the receipt itself

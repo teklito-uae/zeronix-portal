@@ -43,7 +43,8 @@ import {
   Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, formatDate } from '@/lib/utils';
+import { formatAmount } from '@/lib/currency';
 
 interface InvoiceDetailViewProps {
   id: string | number;
@@ -62,7 +63,6 @@ const detailTabs = [
   { id: 'history', label: 'History' },
 ];
 
-const formatDate = (value?: string | null) => (value ? new Date(value).toLocaleDateString() : '—');
 
 const formatFileSize = (bytes?: number) => {
   if (!bytes && bytes !== 0) return '';
@@ -399,13 +399,13 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
                         </TableCell>
                         <TableCell className="text-[12px] text-brand-secondary text-right">{item.quantity}</TableCell>
                         <TableCell className="text-[12px] text-brand-secondary text-right">
-                          {Number(item.unit_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          {formatAmount(item.unit_price)}
                         </TableCell>
                         <TableCell className="text-[12px] text-brand-secondary text-right">
                           {Number(item.tax_percent ?? 0)}%
                         </TableCell>
                         <TableCell className="text-[12px] text-brand-primary font-medium text-right">
-                          {(Number(item.quantity) * Number(item.unit_price)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          {formatAmount(Number(item.quantity) * Number(item.unit_price))}
                         </TableCell>
                       </TableRow>
                     );
@@ -430,28 +430,28 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
                 <div className="flex items-center justify-between">
                   <p className="text-[11px] uppercase tracking-wider text-brand-subtle">Subtotal</p>
                   <p className="text-[13px] font-medium text-brand-primary">
-                    {totals.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {formatAmount(totals.subtotal)}
                   </p>
                 </div>
                 {totals.discountAmount > 0 && (
                   <div className="flex items-center justify-between">
                     <p className="text-[11px] uppercase tracking-wider text-brand-subtle">Discount</p>
                     <p className="text-[13px] font-medium text-brand-primary">
-                      -{totals.discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      -{formatAmount(totals.discountAmount)}
                     </p>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
                   <p className="text-[11px] uppercase tracking-wider text-brand-subtle">VAT</p>
                   <p className="text-[13px] font-medium text-brand-primary">
-                    {totals.vat.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {formatAmount(totals.vat)}
                   </p>
                 </div>
                 {totals.shippingAmount > 0 && (
                   <div className="flex items-center justify-between">
                     <p className="text-[11px] uppercase tracking-wider text-brand-subtle">Shipping</p>
                     <p className="text-[13px] font-medium text-brand-primary">
-                      {totals.shippingAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      {formatAmount(totals.shippingAmount)}
                     </p>
                   </div>
                 )}
@@ -466,13 +466,13 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
                     <div className="flex items-center justify-between pt-2 border-t border-brand-border">
                       <p className="text-[11px] uppercase tracking-wider text-brand-subtle">Paid</p>
                       <p className="text-[13px] font-medium text-emerald-600">
-                        {data.amount_paid.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        {formatAmount(data.amount_paid)}
                       </p>
                     </div>
                     <div className="flex items-center justify-between">
                       <p className="text-[11px] uppercase tracking-wider text-brand-subtle">Balance Due</p>
                       <p className="text-[13px] font-bold text-brand-primary">
-                        {data.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        {formatAmount(data.balance)}
                       </p>
                     </div>
                   </>
@@ -567,7 +567,7 @@ export const InvoiceDetailView = ({ id, onSend, isSendPending, onDeleted }: Invo
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-subtle mb-1">Amount Paid</p>
                 <p className="text-[13px] font-medium text-brand-primary">
-                  {data.amount_paid.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {formatAmount(data.amount_paid)}
                 </p>
               </div>
             )}

@@ -25,6 +25,7 @@ import { computeLineTotal } from '@/lib/lineItemMath';
 import { Library, Package, MoreVertical, Trash2 } from 'lucide-react';
 import type { Product } from '@/types';
 import { emptyQIALine, type QIALineItem } from './types';
+import { formatAmount } from '@/lib/currency';
 
 interface ItemsTableProps {
   items: QIALineItem[];
@@ -206,7 +207,7 @@ export const ItemsTable = ({ items, onChange, products, disabled, onOpenLibrary,
                     </TableCell>
                   )}
                   <TableCell className="text-right text-[13px] font-mono font-semibold text-brand-primary py-2.5 pr-3">
-                    {amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {formatAmount(amount)}
                   </TableCell>
                   <TableCell className="text-right py-2.5 pr-2">
                     {!disabled && (

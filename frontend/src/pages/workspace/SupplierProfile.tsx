@@ -16,6 +16,7 @@ import { Pagination } from '@/components/shared/Pagination';
 import Avatar from 'boring-avatars';
 import { useThemeStore } from '@/store/useThemeStore';
 import { Mail, Phone, Package } from 'lucide-react';
+import { formatAmount } from '@/lib/currency';
 
 /**
  * Supplier Profile Detail View
@@ -92,7 +93,7 @@ export const SupplierProfile = () => {
       header: 'Price',
       cell: ({ row }) => (
         <span className="font-mono text-[14px] font-semibold text-brand-primary whitespace-nowrap">
-          {Number(row.original.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-[11px] text-brand-subtle ml-0.5">{row.original.currency}</span>
+          {formatAmount(row.original.price)} <span className="text-[11px] text-brand-subtle ml-0.5">{row.original.currency}</span>
         </span>
       ),
     },

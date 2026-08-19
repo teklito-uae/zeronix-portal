@@ -19,6 +19,11 @@ export function isCurrencyCode(value: unknown): value is CurrencyCode {
   return typeof value === 'string' && value in CURRENCIES;
 }
 
+/** Plain fixed-decimal amount without a currency symbol (e.g. "1,234.50"). */
+export function formatAmount(value: number | string | undefined | null): string {
+  return (Number(value) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
+}
+
 export function formatMoney(
   amount: number | string | undefined | null,
   currency: CurrencyCode = DEFAULT_CURRENCY,

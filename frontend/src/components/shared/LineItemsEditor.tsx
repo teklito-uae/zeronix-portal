@@ -12,7 +12,7 @@ import { computeLineTotal, computeDocTotals } from '@/lib/lineItemMath';
 import { Plus, Trash2 } from 'lucide-react';
 import type { Product } from '@/types';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
-import { isCurrencyCode } from '@/lib/currency';
+import { formatAmount, isCurrencyCode } from '@/lib/currency';
 import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 
 export interface EditableLineItem {
@@ -180,7 +180,7 @@ export const LineItemsEditor = ({ items, onChange, products, disabled, currency 
                     />
                   </TableCell>
                   <TableCell className="text-right text-sm font-mono font-semibold text-brand-primary py-2 pt-3.5">
-                    {lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {formatAmount(lineTotal)}
                   </TableCell>
                   <TableCell className="text-right py-2 pt-3">
                     {!disabled && (
@@ -225,11 +225,11 @@ export const LineItemsEditor = ({ items, onChange, products, disabled, currency 
         <div className="w-full max-w-xs space-y-2">
           <div className="flex justify-between text-xs text-brand-secondary">
             <span>Subtotal</span>
-            <span className="font-mono">{totals.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            <span className="font-mono">{formatAmount(totals.subtotal)}</span>
           </div>
           <div className="flex justify-between text-xs text-brand-secondary">
             <span>VAT</span>
-            <span className="font-mono">{totals.vat.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            <span className="font-mono">{formatAmount(totals.vat)}</span>
           </div>
           <div className="flex justify-between items-baseline pt-2 border-t border-brand-border">
             <span className="text-xs font-semibold uppercase tracking-wide text-brand-primary">Total</span>
