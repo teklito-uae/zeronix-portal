@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/useAuthStore';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import { ActionGroup } from '@/components/shared/ActionGroup';
+import { DownloadButton } from '@/components/shared/DownloadButton';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
 import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 
@@ -126,14 +127,16 @@ export const Invoices = () => {
       id: 'actions',
       header: '',
       cell: ({ row }) => (
-        <ActionGroup
-          onPay={row.original.payment_status !== 'paid' ? () => { setSelectedInvoice(row.original); setIsReceiptModalOpen(true); } : undefined}
-          onMail={() => sendEmailMutation.mutate(row.original.id)}
-          isMailPending={sendEmailMutation.isPending && sendEmailMutation.variables === row.original.id}
-          isMailSent={!!row.original.email_sent_at}
-          onDownload={() => window.open(`${api.defaults.baseURL}/admin/invoices/${row.original.id}/download`, '_blank')}
-          onView={() => navigate(`${getBasePath()}/invoices/${row.original.id}`)}
-        />
+        <div className="flex items-center justify-end gap-1">
+          <ActionGroup
+            onPay={row.original.payment_status !== 'paid' ? () => { setSelectedInvoice(row.original); setIsReceiptModalOpen(true); } : undefined}
+            onMail={() => sendEmailMutation.mutate(row.original.id)}
+            isMailPending={sendEmailMutation.isPending && sendEmailMutation.variables === row.original.id}
+            isMailSent={!!row.original.email_sent_at}
+            onView={() => navigate(`${getBasePath()}/invoices/${row.original.id}`)}
+          />
+          <DownloadButton type="invoice" id={row.original.id} mode="download" variant="ghost" size="icon" />
+        </div>
       ),
     },
   ];

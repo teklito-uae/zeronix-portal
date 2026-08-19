@@ -10,6 +10,7 @@ use App\Models\Quote;
 use App\Models\Tag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Support\AttachmentSecurity;
 
 class CustomerContactController extends Controller
 {
@@ -154,11 +155,9 @@ class CustomerContactController extends Controller
     {
         $this->authorize('update', $contact);
 
-        $request->validate([
-            'file' => 'required|file|max:10240',
-        ]);
+        $request->validate(['file' => AttachmentSecurity::rules()]);
 
-        $path = $request->file('file')->store('contact-attachments', 'public');
+        $path = AttachmentSecurity::store($request->file('file'), 'contact-attachments');
 
         $attachments = $contact->attachments ?? [];
         $attachments[] = [

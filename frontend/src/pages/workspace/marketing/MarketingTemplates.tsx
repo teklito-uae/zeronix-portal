@@ -145,9 +145,15 @@ export const MarketingTemplates = () => {
               </div>
               <div
                 className="h-24 rounded-md border border-brand-border bg-brand-surface/40 overflow-hidden text-[9px] p-2 text-brand-subtle"
-                dangerouslySetInnerHTML={{ __html: t.body_html }}
                 style={{ pointerEvents: 'none' }}
-              />
+              >
+                <iframe
+                  title={`${t.name} preview`}
+                  sandbox=""
+                  srcDoc={t.body_html}
+                  className="h-full w-full border-0"
+                />
+              </div>
               <div className="flex items-center gap-1.5 mt-1">
                 <Badge variant="outline" className="text-[10px] capitalize">{t.category.replace('_', ' ')}</Badge>
                 {t.is_builtin && <Badge variant="outline" className="text-[10px] bg-brand-accent-light text-brand-accent border-0">Built-in</Badge>}

@@ -62,10 +62,9 @@ use App\Http\Controllers\SbProductController;
 
 // Customer Auth Routes (Moved to top for priority)
 Route::prefix('customer')->group(function () {
-    Route::post('/register', [CustomerAuthController::class, 'register']);
-    Route::post('/login', [CustomerAuthController::class, 'login']);
+    Route::post('/login', [CustomerAuthController::class, 'login'])->middleware('throttle:auth');
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'principal:customer'])->group(function () {
         Route::get('/dashboard', [CustomerDashboardController::class, 'index']);
         Route::post('/logout', [CustomerAuthController::class, 'logout']);
         Route::get('/user', [CustomerAuthController::class, 'user']);
@@ -104,20 +103,6 @@ Route::prefix('customer')->group(function () {
 
 // Public routes (Rate limited later)
 Route::middleware('throttle:public')->group(function () {
-    // Public Document Routes (Global access via Number)
-    Route::get('/portal/quotes/{number}/view', [DocumentController::class, 'publicViewQuote']);
-    Route::get('/portal/invoices/{number}/view', [DocumentController::class, 'publicViewInvoice']);
-    Route::get('/portal/quotes/{number}/download', [DocumentController::class, 'publicDownloadQuote']);
-    Route::get('/portal/invoices/{number}/download', [DocumentController::class, 'publicDownloadInvoice']);
-
-    // Admin/Customer ID-based views (Legacy/Internal)
-    Route::get('/admin/invoices/{id}/download', [DocumentController::class, 'downloadInvoice']);
-    Route::get('/admin/invoices/{id}/view', [DocumentController::class, 'previewInvoice']);
-    Route::get('/admin/quotes/{id}/download', [DocumentController::class, 'downloadQuote']);
-    Route::get('/admin/quotes/{id}/view', [DocumentController::class, 'previewQuote']);
-    Route::get('/admin/receipts/{id}/download', [DocumentController::class, 'downloadReceipt']);
-    Route::get('/admin/receipts/{id}/view', [DocumentController::class, 'previewReceipt']);
-
     // Company self-signup (tenant onboarding) — public RFQ/lead-capture was removed;
     // Leads are now created only by staff (directly, or via an authenticated Enquiry).
     Route::post('/public/register-company', [CompanyController::class, 'publicStore']);
@@ -131,7 +116,7 @@ Route::middleware('throttle:public')->group(function () {
 
 // Common routes for both Admin and Staff (using getBasePath() on frontend)
 foreach (['admin', 'staff'] as $prefix) {
-    Route::prefix($prefix)->middleware('auth:sanctum')->group(function () {
+    Route::prefix($prefix)->middleware(['auth:sanctum', 'principal:staff'])->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index']);
 
         // Leads
@@ -405,16 +390,16 @@ foreach (['admin', 'staff'] as $prefix) {
 
 // Admin Auth Routes
 Route::prefix('admin')->group(function () {
-    Route::post('/login', [AdminAuthController::class, 'login']);
-    Route::post('/forgot-password', [AdminAuthController::class, 'forgotPassword']);
-    Route::post('/reset-password', [AdminAuthController::class, 'resetPassword']);
+    Route::post('/login', [AdminAuthController::class, 'login'])->middleware('throttle:auth');
+    Route::post('/forgot-password', [AdminAuthController::class, 'forgotPassword'])->middleware('throttle:auth');
+    Route::post('/reset-password', [AdminAuthController::class, 'resetPassword'])->middleware('throttle:auth');
 
     // Google's OAuth redirect is a bare browser navigation with no Bearer
     // token attached, so this can't sit behind auth:sanctum — the `state`
     // param itself carries and verifies who's connecting (see controller).
     Route::get('/google-contacts/callback', [GoogleContactsController::class, 'callback']);
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'principal:staff'])->group(function () {
         // Dashboard (Legacy/Direct)
         Route::get('/dashboard', [DashboardController::class, 'index']);
         Route::post('/logout', [AdminAuthController::class, 'logout']);

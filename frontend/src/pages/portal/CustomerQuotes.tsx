@@ -111,8 +111,8 @@ export const CustomerQuotes = () => {
       header: '',
       cell: ({ row }) => (
         <div className="flex justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-          <DownloadButton type="quote" id={row.original.id} number={row.original.quote_number} mode="view" variant="ghost" size="icon" />
-          <DownloadButton type="quote" id={row.original.id} number={row.original.quote_number} mode="download" variant="ghost" size="icon" />
+          <DownloadButton type="quote" id={row.original.id} mode="view" variant="ghost" size="icon" />
+          <DownloadButton type="quote" id={row.original.id} mode="download" variant="ghost" size="icon" />
         </div>
       ),
     },

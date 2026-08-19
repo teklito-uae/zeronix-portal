@@ -9,6 +9,7 @@ use App\Models\SalesOrder;
 use App\Models\SalesOrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Support\AttachmentSecurity;
 use Illuminate\Support\Carbon;
 use App\Traits\GeneratesPdf;
 
@@ -412,11 +413,9 @@ class QuoteController extends Controller
     {
         $this->authorize('update', $quote);
 
-        $request->validate([
-            'file' => 'required|file|max:10240',
-        ]);
+        $request->validate(['file' => AttachmentSecurity::rules()]);
 
-        $path = $request->file('file')->store('quote-attachments', 'public');
+        $path = AttachmentSecurity::store($request->file('file'), 'quote-attachments');
 
         $attachments = $quote->attachments ?? [];
         $attachments[] = [

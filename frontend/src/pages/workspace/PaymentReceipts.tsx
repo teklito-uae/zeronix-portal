@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { ResourceListingPage } from '@/components/shared/ResourceListingPage';
 import { ActionGroup } from '@/components/shared/ActionGroup';
+import { DownloadButton } from '@/components/shared/DownloadButton';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
 import { CurrencyAmount } from '@/components/shared/CurrencyAmount';
 
@@ -102,12 +103,14 @@ export const PaymentReceipts = () => {
       id: 'actions',
       header: '',
       cell: ({ row }) => (
-        <ActionGroup
-          onView={() => window.open(`${api.defaults.baseURL}/admin/receipts/${row.original.id}/view`, '_blank')}
-          onDownload={() => window.open(`${api.defaults.baseURL}/admin/receipts/${row.original.id}/download`, '_blank')}
-          onMail={() => sendMutation.mutate(row.original.id)}
-          isMailPending={sendingId === row.original.id}
-        />
+        <div className="flex items-center justify-end gap-1">
+          <DownloadButton type="payment-receipt" id={row.original.id} mode="view" variant="ghost" size="icon" />
+          <DownloadButton type="payment-receipt" id={row.original.id} mode="download" variant="ghost" size="icon" />
+          <ActionGroup
+            onMail={() => sendMutation.mutate(row.original.id)}
+            isMailPending={sendingId === row.original.id}
+          />
+        </div>
       ),
     },
   ];

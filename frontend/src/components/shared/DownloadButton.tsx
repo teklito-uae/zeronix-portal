@@ -7,7 +7,6 @@ import api from '@/lib/axios';
 interface DownloadButtonProps {
   type: 'invoice' | 'quote' | 'purchase-bill' | 'payment-receipt' | 'supplier-payment-receipt';
   id: number | string;
-  number?: string | null;
   variant?: 'outline' | 'ghost' | 'default' | 'secondary';
   size?: 'sm' | 'md' | 'icon';
   label?: string;
@@ -17,7 +16,6 @@ interface DownloadButtonProps {
 export const DownloadButton = ({ 
   type, 
   id, 
-  number,
   variant = 'outline', 
   size = 'sm',
   label,
@@ -31,17 +29,9 @@ export const DownloadButton = ({
     e.stopPropagation();
     setLoading(true);
     
-    const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
     // Workspace (admin/staff) and platform (super_admin) both live outside /portal,
     // and both hit the same /admin/* document endpoints.
     const role = location.pathname.startsWith('/portal') ? 'customer' : 'admin';
-
-    // Priority: Number-based Global URL for View
-    if (mode === 'view' && number) {
-      window.open(`${apiBase}/portal/${type}s/${number}/view`, '_blank');
-      setLoading(false);
-      return;
-    }
 
     if (mode === 'view') {
       const endpoint = `${role}/${type}s/${id}/view`;
@@ -68,9 +58,7 @@ export const DownloadButton = ({
     }
 
     try {
-      const endpoint = number 
-        ? `/portal/${type}s/${number}/download` 
-        : `/${role}/${type}s/${id}/download`;
+      const endpoint = `/${role}/${type}s/${id}/download`;
 
       const response = await api.get(endpoint, { 
         responseType: 'blob',

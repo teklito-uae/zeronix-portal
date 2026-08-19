@@ -13,6 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use App\Support\AttachmentSecurity;
 
 class DealController extends Controller
 {
@@ -403,11 +404,9 @@ class DealController extends Controller
     {
         $this->authorize('update', $deal);
 
-        $request->validate([
-            'file' => 'required|file|max:10240',
-        ]);
+        $request->validate(['file' => AttachmentSecurity::rules()]);
 
-        $path = $request->file('file')->store('deal-attachments', 'public');
+        $path = AttachmentSecurity::store($request->file('file'), 'deal-attachments');
 
         $attachments = $deal->attachments ?? [];
         $attachments[] = [
