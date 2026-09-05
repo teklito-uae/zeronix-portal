@@ -1119,12 +1119,18 @@ HTML;
     {
         $templates = [
             // Quotes
-            ['key' => 'quote_classic',        'name' => 'Classic Professional',  'type' => 'quote',         'is_default' => true,  'content' => $this->quoteClassic(),        'subject' => 'Quotation #{quote_number} from {company_name}', 'email_body' => "Dear {customer_name},\n\nPlease find attached our quotation #{quote_number}.\n\nBest regards,\n{company_name}"],
-            ['key' => 'quote_modern',         'name' => 'Modern Minimal',        'type' => 'quote',         'is_default' => false, 'content' => $this->quoteModern(),         'subject' => 'Your Quote #{quote_number}', 'email_body' => "Hi {customer_name},\n\nHere's your quotation #{quote_number}.\n\nThanks,\n{company_name}"],
+            // email_body here is the *message* paragraphs only — the emailed
+            // greeting ("Dear {customer_name},") and the signature block
+            // (sender name/designation/company/contact/logo) are added
+            // automatically by resources/views/emails/quote.blade.php, so
+            // this text should not include its own greeting or sign-off.
+            ['key' => 'quote_classic',        'name' => 'Classic Professional',  'type' => 'quote',         'is_default' => true,  'content' => $this->quoteClassic(),        'subject' => 'Quotation #{quote_number} from {company_name}', 'email_body' => "Thank you for the opportunity to quote for your requirements. Please find attached our quotation #{quote_number}, valid until {valid_until}.\n\nKindly review the enclosed details and share your Purchase Order (PO) at your earliest convenience so we can proceed with your order.\n\nShould you have any questions or need further clarification, please do not hesitate to reach out."],
+            ['key' => 'quote_modern',         'name' => 'Modern Minimal',        'type' => 'quote',         'is_default' => false, 'content' => $this->quoteModern(),         'subject' => 'Your Quote #{quote_number}', 'email_body' => "Please find attached our quotation #{quote_number}, valid until {valid_until}, for your review.\n\nWe'd appreciate it if you could share your Purchase Order (PO) so we can get started. Let us know if you have any questions."],
 
-            // Invoices
-            ['key' => 'invoice_classic',      'name' => 'Classic Professional',  'type' => 'invoice',       'is_default' => true,  'content' => $this->invoiceClassic(),      'subject' => 'Invoice #{invoice_number} from {company_name}', 'email_body' => "Dear {customer_name},\n\nPlease find attached invoice #{invoice_number}.\n\nBest regards,\n{company_name}"],
-            ['key' => 'invoice_modern',       'name' => 'Modern Minimal',        'type' => 'invoice',       'is_default' => false, 'content' => $this->invoiceModern(),       'subject' => 'Invoice #{invoice_number}', 'email_body' => "Hi {customer_name},\n\nHere's invoice #{invoice_number}.\n\nThanks,\n{company_name}"],
+            // Invoices — same note as above: no greeting/sign-off here, the
+            // Blade view (resources/views/emails/invoice.blade.php) adds both.
+            ['key' => 'invoice_classic',      'name' => 'Classic Professional',  'type' => 'invoice',       'is_default' => true,  'content' => $this->invoiceClassic(),      'subject' => 'Invoice #{invoice_number} from {company_name}', 'email_body' => "Please find attached invoice #{invoice_number} for {total_amount}, due on {due_date}.\n\nKindly arrange payment at your earliest convenience. Please let us know if you have any questions regarding this invoice."],
+            ['key' => 'invoice_modern',       'name' => 'Modern Minimal',        'type' => 'invoice',       'is_default' => false, 'content' => $this->invoiceModern(),       'subject' => 'Invoice #{invoice_number}', 'email_body' => "Here's invoice #{invoice_number} for {total_amount}, due {due_date}.\n\nThanks for your business — let us know if you have any questions."],
 
             // Sales Orders
             ['key' => 'sales_order_classic',  'name' => 'Classic Professional',  'type' => 'sales_order',   'is_default' => true,  'content' => $this->salesOrderClassic(),   'subject' => 'Sales Order #{order_number}', 'email_body' => "Dear {customer_name},\n\nYour sales order #{order_number} is confirmed.\n\nBest regards,\n{company_name}"],

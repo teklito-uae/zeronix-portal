@@ -454,10 +454,8 @@ class QuoteController extends Controller
             return response()->json(['message' => 'Customer does not have an email address.'], 422);
         }
 
-        $currency = $quote->company->settings['currency'] ?? 'USD';
-
         // Get default template for quote
-        $template = \App\Models\Template::where('type', 'quote')->where('is_default', true)->first() 
+        $template = \App\Models\Template::where('type', 'quote')->where('is_default', true)->first()
             ?? \App\Models\Template::where('type', 'quote')->first();
 
         if (!$template) {
@@ -468,93 +466,21 @@ class QuoteController extends Controller
             // Apply current user's SMTP settings
             \App\Services\MailConfigService::applyUserSmtp($request->user());
 
-            // Prepare replacements
-            $replacements = [
-                '{quote_number}' => $quote->quote_number,
-                '{customer_name}' => $quote->customer->name,
-                '{customer_company}' => $quote->customer->company ?? '',
-                '{total_amount}' => number_format($quote->total, 2) . ' ' . $currency,
-                '{date}' => \Carbon\Carbon::parse($quote->date)->format('d M Y'),
-                '{valid_until}' => $quote->valid_until ? \Carbon\Carbon::parse($quote->valid_until)->format('d M Y') : '',
-            ];
-
-            // Replace in subject and body
-            $subject = str_replace(array_keys($replacements), array_values($replacements), $template->subject);
-            $emailBody = str_replace(array_keys($replacements), array_values($replacements), $template->email_body);
-
-            // Generate PDF (using DocumentController logic but here for self-containment)
-            // Actually, I can just call the render logic. Let's keep it simple for now.
-            // We reuse the generatePdf logic by calling it internally or just doing the replacement here.
-            
-            $html = $template->content;
-            
-            // Prepare items HTML
-            $itemsHtml = '';
-            foreach ($quote->items as $index => $item) {
-                $itemVat = $item->total * 0.05;
-                $itemsHtml .= "<tr>
-                    <td style='padding: 10px; border-bottom: 1px solid #eee;'>" . ($index + 1) . "</td>
-                    <td style='padding: 10px; border-bottom: 1px solid #eee;'><strong>{$item->product_name}</strong><br><small>{$item->description}</small></td>
-                    <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: center;'>" . number_format($item->quantity, 2) . "</td>
-                    <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>" . number_format($item->unit_price, 2) . "</td>
-                    <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>" . number_format($itemVat, 2) . "</td>
-                    <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>" . number_format($item->total, 2) . "</td>
-                </tr>";
-            }
-
-            // Prepare Tax Summary Table
-            $taxSummaryHtml = "<table style='width: 100%; border: 1px solid #eee; margin-top: 20px;'>
-                <thead>
-                    <tr style='background: #f9fafb;'>
-                        <th style='padding: 10px; text-align: left; border-bottom: 1px solid #eee;'>Tax Details</th>
-                        <th style='padding: 10px; text-align: right; border-bottom: 1px solid #eee;'>Taxable Amount</th>
-                        <th style='padding: 10px; text-align: right; border-bottom: 1px solid #eee;'>Tax Amount</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td style='padding: 10px; border-bottom: 1px solid #eee;'>Standard Rate (5%)</td>
-                        <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>" . number_format($quote->subtotal, 2) . " {$currency}</td>
-                        <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>" . number_format($quote->vat_amount, 2) . " {$currency}</td>
-                    </tr>
-                    <tr style='font-weight: bold;'>
-                        <td style='padding: 10px;'>Total</td>
-                        <td style='padding: 10px; text-align: right;'>" . number_format($quote->subtotal, 2) . " {$currency}</td>
-                        <td style='padding: 10px; text-align: right;'>" . number_format($quote->vat_amount, 2) . " {$currency}</td>
-                    </tr>
-                </tbody>
-            </table>";
-
-            // Prepare Logo
-            $logoPath = public_path('images/logo.png');
-            $logoBase64 = '';
-            if (file_exists($logoPath)) {
-                $logoData = file_get_contents($logoPath);
-                $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
-            }
-
-            $viewUrl = url("/api/view/quote/{$quote->quote_number}");
-
-            $pdfReplacements = array_merge($replacements, [
-                '{logo_url}' => $logoBase64,
-                '{view_url}' => $viewUrl,
-                '{items}' => $itemsHtml, 
-                '{subtotal}' => number_format($quote->subtotal, 2) . ' ' . $currency,
-                '{vat_amount}' => number_format($quote->vat_amount, 2) . ' ' . $currency,
-                '{tax_summary}' => $taxSummaryHtml,
-                '{total_in_words}' => \App\Helpers\NumberHelper::toWords($quote->total),
-                '{customer_address}' => nl2br(e($quote->customer->address ?? '')),
-                '{valid_until}' => \Carbon\Carbon::parse($quote->valid_until)->format('d M Y'),
-            ]);
-            $renderedHtml = str_replace(array_keys($pdfReplacements), array_values($pdfReplacements), $html);
-
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($renderedHtml)->setPaper('a4', 'portrait');
-            $pdfContent = $pdf->output();
-            $filename = "Quotation-{$quote->quote_number}.pdf";
+            // Subject/body and the PDF must all go through the same
+            // renderPdfHtml()/generatePdfOutput() path used by view/download
+            // (see GeneratesPdf trait) — this previously had its own
+            // hand-rolled token replacement here that never merged in the
+            // company's brand settings (logo, company name/address/etc.),
+            // so the emailed PDF silently lost all branding that Preview/
+            // Download rendered correctly.
+            $subject = $this->renderPdfHtml($template->subject, $quote, 'quote');
+            $emailBody = $this->renderPdfHtml($template->email_body, $quote, 'quote');
+            $pdfContent = $this->generatePdfOutput($quote, 'quote');
+            $filename = $this->pdfFilename($quote, 'quote');
 
             // Send Email
             \Illuminate\Support\Facades\Mail::to($quote->customer->email)
-                ->send(new \App\Mail\QuoteMail($quote, $pdfContent, $filename, $subject, $emailBody));
+                ->send(new \App\Mail\QuoteMail($quote, $pdfContent, $filename, $subject, $emailBody, $request->user()));
 
             // Update sent timestamp and status
             $quote->update([
