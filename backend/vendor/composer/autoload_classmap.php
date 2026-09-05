@@ -291,6 +291,7 @@ return array(
     'Database\\Seeders\\DummyDataSeeder' => $baseDir . '/database/seeders/DummyDataSeeder.php',
     'Database\\Seeders\\GrandPCDProductSeeder' => $baseDir . '/database/seeders/GrandPCDProductSeeder.php',
     'Database\\Seeders\\ITWorldProductSeeder' => $baseDir . '/database/seeders/ITWorldProductSeeder.php',
+    'Database\\Seeders\\ProductionBootstrapSeeder' => $baseDir . '/database/seeders/ProductionBootstrapSeeder.php',
     'Database\\Seeders\\ProductionSupplierSeeder' => $baseDir . '/database/seeders/ProductionSupplierSeeder.php',
     'Database\\Seeders\\PurchaseSeeder' => $baseDir . '/database/seeders/PurchaseSeeder.php',
     'Database\\Seeders\\SimmalProductSeeder' => $baseDir . '/database/seeders/SimmalProductSeeder.php',
