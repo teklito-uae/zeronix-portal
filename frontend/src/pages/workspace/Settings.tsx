@@ -129,7 +129,14 @@ export const Settings = () => {
 
     // Append JSON as a blob or array syntax
     Object.keys(settingsPayload).forEach(key => {
-      formData.append(`settings[${key}]`, settingsPayload[key] as string);
+      const value = settingsPayload[key];
+      if (Array.isArray(value)) {
+        value.forEach(v => formData.append(`settings[${key}][]`, v as string));
+      } else {
+        // FormData.append() stringifies null/undefined to the literal text "null"/"undefined",
+        // which then gets persisted verbatim and leaks into generated PDFs.
+        formData.append(`settings[${key}]`, (value as string) ?? '');
+      }
     });
 
     if (brandForm.logo) {
