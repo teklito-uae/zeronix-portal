@@ -67,6 +67,23 @@ class WorkspaceSettingsController extends Controller
             'settings.customer_prefix' => 'nullable|string|max:15|regex:/^[A-Za-z0-9-]+$/',
             'settings.supplier_prefix' => 'nullable|string|max:15|regex:/^[A-Za-z0-9-]+$/',
             'settings.receipt_prefix' => 'nullable|string|max:15|regex:/^[A-Za-z0-9-]+$/',
+            // Brand/identity + currency fields — these previously had no rules,
+            // so Laravel's validator silently stripped them from $validated on
+            // every save (only the prefixes above ever survived).
+            'settings.currency' => 'nullable|string|in:USD,AED',
+            'settings.base_currency' => 'nullable|string|in:USD,AED',
+            'settings.company_name' => 'nullable|string|max:255',
+            'settings.company_email' => 'nullable|string|max:255',
+            'settings.company_phone' => 'nullable|string|max:50',
+            'settings.company_address' => 'nullable|string|max:1000',
+            'settings.tax_number' => 'nullable|string|max:100',
+            'settings.tax_number_label' => 'nullable|string|max:50',
+            'settings.primary_color' => 'nullable|string|max:20',
+            'settings.logo_path' => 'nullable|string|max:500',
+            'settings.bank_details' => 'nullable|string|max:2000',
+            'settings.terms_conditions' => 'nullable|string|max:5000',
+            'settings.payment_terms' => 'nullable|array',
+            'settings.payment_terms.*' => 'nullable|string|max:50',
             'logo' => 'nullable|file|mimes:jpeg,png,jpg,svg|max:2048'
         ]);
 

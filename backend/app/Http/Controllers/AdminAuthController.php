@@ -66,7 +66,19 @@ class AdminAuthController extends Controller
             'email' => ['required', 'email'],
         ]);
 
-        Password::sendResetLink($request->only('email'));
+        // There's no logged-in user at this point (they're locked out), so
+        // MailConfigService::applyUserSmtp() — the "send as yourself"
+        // per-staff SMTP used everywhere else in this app — can't be applied
+        // ahead of time. Laravel's Password::sendResetLink() calls
+        // $user->sendPasswordResetNotification() internally once it resolves
+        // the matching User row; passing a callback lets us apply *that*
+        // user's own SMTP credentials right before it sends, instead of
+        // silently falling back to the global MAIL_MAILER (which is `log`
+        // in this app, meaning the email would never actually go out).
+        Password::sendResetLink($request->only('email'), function (User $user, string $token) {
+            \App\Services\MailConfigService::applyUserSmtp($user);
+            $user->sendPasswordResetNotification($token);
+        });
 
         return response()->json([
             'message' => 'If an account exists for that email, a password reset link has been sent.'

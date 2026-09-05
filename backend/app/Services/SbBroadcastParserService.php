@@ -293,6 +293,10 @@ class SbBroadcastParserService
         $specsText = trim(preg_replace('/\s+/', ' ', $remainder));
         if ($specsText === '') {
             $specsText = null;
+        } else {
+            // Same unbounded-length risk as product_name (see there) — cap
+            // to fit sb_products.specs_text (string(500)).
+            $specsText = mb_substr($specsText, 0, 500);
         }
 
         return [
@@ -346,6 +350,14 @@ class SbBroadcastParserService
             $fallback = trim(preg_replace('/\s+/', ' ', $block));
             $name = mb_substr($fallback, 0, 60);
         }
+
+        // When a paste has no blank lines between products and no recognized
+        // spec keyword (GB/RAM/Storage/etc.) anywhere, the regex above can
+        // fall through to matching almost the entire block as the "name" —
+        // cap it so it always fits the sb_products.product_name column
+        // (string()/VARCHAR(255)) instead of throwing a DB error and
+        // aborting the whole broadcast import.
+        $name = mb_substr($name, 0, 255);
 
         return $name !== '' ? $name : null;
     }

@@ -613,8 +613,6 @@ class InvoiceController extends Controller
             return response()->json(['message' => 'Customer does not have an email address.'], 422);
         }
 
-        $currency = $invoice->company->settings['currency'] ?? 'USD';
-
         // Get default template for invoice
         $template = \App\Models\Template::where('type', 'invoice')->where('is_default', true)->first()
             ?? \App\Models\Template::where('type', 'invoice')->first();
@@ -627,90 +625,21 @@ class InvoiceController extends Controller
             // Apply current user's SMTP settings
             \App\Services\MailConfigService::applyUserSmtp($request->user());
 
-            // Prepare replacements
-            $replacements = [
-                '{invoice_number}' => $invoice->invoice_number,
-                '{customer_name}' => $invoice->customer->name,
-                '{customer_company}' => $invoice->customer->company ?? '',
-                '{total_amount}' => number_format($invoice->total, 2) . ' ' . $currency,
-                '{date}' => \Carbon\Carbon::parse($invoice->date)->format('d M Y'),
-                '{due_date}' => $invoice->due_date ? \Carbon\Carbon::parse($invoice->due_date)->format('d M Y') : '',
-            ];
-
-            // Replace in subject and body
-            $subject = str_replace(array_keys($replacements), array_values($replacements), $template->subject);
-            $emailBody = str_replace(array_keys($replacements), array_values($replacements), $template->email_body);
-
-            // Generate PDF
-            $html = $template->content;
-
-            // Prepare items HTML
-            $itemsHtml = '';
-            foreach ($invoice->items as $index => $item) {
-                $itemVat = $item->total * 0.05;
-                $itemsHtml .= "<tr>
-                    <td style='padding: 10px; border-bottom: 1px solid #eee;'>" . ($index + 1) . "</td>
-                    <td style='padding: 10px; border-bottom: 1px solid #eee;'><strong>{$item->product_name}</strong><br><small>{$item->description}</small></td>
-                    <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: center;'>" . number_format($item->quantity, 2) . "</td>
-                    <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>" . number_format($item->unit_price, 2) . "</td>
-                    <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>" . number_format($itemVat, 2) . "</td>
-                    <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>" . number_format($item->total, 2) . "</td>
-                </tr>";
-            }
-
-            // Prepare Tax Summary Table
-            $taxSummaryHtml = "<table style='width: 100%; border: 1px solid #eee; margin-top: 20px;'>
-                <thead>
-                    <tr style='background: #f9fafb;'>
-                        <th style='padding: 10px; text-align: left; border-bottom: 1px solid #eee;'>Tax Details</th>
-                        <th style='padding: 10px; text-align: right; border-bottom: 1px solid #eee;'>Taxable Amount</th>
-                        <th style='padding: 10px; text-align: right; border-bottom: 1px solid #eee;'>Tax Amount</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td style='padding: 10px; border-bottom: 1px solid #eee;'>Standard Rate (5%)</td>
-                        <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>" . number_format($invoice->subtotal, 2) . " {$currency}</td>
-                        <td style='padding: 10px; border-bottom: 1px solid #eee; text-align: right;'>" . number_format($invoice->vat_amount, 2) . " {$currency}</td>
-                    </tr>
-                    <tr style='font-weight: bold;'>
-                        <td style='padding: 10px;'>Total</td>
-                        <td style='padding: 10px; text-align: right;'>" . number_format($invoice->subtotal, 2) . " {$currency}</td>
-                        <td style='padding: 10px; text-align: right;'>" . number_format($invoice->vat_amount, 2) . " {$currency}</td>
-                    </tr>
-                </tbody>
-            </table>";
-
-            // Prepare Logo
-            $logoPath = public_path('images/logo.png');
-            $logoBase64 = '';
-            if (file_exists($logoPath)) {
-                $logoData = file_get_contents($logoPath);
-                $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
-            }
-
-            $viewUrl = url("/api/view/invoice/{$invoice->invoice_number}");
-
-            $pdfReplacements = array_merge($replacements, [
-                '{logo_url}' => $logoBase64,
-                '{view_url}' => $viewUrl,
-                '{items}' => $itemsHtml,
-                '{subtotal}' => number_format($invoice->subtotal, 2) . ' ' . $currency,
-                '{vat_amount}' => number_format($invoice->vat_amount, 2) . ' ' . $currency,
-                '{tax_summary}' => $taxSummaryHtml,
-                '{total_in_words}' => \App\Helpers\NumberHelper::toWords($invoice->total),
-                '{customer_address}' => nl2br(e($invoice->customer->address ?? '')),
-                '{due_date}' => \Carbon\Carbon::parse($invoice->due_date)->format('d M Y'),
-            ]);
-            $renderedHtml = str_replace(array_keys($pdfReplacements), array_values($pdfReplacements), $html);
-
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($renderedHtml)->setPaper('a4', 'portrait');
-            $pdfContent = $pdf->output();
-            $filename = "Invoice-{$invoice->invoice_number}.pdf";
+            // Subject/body and the PDF must all go through the same
+            // renderPdfHtml()/generatePdfOutput() path used by view/download
+            // (see GeneratesPdf trait) — this previously had its own
+            // hand-rolled token replacement here that never merged in the
+            // company's brand settings (logo, company name/address/etc.),
+            // so the emailed PDF silently lost all branding that Preview/
+            // Download rendered correctly.
+            $subject = $this->renderPdfHtml($template->subject, $invoice, 'invoice');
+            $emailBody = $this->renderPdfHtml($template->email_body, $invoice, 'invoice');
+            $pdfContent = $this->generatePdfOutput($invoice, 'invoice');
+            $filename = $this->pdfFilename($invoice, 'invoice');
 
             // Send Email
             \Illuminate\Support\Facades\Mail::to($invoice->customer->email)
-                ->send(new \App\Mail\InvoiceMail($invoice, $pdfContent, $filename, $subject, $emailBody));
+                ->send(new \App\Mail\InvoiceMail($invoice, $pdfContent, $filename, $subject, $emailBody, $request->user()));
 
             // Update sent timestamp and status
             $invoice->update([
