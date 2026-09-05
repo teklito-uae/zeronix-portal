@@ -34,7 +34,6 @@ import {
   ChevronsRight,
   Settings,
   Activity,
-  Clock,
   ChevronDown,
   User,
   LogOut,
@@ -42,17 +41,11 @@ import {
   Building2,
   BookOpen,
   ShoppingCart,
-  Wallet,
   BarChart3,
-  ClipboardList,
-  PackageCheck,
-  Megaphone,
   Handshake,
   Search,
   Sun,
   Moon,
-  Banknote,
-  CalendarClock,
 } from 'lucide-react';
 
 interface NavItem {
@@ -103,20 +96,18 @@ const getTenantAdminNavGroups = (basePath: string): NavGroup[] => [
     label: 'CRM',
     description: 'Lead → Account → Deal',
     items: [
-      { id: 'leads', label: 'Leads', icon: <UserCircle2 size={18} />, path: `${basePath}/leads` },
+      // 'leads' and 'calendar' hidden for the v1 launch scope-trim — see plan doc.
       { id: 'companies', label: 'Companies', icon: <Building2 size={18} />, path: `${basePath}/companies` },
       { id: 'contacts', label: 'Contacts', icon: <Users size={18} />, path: `${basePath}/contacts` },
       { id: 'deals', label: 'Deals', icon: <Handshake size={18} />, path: `${basePath}/deals` },
-      { id: 'calendar', label: 'Calendar', icon: <CalendarClock size={18} />, path: `${basePath}/calendar` },
     ],
   },
   {
     label: 'Sales',
-    description: 'Quote → Order → Delivery → Invoice → Receipt',
+    description: 'Quote → Invoice → Receipt',
     items: [
+      // 'sales-orders' and 'deliveries' hidden for the v1 launch scope-trim — see plan doc.
       { id: 'quotes', label: 'Quotes', icon: <FileText size={18} />, path: `${basePath}/quotes` },
-      { id: 'sales-orders', label: 'Sales Orders', icon: <ClipboardList size={18} />, path: `${basePath}/sales-orders` },
-      { id: 'deliveries', label: 'Deliveries', icon: <PackageCheck size={18} />, path: `${basePath}/deliveries` },
       { id: 'invoices', label: 'Invoices', icon: <Receipt size={18} />, path: `${basePath}/invoices` },
       { id: 'receipts', label: 'Payment Receipts', icon: <Receipt size={18} />, path: `${basePath}/payment-receipts` },
     ],
@@ -124,10 +115,8 @@ const getTenantAdminNavGroups = (basePath: string): NavGroup[] => [
   {
     label: 'Purchasing',
     items: [
+      // 'purchases', 'expenses', 'payments-made' hidden for the v1 launch scope-trim — see plan doc.
       { id: 'suppliers', label: 'Suppliers', icon: <Truck size={18} />, path: `${basePath}/suppliers` },
-      { id: 'purchases', label: 'Purchases', icon: <ShoppingCart size={18} />, path: `${basePath}/purchases` },
-      { id: 'expenses', label: 'Expenses', icon: <Wallet size={18} />, path: `${basePath}/expenses` },
-      { id: 'payments-made', label: 'Payments Made', icon: <Banknote size={18} />, path: `${basePath}/payments-made` },
       { id: 'supplier-broadcast.view', label: 'Supplier Broadcast', icon: <MessageSquareText size={18} />, path: `${basePath}/supplier-broadcast` },
     ],
   },
@@ -139,21 +128,9 @@ const getTenantAdminNavGroups = (basePath: string): NavGroup[] => [
     ],
   },
   {
-    label: 'Marketing',
-    items: [
-      { id: 'marketing', label: 'Marketing', icon: <Megaphone size={18} />, path: `${basePath}/marketing/dashboard` },
-    ],
-  },
-  {
     label: 'Insights',
     items: [
       { id: 'reports', label: 'Reports', icon: <BarChart3 size={18} />, path: `${basePath}/reports` },
-    ],
-  },
-  {
-    label: 'Workforce',
-    items: [
-      { id: 'attendance', label: 'Attendance', icon: <Clock size={18} />, path: `${basePath}/attendance` },
     ],
   },
   {
@@ -176,20 +153,18 @@ const getTenantStaffNavGroups = (basePath: string): NavGroup[] => [
     label: 'CRM',
     description: 'Lead → Account → Deal',
     items: [
-      { id: 'leads', label: 'Leads', icon: <UserCircle2 size={18} />, path: `${basePath}/leads` },
+      // 'leads' and 'calendar' hidden for the v1 launch scope-trim — see plan doc.
       { id: 'companies', label: 'Companies', icon: <Building2 size={18} />, path: `${basePath}/companies` },
       { id: 'contacts', label: 'Contacts', icon: <Users size={18} />, path: `${basePath}/contacts` },
       { id: 'deals', label: 'Deals', icon: <Handshake size={18} />, path: `${basePath}/deals` },
-      { id: 'calendar', label: 'Calendar', icon: <CalendarClock size={18} />, path: `${basePath}/calendar` },
     ],
   },
   {
     label: 'Sales',
-    description: 'Quote → Order → Delivery → Invoice → Receipt',
+    description: 'Quote → Invoice → Receipt',
     items: [
+      // 'sales-orders' and 'deliveries' hidden for the v1 launch scope-trim — see plan doc.
       { id: 'quotes', label: 'Quotes', icon: <FileText size={18} />, path: `${basePath}/quotes` },
-      { id: 'sales-orders', label: 'Sales Orders', icon: <ClipboardList size={18} />, path: `${basePath}/sales-orders` },
-      { id: 'deliveries', label: 'Deliveries', icon: <PackageCheck size={18} />, path: `${basePath}/deliveries` },
       { id: 'invoices', label: 'Invoices', icon: <Receipt size={18} />, path: `${basePath}/invoices` },
       { id: 'receipts', label: 'Payment Receipts', icon: <Receipt size={18} />, path: `${basePath}/payment-receipts` },
     ],
@@ -197,10 +172,8 @@ const getTenantStaffNavGroups = (basePath: string): NavGroup[] => [
   {
     label: 'Purchasing',
     items: [
+      // 'purchases', 'expenses', 'payments-made' hidden for the v1 launch scope-trim — see plan doc.
       { id: 'suppliers', label: 'Suppliers', icon: <Truck size={18} />, path: `${basePath}/suppliers` },
-      { id: 'purchases', label: 'Purchases', icon: <ShoppingCart size={18} />, path: `${basePath}/purchases` },
-      { id: 'expenses', label: 'Expenses', icon: <Wallet size={18} />, path: `${basePath}/expenses` },
-      { id: 'payments-made', label: 'Payments Made', icon: <Banknote size={18} />, path: `${basePath}/payments-made` },
       { id: 'supplier-broadcast.view', label: 'Supplier Broadcast', icon: <MessageSquareText size={18} />, path: `${basePath}/supplier-broadcast` },
     ],
   },
@@ -208,12 +181,6 @@ const getTenantStaffNavGroups = (basePath: string): NavGroup[] => [
     label: 'Management',
     items: [
       { id: 'products', label: 'Products', icon: <Package size={18} />, path: `${basePath}/products` },
-    ],
-  },
-  {
-    label: 'Marketing',
-    items: [
-      { id: 'marketing', label: 'Marketing', icon: <Megaphone size={18} />, path: `${basePath}/marketing/dashboard` },
     ],
   },
   {

@@ -18,8 +18,7 @@ import { Button } from '@/components/ui/button';
 import { useCurrencyStore } from '@/store/useCurrencyStore';
 import { avatarColorsFor } from '@/lib/avatarColors';
 import { toTitleCase } from '@/lib/utils';
-import { KanbanSquare, List, Plus } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Plus } from 'lucide-react';
 
 import { useDealsViewModeStore } from '@/store/useDealsViewModeStore';
 import { useDealsFiltersStore } from '@/store/useDealsFiltersStore';
@@ -150,8 +149,11 @@ export default function DealsPage() {
   const currency = useCurrencyStore((s) => s.currency);
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // Kanban view hidden for the v1 launch scope-trim (see plan doc) — the
+  // store still defaults to/only ever holds 'list' since nothing can call
+  // setViewMode('kanban') anymore. KanbanBoard below is left in place,
+  // just unreachable, so it's easy to bring back later.
   const viewMode = useDealsViewModeStore((s) => s.viewMode);
-  const setViewMode = useDealsViewModeStore((s) => s.setViewMode);
 
   const { filters, setFilter, resetFilters } = useDealsFiltersStore();
 
@@ -263,32 +265,6 @@ export default function DealsPage() {
   // duplicate page-local header bar.
   useTopbarActions(
     <>
-      <div className="flex items-center gap-0.5 bg-brand-surface border border-brand-border rounded-lg p-0.5">
-        <button
-          type="button"
-          onClick={() => setViewMode('list')}
-          className={cn(
-            'flex items-center gap-1.5 px-2.5 h-[26px] rounded-md text-[12px] font-medium transition-colors',
-            viewMode === 'list'
-              ? 'bg-brand-white text-brand-primary shadow-sm'
-              : 'text-brand-subtle hover:text-brand-primary'
-          )}
-        >
-          <List size={13} /> List
-        </button>
-        <button
-          type="button"
-          onClick={() => setViewMode('kanban')}
-          className={cn(
-            'flex items-center gap-1.5 px-2.5 h-[26px] rounded-md text-[12px] font-medium transition-colors',
-            viewMode === 'kanban'
-              ? 'bg-brand-white text-brand-primary shadow-sm'
-              : 'text-brand-subtle hover:text-brand-primary'
-          )}
-        >
-          <KanbanSquare size={13} /> Pipeline
-        </button>
-      </div>
       <Button onClick={handleNewDeal} size="sm" className="rounded-lg shadow-sm">
         <Plus size={14} /> <span className="hidden sm:inline">New Deal</span>
       </Button>
